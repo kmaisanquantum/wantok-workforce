@@ -803,7 +803,7 @@ function WorkerDetailScreen({ worker, onNavigate }) {
           <TouchableOpacity
             onPress={() => {
               setBooked(true);
-              onNavigate("booking", worker);
+              onNavigate("createBooking", worker);
             }}
             style={{
               flex: 2,
@@ -832,11 +832,13 @@ function WorkerDetailScreen({ worker, onNavigate }) {
   );
 }
 
-function BookingScreen({ worker, onNavigate }) {
+function CreateBookingScreen({ worker, onNavigate }) {
   const [type, setType] = useState("on-demand");
   const [confirmed, setConfirmed] = useState(false);
   const [date, setDate] = useState("");
   const [note, setNote] = useState("");
+
+  if (!worker) return null;
 
   if (confirmed)
     return (
@@ -1102,6 +1104,54 @@ function BookingScreen({ worker, onNavigate }) {
             <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
               Confirm Booking 📅
             </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+function BookingsScreen({ onNavigate }) {
+  return (
+    <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <LinearGradient
+          colors={[COLORS.primaryDark, COLORS.primary]}
+          style={{
+            paddingVertical: 20,
+            paddingHorizontal: 16,
+            paddingBottom: 24,
+          }}
+        >
+          <Text style={{ color: "#fff", fontSize: 18, fontWeight: "800" }}>
+            My Bookings
+          </Text>
+          <Text style={{ color: "rgba(255,255,255,0.75)", marginTop: 4, fontSize: 13 }}>
+            Track your service requests
+          </Text>
+        </LinearGradient>
+
+        <View style={{ padding: 20, alignItems: "center", gap: 16, marginTop: 40 }}>
+          <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: "#E5E7EB", alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ fontSize: 32 }}>📅</Text>
+          </View>
+          <View style={{ alignItems: "center" }}>
+            <Text style={{ fontSize: 18, fontWeight: "700", color: COLORS.text }}>No Bookings Yet</Text>
+            <Text style={{ textAlign: "center", marginTop: 8, color: COLORS.textMuted, fontSize: 14 }}>
+              When you book a Wantok, your active and past service requests will appear here.
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => onNavigate("home")}
+            style={{
+              marginTop: 10,
+              paddingVertical: 12,
+              paddingHorizontal: 24,
+              borderRadius: 12,
+              backgroundColor: COLORS.primary,
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700" }}>Explore Wantoks</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -1453,8 +1503,10 @@ export default function App() {
         return <HomeScreen onNavigate={navigate} currentUser={currentUser} />;
       case "workerDetail":
         return <WorkerDetailScreen worker={screenData} onNavigate={navigate} />;
+      case "createBooking":
+        return <CreateBookingScreen worker={screenData} onNavigate={navigate} />;
       case "booking":
-        return <BookingScreen worker={screenData} onNavigate={navigate} />;
+        return <BookingsScreen onNavigate={navigate} />;
       case "trust":
         return <TrustScreen onNavigate={navigate} />;
       case "profile":
