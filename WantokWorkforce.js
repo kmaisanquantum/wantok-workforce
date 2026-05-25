@@ -3,6 +3,7 @@ import {
   StyleSheet,
   View,
   Text,
+  Image,
   TextInput,
   ScrollView,
   TouchableOpacity,
@@ -1489,7 +1490,10 @@ export default function App() {
           gap: 8,
         }}
       >
-        <Text style={{ fontSize: 18 }}>🤝</Text>
+        <Image
+          source={require("./assets/logo.jpg")}
+          style={{ width: 32, height: 32, borderRadius: 16, resizeMode: "contain" }}
+        />
         <Text
           style={{
             color: "#fff",
