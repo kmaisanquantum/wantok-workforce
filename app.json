@@ -3,7 +3,7 @@
     "name": "Wantok Workforce",
     "slug": "wantok-workforce",
     "owner": "pkalos-organization",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "assets/icon.png",
     "userInterfaceStyle": "light",
@@ -24,7 +24,9 @@
         "foregroundImage": "assets/adaptive-icon.png",
         "backgroundColor": "#1A6B3C"
       },
-      "package": "com.wantok.workforce"
+      "package": "com.wantok.workforce",
+      "versionCode": 2,
+      "userInterfaceStyle": "light"
     },
     "web": {
       "favicon": "assets/favicon.png"
