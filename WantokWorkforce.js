@@ -3,6 +3,7 @@ import {
   StyleSheet,
   View,
   Text,
+  Image,
   TextInput,
   ScrollView,
   TouchableOpacity,
@@ -1111,55 +1112,7 @@ function CreateBookingScreen({ worker, onNavigate }) {
   );
 }
 
-function BookingsScreen({ onNavigate }) {
-  return (
-    <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <LinearGradient
-          colors={[COLORS.primaryDark, COLORS.primary]}
-          style={{
-            paddingVertical: 20,
-            paddingHorizontal: 16,
-            paddingBottom: 24,
-          }}
-        >
-          <Text style={{ color: "#fff", fontSize: 18, fontWeight: "800" }}>
-            My Bookings
-          </Text>
-          <Text style={{ color: "rgba(255,255,255,0.75)", marginTop: 4, fontSize: 13 }}>
-            Track your service requests
-          </Text>
-        </LinearGradient>
-
-        <View style={{ padding: 20, alignItems: "center", gap: 16, marginTop: 40 }}>
-          <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: "#E5E7EB", alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontSize: 32 }}>📅</Text>
-          </View>
-          <View style={{ alignItems: "center" }}>
-            <Text style={{ fontSize: 18, fontWeight: "700", color: COLORS.text }}>No Bookings Yet</Text>
-            <Text style={{ textAlign: "center", marginTop: 8, color: COLORS.textMuted, fontSize: 14 }}>
-              When you book a Wantok, your active and past service requests will appear here.
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => onNavigate("home")}
-            style={{
-              marginTop: 10,
-              paddingVertical: 12,
-              paddingHorizontal: 24,
-              borderRadius: 12,
-              backgroundColor: COLORS.primary,
-            }}
-          >
-            <Text style={{ color: "#fff", fontWeight: "700" }}>Explore Wantoks</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
-
-function ProfileScreen({ onNavigate, currentUser, onToggleUser }) {
+function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout }) {
   const isProvider = currentUser === "provider";
 
   return (
@@ -1334,6 +1287,32 @@ function ProfileScreen({ onNavigate, currentUser, onToggleUser }) {
               <Text style={{ color: COLORS.textLight, fontSize: 16 }}>›</Text>
             </TouchableOpacity>
           ))}
+
+          {/* Logout */}
+          <TouchableOpacity
+            onPress={onLogout}
+            style={{
+              backgroundColor: "#FFF1F2",
+              borderRadius: 16,
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              marginTop: 12,
+              borderWidth: 1,
+              borderColor: "#FECDD3",
+            }}
+          >
+            <Text style={{ fontSize: 20 }}>👋</Text>
+            <View>
+              <Text style={{ fontWeight: "700", fontSize: 14, color: "#E11D48" }}>
+                Sign Out
+              </Text>
+              <Text style={{ marginTop: 2, fontSize: 12, color: "#FB7185" }}>
+                Log out of your account
+              </Text>
+            </View>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -1487,17 +1466,154 @@ const NAV_ITEMS = [
 ];
 
 // ─── MAIN APP ───────────────────────────────────────────────────────────────
+
+function AuthScreen({ onAuth }) {
+  const [mode, setMode] = useState("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+
+  return (
+    <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
+      <LinearGradient
+        colors={[COLORS.primaryDark, COLORS.primary]}
+        style={{ height: 200, justifyContent: "center", alignItems: "center" }}
+      >
+        <Image
+          source={require("./assets/logo.jpg")}
+          style={{ width: 80, height: 80, borderRadius: 40, marginBottom: 10 }}
+        />
+        <Text style={{ color: "#fff", fontSize: 24, fontWeight: "900" }}>
+          WANTOK WORKFORCE
+        </Text>
+      </LinearGradient>
+
+      <ScrollView contentContainerStyle={{ padding: 24 }}>
+        <Text style={{ fontSize: 22, fontWeight: "800", color: COLORS.text, marginBottom: 8 }}>
+          {mode === "signin" ? "Welcome Back" : "Create Account"}
+        </Text>
+        <Text style={{ fontSize: 14, color: COLORS.textMuted, marginBottom: 24 }}>
+          {mode === "signin" ? "Sign in to continue your journey" : "Join the workforce community in PNG"}
+        </Text>
+
+        {mode === "signup" && (
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+              Full Name
+            </Text>
+            <TextInput
+              style={{
+                backgroundColor: "#fff",
+                borderWidth: 1,
+                borderColor: COLORS.border,
+                borderRadius: 10,
+                padding: 12,
+                fontSize: 14,
+              }}
+              placeholder="e.g. James Kapi"
+              value={name}
+              onChangeText={setName}
+            />
+          </View>
+        )}
+
+        <View style={{ marginBottom: 16 }}>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+            Email Address
+          </Text>
+          <TextInput
+            style={{
+              backgroundColor: "#fff",
+              borderWidth: 1,
+              borderColor: COLORS.border,
+              borderRadius: 10,
+              padding: 12,
+              fontSize: 14,
+            }}
+            placeholder="name@example.com"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+          />
+        </View>
+
+        <View style={{ marginBottom: 24 }}>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+            Password
+          </Text>
+          <TextInput
+            style={{
+              backgroundColor: "#fff",
+              borderWidth: 1,
+              borderColor: COLORS.border,
+              borderRadius: 10,
+              padding: 12,
+              fontSize: 14,
+            }}
+            placeholder="Enter your password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+        </View>
+
+        <TouchableOpacity
+          onPress={() => onAuth({ email, name })}
+          style={{
+            backgroundColor: COLORS.primary,
+            paddingVertical: 14,
+            borderRadius: 12,
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>
+            {mode === "signin" ? "Sign In" : "Sign Up"}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={{ flexDirection: "row", justifyContent: "center", gap: 6 }}>
+          <Text style={{ color: COLORS.textMuted, fontSize: 14 }}>
+            {mode === "signin" ? "Don't have an account?" : "Already have an account?"}
+          </Text>
+          <TouchableOpacity onPress={() => setMode(mode === "signin" ? "signup" : "signin")}>
+            <Text style={{ color: COLORS.primary, fontWeight: "700", fontSize: 14 }}>
+              {mode === "signin" ? "Sign Up" : "Sign In"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
 export default function App() {
   const [screen, setScreen] = useState("home");
   const [screenData, setScreenData] = useState(null);
   const [currentUser, setCurrentUser] = useState("customer");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
 
   const navigate = (to, data = null) => {
     setScreen(to);
     setScreenData(data);
   };
 
+  const handleAuth = (userData) => {
+    setUser(userData);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setUser(null);
+    setScreen("home");
+  };
+
   const renderScreen = () => {
+    if (!isAuthenticated) {
+      return <AuthScreen onAuth={handleAuth} />;
+    }
+
     switch (screen) {
       case "home":
         return <HomeScreen onNavigate={navigate} currentUser={currentUser} />;
@@ -1515,6 +1631,7 @@ export default function App() {
             onNavigate={navigate}
             currentUser={currentUser}
             onToggleUser={() => setCurrentUser((u) => (u === "customer" ? "provider" : "customer"))}
+            onLogout={handleLogout}
           />
         );
       default:
@@ -1541,7 +1658,10 @@ export default function App() {
           gap: 8,
         }}
       >
-        <Text style={{ fontSize: 18 }}>🤝</Text>
+        <Image
+          source={require("./assets/logo.jpg")}
+          style={{ width: 32, height: 32, borderRadius: 16, resizeMode: "contain" }}
+        />
         <Text
           style={{
             color: "#fff",
@@ -1573,56 +1693,58 @@ export default function App() {
       <View style={{ flex: 1, backgroundColor: COLORS.bg }}>{renderScreen()}</View>
 
       {/* Bottom Nav */}
-      <View
-        style={{
-          backgroundColor: "#fff",
-          height: Platform.OS === "ios" ? 84 : 68,
-          flexDirection: "row",
-          alignItems: "center",
-          borderTopWidth: 1,
-          borderTopColor: COLORS.border,
-          paddingBottom: Platform.OS === "ios" ? 20 : 4,
-        }}
-      >
-        {NAV_ITEMS.map((item) => {
-          const isActive = activeNav === item.key;
-          return (
-            <TouchableOpacity
-              key={item.key}
-              onPress={() => navigate(item.key)}
-              style={{
-                flex: 1,
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 3,
-                paddingVertical: 4,
-              }}
-            >
-              <View
+      {isAuthenticated && (
+        <View
+          style={{
+            backgroundColor: "#fff",
+            height: Platform.OS === "ios" ? 84 : 68,
+            flexDirection: "row",
+            alignItems: "center",
+            borderTopWidth: 1,
+            borderTopColor: COLORS.border,
+            paddingBottom: Platform.OS === "ios" ? 20 : 4,
+          }}
+        >
+          {NAV_ITEMS.map((item) => {
+            const isActive = activeNav === item.key;
+            return (
+              <TouchableOpacity
+                key={item.key}
+                onPress={() => navigate(item.key)}
                 style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 12,
-                  backgroundColor: isActive ? "#F0FDF4" : "transparent",
+                  flex: 1,
                   alignItems: "center",
                   justifyContent: "center",
+                  gap: 3,
+                  paddingVertical: 4,
                 }}
               >
-                <Text style={{ fontSize: 20 }}>{item.icon}</Text>
-              </View>
-              <Text
-                style={{
-                  fontSize: 10,
-                  fontWeight: isActive ? "800" : "500",
-                  color: isActive ? COLORS.primary : COLORS.textMuted,
-                }}
-              >
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+                <View
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 12,
+                    backgroundColor: isActive ? "#F0FDF4" : "transparent",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: 20 }}>{item.icon}</Text>
+                </View>
+                <Text
+                  style={{
+                    fontSize: 10,
+                    fontWeight: isActive ? "800" : "500",
+                    color: isActive ? COLORS.primary : COLORS.textMuted,
+                  }}
+                >
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
     </SafeAreaView>
   );
 }
