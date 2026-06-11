@@ -40,17 +40,74 @@ const mockWorkers = [
   { id: 4, name: "Susan Karo", role: "Nurse", rating: 5.0, reviews: 56, location: "Goroka", available: true, verified: true, avatar: "SK", type: "white", tags: ["First Aid", "Home Care", "IV"] },
   { id: 5, name: "Tom Waiko", role: "Carpenter", rating: 4.7, reviews: 178, location: "Port Moresby", available: true, verified: false, avatar: "TW", type: "blue", tags: ["Furniture", "Roofing", "Frames"] },
   { id: 6, name: "Lucy Mondo", role: "Lawyer", rating: 4.5, reviews: 42, location: "Lae", available: true, verified: true, avatar: "LM", type: "white", tags: ["Property", "Labour Law", "Contracts"] },
+  { id: 7, name: "John Vagi", role: "Solar Specialist", rating: 4.9, reviews: 34, location: "Port Moresby", available: true, verified: true, avatar: "JV", type: "blue", tags: ["Solar Panel", "Inverter", "Backup Power"] },
+  { id: 8, name: "Kila Piki", role: "Tuffa Tank Expert", rating: 4.7, reviews: 89, location: "Lae", available: true, verified: true, avatar: "KP", type: "blue", tags: ["Tank Connection", "Valve Setup", "Water Storage"] },
+  { id: 9, name: "Sere Mani", role: "PMV Driver", rating: 4.5, reviews: 210, location: "Port Moresby", available: true, verified: true, avatar: "SM", type: "blue", tags: ["Route 4", "Taxi Relief", "PMV"] },
+  { id: 10, name: "Lulu Gau", role: "Meri Blouse Tailor", rating: 5.0, reviews: 15, location: "Goroka", available: true, verified: true, avatar: "LG", type: "blue", tags: ["Sewing", "Meri Blouse", "Repairs"] },
+  { id: 11, name: "Boni Kero", role: "EasyPay Reseller", rating: 4.8, reviews: 312, location: "Madang", available: true, verified: true, avatar: "BK", type: "white", tags: ["EasyPay", "Utility Tokens", "Cash-out"] },
+  { id: 12, name: "Aro Peni", role: "Land Mediator", rating: 4.6, reviews: 28, location: "Mount Hagen", available: true, verified: true, avatar: "AP", type: "white", tags: ["Customary Land", "Dispute", "Mediation"] },
+  { id: 13, name: "Henao Morea", role: "Graphic Designer", rating: 4.9, reviews: 67, location: "Port Moresby", available: true, verified: true, avatar: "HM", type: "white", tags: ["Logo", "Signage", "Flyers"] },
+  { id: 14, name: "Koni Karo", role: "Auto Mechanic", rating: 4.7, reviews: 145, location: "Lae", available: true, verified: false, avatar: "KK", type: "blue", tags: ["Breakdown", "Engine", "Suspension"] },
+  { id: 15, name: "Miri Tei", role: "Community Nurse", rating: 5.0, reviews: 43, location: "Alotau", available: true, verified: true, avatar: "MT", type: "white", tags: ["Dressing", "First Aid", "Wellness"] },
 ];
 
 const categories = [
-  { icon: "⚡", label: "Electric", color: "#F59E0B" },
-  { icon: "🔧", label: "Plumbing", color: "#3B82F6" },
-  { icon: "🪚", label: "Carpentry", color: "#8B5CF6" },
-  { icon: "💼", label: "Finance", color: "#10B981" },
-  { icon: "⚖️", label: "Legal", color: "#EF4444" },
-  { icon: "🏥", label: "Medical", color: "#EC4899" },
-  { icon: "🎨", label: "Design", color: "#F97316" },
-  { icon: "📐", label: "More", color: "#6B7280" },
+  {
+    id: "electric",
+    icon: "⚡",
+    label: "Electric",
+    color: "#F59E0B",
+    subcategories: ["House Wiring", "Solar Installation", "Generator Service", "Fault Audits", "Electronics Repair"]
+  },
+  {
+    id: "plumbing",
+    icon: "🔧",
+    label: "Plumbing",
+    color: "#3B82F6",
+    subcategories: ["Pipe Leaks", "Tuffa Tanks", "Bathroom Fitting", "Drainage", "Water Hauling"]
+  },
+  {
+    id: "carpentry",
+    icon: "🪚",
+    label: "Carpentry",
+    color: "#8B5CF6",
+    subcategories: ["Timber Framework", "Housing Extensions", "Iron Roofing", "Door/Window", "Furniture"]
+  },
+  {
+    id: "finance",
+    icon: "💼",
+    label: "Finance",
+    color: "#10B981",
+    subcategories: ["Bookkeeping", "IRC Tax Help", "Cloud Ledger", "Cash-Flow", "Mobile Money", "EasyPay"]
+  },
+  {
+    id: "legal",
+    icon: "⚖️",
+    label: "Legal",
+    color: "#EF4444",
+    subcategories: ["Document Drafting", "Statutory Decs", "Land Mediation", "ILG Advice", "IPA Registration"]
+  },
+  {
+    id: "medical",
+    icon: "🏥",
+    label: "Medical",
+    color: "#EC4899",
+    subcategories: ["Community Nursing", "First Aid", "Wellness Checks", "Health Literacy"]
+  },
+  {
+    id: "design",
+    icon: "🎨",
+    label: "Design",
+    color: "#F97316",
+    subcategories: ["Signage", "Logo Design", "Digital Printing", "Social Media", "Screen Printing"]
+  },
+  {
+    id: "more",
+    icon: "📐",
+    label: "More",
+    color: "#6B7280",
+    subcategories: ["PMV/Taxi", "Cargo Crew", "Delivery Riders", "Grass Cutting", "Deep Cleaning", "Welding", "Auto Mechanic", "Appliance Tech", "Catering", "Event Setup", "Micro-Farmer", "Livestock", "Market Stall", "Barber", "Tailoring"]
+  },
 ];
 
 const StarRating = ({ rating }) => {
@@ -87,22 +144,34 @@ const TrustBadge = () => (
 
 function HomeScreen({ onNavigate, currentUser }) {
   const [searchText, setSearchText] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [filtered, setFiltered] = useState(mockWorkers);
 
   useEffect(() => {
-    if (!searchText) {
-      setFiltered(mockWorkers);
-      return;
+    let result = mockWorkers;
+
+    if (selectedCategory) {
+      const category = categories.find(c => c.label === selectedCategory);
+      if (category) {
+        result = result.filter(w =>
+          w.tags.some(tag => category.subcategories.some(sub => tag.toLowerCase().includes(sub.toLowerCase()))) ||
+          w.role.toLowerCase().includes(selectedCategory.toLowerCase())
+        );
+      }
     }
-    setFiltered(
-      mockWorkers.filter(
+
+    if (searchText) {
+      result = result.filter(
         (w) =>
           w.name.toLowerCase().includes(searchText.toLowerCase()) ||
           w.role.toLowerCase().includes(searchText.toLowerCase()) ||
-          w.location.toLowerCase().includes(searchText.toLowerCase())
-      )
-    );
-  }, [searchText]);
+          w.location.toLowerCase().includes(searchText.toLowerCase()) ||
+          w.tags.some(t => t.toLowerCase().includes(searchText.toLowerCase()))
+      );
+    }
+
+    setFiltered(result);
+  }, [searchText, selectedCategory]);
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
@@ -171,8 +240,11 @@ function HomeScreen({ onNavigate, currentUser }) {
             <Text style={{ fontSize: 18 }}>🔍</Text>
             <TextInput
               value={searchText}
-              onChangeText={setSearchText}
-              placeholder="Search skills, roles, location..."
+              onChangeText={(text) => {
+                setSearchText(text);
+                if (text) setSelectedCategory(null);
+              }}
+              placeholder="Search skills (e.g. Solar, Tuffa, PMV)..."
               placeholderTextColor={COLORS.textLight}
               style={{
                 flex: 1,
@@ -209,9 +281,14 @@ function HomeScreen({ onNavigate, currentUser }) {
             <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.text }}>
               Categories
             </Text>
-            <Text style={{ fontSize: 12, color: COLORS.primary, fontWeight: "600" }}>
-              See All
-            </Text>
+            <TouchableOpacity onPress={() => {
+              setSelectedCategory(null);
+              setSearchText("");
+            }}>
+              <Text style={{ fontSize: 12, color: COLORS.primary, fontWeight: "600" }}>
+                Clear All
+              </Text>
+            </TouchableOpacity>
           </View>
           <View
             style={{
@@ -223,11 +300,14 @@ function HomeScreen({ onNavigate, currentUser }) {
             {categories.map((cat, i) => (
               <TouchableOpacity
                 key={i}
-                onPress={() => setSearchText(cat.label)}
+                onPress={() => {
+                  setSelectedCategory(cat.label);
+                  setSearchText("");
+                }}
                 style={{
                   width: (width - 32) / 4 - 10,
                   margin: 5,
-                  backgroundColor: "#fff",
+                  backgroundColor: selectedCategory === cat.label ? cat.color + "22" : "#fff",
                   borderRadius: 14,
                   paddingVertical: 12,
                   paddingHorizontal: 8,
@@ -238,6 +318,8 @@ function HomeScreen({ onNavigate, currentUser }) {
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.06,
                   shadowRadius: 8,
+                  borderWidth: selectedCategory === cat.label ? 1 : 0,
+                  borderColor: cat.color,
                 }}
               >
                 <View
@@ -254,7 +336,11 @@ function HomeScreen({ onNavigate, currentUser }) {
                 </View>
                 <Text
                   numberOfLines={1}
-                  style={{ fontSize: 11, fontWeight: "600", color: COLORS.textMuted }}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: "600",
+                    color: selectedCategory === cat.label ? cat.color : COLORS.textMuted
+                  }}
                 >
                   {cat.label}
                 </Text>
@@ -262,6 +348,40 @@ function HomeScreen({ onNavigate, currentUser }) {
             ))}
           </View>
         </View>
+
+        {/* Sub-categories Horizontal Scroll (Only when a category is selected) */}
+        {selectedCategory && (
+          <View style={{ marginBottom: 20 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
+            >
+              {categories.find(c => c.label === selectedCategory)?.subcategories.map((sub, i) => (
+                <TouchableOpacity
+                  key={i}
+                  onPress={() => setSearchText(sub)}
+                  style={{
+                    backgroundColor: searchText === sub ? COLORS.primary : "#fff",
+                    paddingVertical: 8,
+                    paddingHorizontal: 16,
+                    borderRadius: 20,
+                    borderWidth: 1,
+                    borderColor: COLORS.border,
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 12,
+                    fontWeight: "600",
+                    color: searchText === sub ? "#fff" : COLORS.textMuted
+                  }}>
+                    {sub}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Worker Cards */}
         <View style={{ paddingHorizontal: 16, paddingBottom: 20 }}>
@@ -274,21 +394,27 @@ function HomeScreen({ onNavigate, currentUser }) {
             }}
           >
             <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.text }}>
-              {searchText ? `Results (${filtered.length})` : "Top Wantoks Near You"}
+              {searchText || selectedCategory ? `Results (${filtered.length})` : "Top Wantoks Near You"}
             </Text>
             <Text style={{ fontSize: 12, color: COLORS.primary, fontWeight: "600" }}>
               Filter ⚙️
             </Text>
           </View>
-          <View style={{ gap: 12 }}>
-            {filtered.map((worker) => (
-              <WorkerCard
-                key={worker.id}
-                worker={worker}
-                onPress={() => onNavigate("workerDetail", worker)}
-              />
-            ))}
-          </View>
+          {filtered.length > 0 ? (
+            <View style={{ gap: 12 }}>
+              {filtered.map((worker) => (
+                <WorkerCard
+                  key={worker.id}
+                  worker={worker}
+                  onPress={() => onNavigate("workerDetail", worker)}
+                />
+              ))}
+            </View>
+          ) : (
+            <View style={{ padding: 40, alignItems: "center" }}>
+              <Text style={{ fontSize: 16, color: COLORS.textLight }}>No workers found for this selection.</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>
