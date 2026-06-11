@@ -13,6 +13,7 @@ import {
   Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import categories from "./categories.json";
 
 const { width } = Dimensions.get("window");
 
@@ -34,80 +35,21 @@ const COLORS = {
 };
 
 const mockWorkers = [
-  { id: 1, name: "James Kapi", role: "Electrician", rating: 4.8, reviews: 124, location: "Port Moresby", available: true, verified: true, avatar: "JK", type: "blue", tags: ["Wiring", "Solar", "Industrial"] },
-  { id: 2, name: "Mary Teine", role: "Accountant", rating: 4.9, reviews: 87, location: "Lae", available: true, verified: true, avatar: "MT", type: "white", tags: ["Audit", "Tax", "MYOB"] },
-  { id: 3, name: "Peter Aihi", role: "Plumber", rating: 4.6, reviews: 203, location: "Madang", available: false, verified: true, avatar: "PA", type: "blue", tags: ["Pipework", "Gas", "Maintenance"] },
-  { id: 4, name: "Susan Karo", role: "Nurse", rating: 5.0, reviews: 56, location: "Goroka", available: true, verified: true, avatar: "SK", type: "white", tags: ["First Aid", "Home Care", "IV"] },
-  { id: 5, name: "Tom Waiko", role: "Carpenter", rating: 4.7, reviews: 178, location: "Port Moresby", available: true, verified: false, avatar: "TW", type: "blue", tags: ["Furniture", "Roofing", "Frames"] },
-  { id: 6, name: "Lucy Mondo", role: "Lawyer", rating: 4.5, reviews: 42, location: "Lae", available: true, verified: true, avatar: "LM", type: "white", tags: ["Property", "Labour Law", "Contracts"] },
-  { id: 7, name: "John Vagi", role: "Solar Specialist", rating: 4.9, reviews: 34, location: "Port Moresby", available: true, verified: true, avatar: "JV", type: "blue", tags: ["Solar Panel", "Inverter", "Backup Power"] },
-  { id: 8, name: "Kila Piki", role: "Tuffa Tank Expert", rating: 4.7, reviews: 89, location: "Lae", available: true, verified: true, avatar: "KP", type: "blue", tags: ["Tank Connection", "Valve Setup", "Water Storage"] },
-  { id: 9, name: "Sere Mani", role: "PMV Driver", rating: 4.5, reviews: 210, location: "Port Moresby", available: true, verified: true, avatar: "SM", type: "blue", tags: ["Route 4", "Taxi Relief", "PMV"] },
-  { id: 10, name: "Lulu Gau", role: "Meri Blouse Tailor", rating: 5.0, reviews: 15, location: "Goroka", available: true, verified: true, avatar: "LG", type: "blue", tags: ["Sewing", "Meri Blouse", "Repairs"] },
-  { id: 11, name: "Boni Kero", role: "EasyPay Reseller", rating: 4.8, reviews: 312, location: "Madang", available: true, verified: true, avatar: "BK", type: "white", tags: ["EasyPay", "Utility Tokens", "Cash-out"] },
-  { id: 12, name: "Aro Peni", role: "Land Mediator", rating: 4.6, reviews: 28, location: "Mount Hagen", available: true, verified: true, avatar: "AP", type: "white", tags: ["Customary Land", "Dispute", "Mediation"] },
-  { id: 13, name: "Henao Morea", role: "Graphic Designer", rating: 4.9, reviews: 67, location: "Port Moresby", available: true, verified: true, avatar: "HM", type: "white", tags: ["Logo", "Signage", "Flyers"] },
-  { id: 14, name: "Koni Karo", role: "Auto Mechanic", rating: 4.7, reviews: 145, location: "Lae", available: true, verified: false, avatar: "KK", type: "blue", tags: ["Breakdown", "Engine", "Suspension"] },
-  { id: 15, name: "Miri Tei", role: "Community Nurse", rating: 5.0, reviews: 43, location: "Alotau", available: true, verified: true, avatar: "MT", type: "white", tags: ["Dressing", "First Aid", "Wellness"] },
-];
-
-const categories = [
-  {
-    id: "electric",
-    icon: "⚡",
-    label: "Electric",
-    color: "#F59E0B",
-    subcategories: ["House Wiring", "Solar Installation", "Generator Service", "Fault Audits", "Electronics Repair"]
-  },
-  {
-    id: "plumbing",
-    icon: "🔧",
-    label: "Plumbing",
-    color: "#3B82F6",
-    subcategories: ["Pipe Leaks", "Tuffa Tanks", "Bathroom Fitting", "Drainage", "Water Hauling"]
-  },
-  {
-    id: "carpentry",
-    icon: "🪚",
-    label: "Carpentry",
-    color: "#8B5CF6",
-    subcategories: ["Timber Framework", "Housing Extensions", "Iron Roofing", "Door/Window", "Furniture"]
-  },
-  {
-    id: "finance",
-    icon: "💼",
-    label: "Finance",
-    color: "#10B981",
-    subcategories: ["Bookkeeping", "IRC Tax Help", "Cloud Ledger", "Cash-Flow", "Mobile Money", "EasyPay"]
-  },
-  {
-    id: "legal",
-    icon: "⚖️",
-    label: "Legal",
-    color: "#EF4444",
-    subcategories: ["Document Drafting", "Statutory Decs", "Land Mediation", "ILG Advice", "IPA Registration"]
-  },
-  {
-    id: "medical",
-    icon: "🏥",
-    label: "Medical",
-    color: "#EC4899",
-    subcategories: ["Community Nursing", "First Aid", "Wellness Checks", "Health Literacy"]
-  },
-  {
-    id: "design",
-    icon: "🎨",
-    label: "Design",
-    color: "#F97316",
-    subcategories: ["Signage", "Logo Design", "Digital Printing", "Social Media", "Screen Printing"]
-  },
-  {
-    id: "more",
-    icon: "📐",
-    label: "More",
-    color: "#6B7280",
-    subcategories: ["PMV/Taxi", "Cargo Crew", "Delivery Riders", "Grass Cutting", "Deep Cleaning", "Welding", "Auto Mechanic", "Appliance Tech", "Catering", "Event Setup", "Micro-Farmer", "Livestock", "Market Stall", "Barber", "Tailoring"]
-  },
+  { id: 1, name: "James Kapi", role: "Electrician", rating: 4.8, reviews: 124, location: "Port Moresby", available: true, verified: true, avatar: "JK", type: "blue", tags: ["House & Compound Wiring", "Solar Panel & Inverter Installations", "Electrical Fault Audits"] },
+  { id: 2, name: "Mary Teine", role: "Accountant", rating: 4.9, reviews: 87, location: "Lae", available: true, verified: true, avatar: "MT", type: "white", tags: ["Micro-Bookkeeping", "IRC Tax Compliance", "Cloud Ledger Management"] },
+  { id: 3, name: "Peter Aihi", role: "Plumber", rating: 4.6, reviews: 203, location: "Madang", available: false, verified: true, avatar: "PA", type: "blue", tags: ["Water Pipe Leak Repairs", "Tuffa Tank Connections", "Bathroom Component Plumbing"] },
+  { id: 4, name: "Susan Karo", role: "Nurse", rating: 5.0, reviews: 56, location: "Goroka", available: true, verified: true, avatar: "SK", type: "white", tags: ["Community Nursing", "Basic First Aid", "Wellness Checks"] },
+  { id: 5, name: "Tom Waiko", role: "Carpenter", rating: 4.7, reviews: 178, location: "Port Moresby", available: true, verified: false, avatar: "TW", type: "blue", tags: ["Structural Timber Framework", "Housing Extensions", "Corrugated Iron Roofing"] },
+  { id: 6, name: "Lucy Mondo", role: "Lawyer", rating: 4.5, reviews: 42, location: "Lae", available: true, verified: true, avatar: "LM", type: "white", tags: ["Legal Document Drafting", "Statutory Declarations Prep", "Customary Land Mediation"] },
+  { id: 7, name: "John Vagi", role: "Solar Specialist", rating: 4.9, reviews: 34, location: "Port Moresby", available: true, verified: true, avatar: "JV", type: "blue", tags: ["Solar Panel & Inverter Installations", "Backup Diesel Generator Servicing"] },
+  { id: 8, name: "Kila Piki", role: "Tuffa Tank Expert", rating: 4.7, reviews: 89, location: "Lae", available: true, verified: true, avatar: "KP", type: "blue", tags: ["Tuffa Tank Connections", "Water & Fuel Hauling"] },
+  { id: 9, name: "Sere Mani", role: "PMV Driver", rating: 4.5, reviews: 210, location: "Port Moresby", available: true, verified: true, avatar: "SM", type: "blue", tags: ["PMV & Taxi Operators", "Logistics & Delivery Riders"] },
+  { id: 10, name: "Lulu Gau", role: "Meri Blouse Tailor", rating: 5.0, reviews: 15, location: "Goroka", available: true, verified: true, avatar: "LG", type: "blue", tags: ["Tailoring & Sewing Repairs", "Custom Uniform Screen Printing"] },
+  { id: 11, name: "Boni Kero", role: "EasyPay Reseller", rating: 4.8, reviews: 312, location: "Madang", available: true, verified: true, avatar: "BK", type: "white", tags: ["Utility Token Resellers", "Mobile Money Float Agents"] },
+  { id: 12, name: "Aro Peni", role: "Land Mediator", rating: 4.6, reviews: 28, location: "Mount Hagen", available: true, verified: true, avatar: "AP", type: "white", tags: ["Customary Land Mediation", "ILG Incorporation Advice"] },
+  { id: 13, name: "Henao Morea", role: "Graphic Designer", rating: 4.9, reviews: 67, location: "Port Moresby", available: true, verified: true, avatar: "HM", type: "white", tags: ["Commercial Signage", "E-Commerce Logo Creation", "Digital Printing Layouts"] },
+  { id: 14, name: "Koni Karo", role: "Auto Mechanic", rating: 4.7, reviews: 145, location: "Lae", available: true, verified: false, avatar: "KK", type: "blue", tags: ["Mobile Auto Mechanics", "Welding & Metal Fabrication"] },
+  { id: 15, name: "Miri Tei", role: "Community Nurse", rating: 5.0, reviews: 43, location: "Alotau", available: true, verified: true, avatar: "MT", type: "white", tags: ["Community Nursing", "Health Literacy Guidance"] },
 ];
 
 const StarRating = ({ rating }) => {
@@ -154,7 +96,7 @@ function HomeScreen({ onNavigate, currentUser }) {
       const category = categories.find(c => c.label === selectedCategory);
       if (category) {
         result = result.filter(w =>
-          w.tags.some(tag => category.subcategories.some(sub => tag.toLowerCase().includes(sub.toLowerCase()))) ||
+          w.tags.some(tag => category.subcategories.some(sub => tag.toLowerCase().includes(sub.name.toLowerCase()))) ||
           w.role.toLowerCase().includes(selectedCategory.toLowerCase())
         );
       }
@@ -360,9 +302,9 @@ function HomeScreen({ onNavigate, currentUser }) {
               {categories.find(c => c.label === selectedCategory)?.subcategories.map((sub, i) => (
                 <TouchableOpacity
                   key={i}
-                  onPress={() => setSearchText(sub)}
+                  onPress={() => setSearchText(searchText === sub.name ? "" : sub.name)}
                   style={{
-                    backgroundColor: searchText === sub ? COLORS.primary : "#fff",
+                    backgroundColor: searchText === sub.name ? COLORS.primary : "#fff",
                     paddingVertical: 8,
                     paddingHorizontal: 16,
                     borderRadius: 20,
@@ -373,13 +315,22 @@ function HomeScreen({ onNavigate, currentUser }) {
                   <Text style={{
                     fontSize: 12,
                     fontWeight: "600",
-                    color: searchText === sub ? "#fff" : COLORS.textMuted
+                    color: searchText === sub.name ? "#fff" : COLORS.textMuted
                   }}>
-                    {sub}
+                    {sub.name}
                   </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
+            {searchText && categories.find(c => c.label === selectedCategory)?.subcategories.find(s => s.name === searchText) && (
+              <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
+                <View style={{ backgroundColor: "#F9FAFB", padding: 10, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border }}>
+                  <Text style={{ fontSize: 12, color: COLORS.textMuted, lineHeight: 18 }}>
+                    ℹ️ {categories.find(c => c.label === selectedCategory)?.subcategories.find(s => s.name === searchText).description}
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
         )}
 
