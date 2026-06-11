@@ -5,6 +5,7 @@ import 'models/models.dart';
 import 'views/customer_view.dart';
 import 'views/provider_view.dart';
 import 'views/admin_view.dart';
+import 'views/auth/welcome_view.dart';
 
 void main() {
   runApp(
@@ -22,7 +23,13 @@ class WantokApp extends StatelessWidget {
       title: 'Wantok Workforce',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        useMaterial3: true,
         primaryColor: Color(0xFF1A6B3C),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Color(0xFF1A6B3C),
+          primary: Color(0xFF1A6B3C),
+          secondary: Color(0xFFF5A623),
+        ),
         scaffoldBackgroundColor: Color(0xFFF0F4F0),
         fontFamily: 'Inter',
       ),
@@ -36,6 +43,10 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = Provider.of<AppState>(context);
 
+    if (!state.isAuthenticated) {
+      return WelcomeView();
+    }
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -48,7 +59,7 @@ class AppShell extends StatelessWidget {
           ],
         ),
         actions: [
-          _buildRoleSwitcher(context, state),
+          _buildUserAction(context, state),
         ],
       ),
       body: AnimatedSwitcher(
@@ -70,14 +81,21 @@ class AppShell extends StatelessWidget {
     }
   }
 
-  Widget _buildRoleSwitcher(BuildContext context, AppState state) {
-    return PopupMenuButton<AccountRole>(
+  Widget _buildUserAction(BuildContext context, AppState state) {
+    return PopupMenuButton<String>(
       icon: Icon(Icons.account_circle, color: Color(0xFF1A6B3C)),
-      onSelected: (role) => state.switchRole(role),
+      onSelected: (val) {
+        if (val == 'logout') state.logout();
+      },
       itemBuilder: (context) => [
-        PopupMenuItem(value: AccountRole.customer, child: Text('Customer Mode')),
-        PopupMenuItem(value: AccountRole.provider, child: Text('Provider Mode')),
-        PopupMenuItem(value: AccountRole.admin, child: Text('Admin Mode')),
+        PopupMenuItem(enabled: false, child: Text('Hi, ${state.currentUser?.name ?? "User"}')),
+        PopupMenuItem(value: 'logout', child: Row(
+          children: [
+            Icon(Icons.logout, size: 18, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Logout', style: TextStyle(color: Colors.red)),
+          ],
+        )),
       ],
     );
   }

@@ -6,6 +6,55 @@ enum AccountRole { customer, provider, admin }
 
 enum WorkerStatus { available, busy, offline }
 
+class User {
+  final String id;
+  final String name;
+  final String email;
+  final String phone;
+  final AccountRole role;
+  final String? location;
+  final String? primarySkill;
+
+  User({
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.phone,
+    required this.role,
+    this.location,
+    this.primarySkill,
+  });
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      email: json['email'] ?? '',
+      phone: json['phone'] ?? '',
+      role: AccountRole.values.firstWhere(
+        (e) => e.name == (json['role'] ?? 'customer').toString().toLowerCase(),
+        orElse: () => AccountRole.customer,
+      ),
+      location: json['location'],
+      primarySkill: json['primarySkill'],
+    );
+  }
+}
+
+class AuthResponse {
+  final String token;
+  final User user;
+
+  AuthResponse({required this.token, required this.user});
+
+  factory AuthResponse.fromJson(Map<String, dynamic> json) {
+    return AuthResponse(
+      token: json['token'] ?? '',
+      user: User.fromJson(json['user'] ?? {}),
+    );
+  }
+}
+
 class Category {
   final String id;
   final String label;
