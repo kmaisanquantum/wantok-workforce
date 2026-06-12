@@ -17,8 +17,8 @@ import categories from "./categories.json";
 
 const { width } = Dimensions.get("window");
 const API_BASE = Platform.OS === 'web'
-  ? (window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'https://api.wantok.dspng.tech')
-  : 'https://api.wantok.dspng.tech';
+  ? (window.location.hostname === 'localhost' ? 'http://45.32.243.144:8000' : 'http://45.32.243.144:8000')
+  : 'http://45.32.243.144:8000';
 
 const COLORS = {
   primary: "#1A6B3C",
