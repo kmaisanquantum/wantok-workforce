@@ -16,6 +16,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import categories from "./categories.json";
 
 const { width } = Dimensions.get("window");
+const API_BASE = Platform.OS === 'web'
+  ? (window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'https://api.wantok.dspng.tech')
+  : 'https://api.wantok.dspng.tech';
 
 const COLORS = {
   primary: "#1A6B3C",
@@ -1849,7 +1852,7 @@ function AuthScreen({ onAuth }) {
 
   const handleSignIn = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/auth/signin', {
+      const response = await fetch(`${API_BASE}/api/auth/signin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: phone || email, password })
@@ -1870,7 +1873,7 @@ function AuthScreen({ onAuth }) {
       setSignUpStep(2);
     } else {
       try {
-        const response = await fetch('http://localhost:8000/api/auth/signup', {
+        const response = await fetch(`${API_BASE}/api/auth/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, email, phone, password })
