@@ -84,14 +84,14 @@ const TrustBadge = () => (
 
 // ─── SCREENS ───────────────────────────────────────────────────────────────
 
-function HomeScreen({ onNavigate, currentUser }) {
+
+function HomeScreen({ onNavigate, currentUser, onSwitchPersona }) {
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [filtered, setFiltered] = useState(mockWorkers);
 
   useEffect(() => {
     let result = mockWorkers;
-
     if (selectedCategory) {
       const category = categories.find(c => c.label === selectedCategory);
       if (category) {
@@ -101,32 +101,110 @@ function HomeScreen({ onNavigate, currentUser }) {
         );
       }
     }
-
     if (searchText) {
-      result = result.filter(
-        (w) =>
-          w.name.toLowerCase().includes(searchText.toLowerCase()) ||
-          w.role.toLowerCase().includes(searchText.toLowerCase()) ||
-          w.location.toLowerCase().includes(searchText.toLowerCase()) ||
-          w.tags.some(t => t.toLowerCase().includes(searchText.toLowerCase()))
+      result = result.filter(w =>
+        w.name.toLowerCase().includes(searchText.toLowerCase()) ||
+        w.role.toLowerCase().includes(searchText.toLowerCase()) ||
+        w.tags.some(t => t.toLowerCase().includes(searchText.toLowerCase()))
       );
     }
-
     setFiltered(result);
   }, [searchText, selectedCategory]);
+
+  if (currentUser === "provider") {
+    return (
+      <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <LinearGradient
+            colors={[COLORS.primaryDark, COLORS.primary]}
+            style={{ padding: 24, paddingBottom: 40 }}
+          >
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <View>
+                <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>
+                  Welcome Back, Provider
+                </Text>
+                <Text style={{ color: "#fff", fontSize: 24, fontWeight: "900", marginTop: 4 }}>
+                  Your Dashboard
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => onNavigate("profile")}
+                style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.3)" }}
+              >
+                <Text style={{ fontSize: 24 }}>🔧</Text>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+
+          <View style={{ padding: 16, marginTop: -20, gap: 16 }}>
+            {/* Trust Score Card */}
+            <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 20, elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.text }}>Current Trust Score</Text>
+                <Text style={{ fontSize: 18, fontWeight: "900", color: COLORS.primary }}>92%</Text>
+              </View>
+              <View style={{ height: 8, backgroundColor: "#E5E7EB", borderRadius: 4, overflow: "hidden" }}>
+                <View style={{ width: "92%", height: "100%", backgroundColor: COLORS.primary }} />
+              </View>
+              <Text style={{ marginTop: 8, fontSize: 12, color: COLORS.textMuted }}>
+                Keep completing jobs to maintain your top-tier status in Port Moresby!
+              </Text>
+            </View>
+
+            {/* Quick Actions */}
+            <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 16, elevation: 2 }}>
+              <Text style={{ fontSize: 15, fontWeight: "700", color: COLORS.text, marginBottom: 12 }}>Quick Actions</Text>
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                <TouchableOpacity style={{ flex: 1, backgroundColor: "#F0FDF4", padding: 12, borderRadius: 12, alignItems: "center" }}>
+                  <Text style={{ fontSize: 20, marginBottom: 4 }}>📅</Text>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: COLORS.primary }}>Schedule</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ flex: 1, backgroundColor: "#EFF6FF", padding: 12, borderRadius: 12, alignItems: "center" }}>
+                  <Text style={{ fontSize: 20, marginBottom: 4 }}>📈</Text>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#1D4ED8" }}>Earnings</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ flex: 1, backgroundColor: "#FFFBEB", padding: 12, borderRadius: 12, alignItems: "center" }}>
+                  <Text style={{ fontSize: 20, marginBottom: 4 }}>⭐</Text>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#C2410C" }}>Reviews</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Switch Mode Button */}
+            <TouchableOpacity
+              onPress={() => onSwitchPersona("customer")}
+              style={{
+                backgroundColor: "#ECFDF5",
+                borderRadius: 16,
+                padding: 16,
+                alignItems: "center",
+                borderWidth: 1.5,
+                borderColor: "#A7F3D0",
+              }}
+            >
+              <Text style={{ color: "#047857", fontWeight: "800", fontSize: 15 }}>
+                Switch to Customer Mode
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
+        {/* Header Section */}
         <LinearGradient
           colors={[COLORS.primaryDark, COLORS.primary]}
           style={{
-            paddingTop: 20,
+            paddingTop: 10,
             paddingHorizontal: 16,
-            paddingBottom: 28,
-            borderBottomLeftRadius: 28,
-            borderBottomRightRadius: 28,
+            paddingBottom: 25,
+            borderBottomLeftRadius: 30,
+            borderBottomRightRadius: 30,
           }}
         >
           <View
@@ -142,7 +220,7 @@ function HomeScreen({ onNavigate, currentUser }) {
                 Good morning 👋
               </Text>
               <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800", marginTop: 2 }}>
-                {currentUser === "customer" ? "Find a Wantok" : "Your Dashboard"}
+                Find a Wantok
               </Text>
             </View>
             <TouchableOpacity
@@ -322,15 +400,6 @@ function HomeScreen({ onNavigate, currentUser }) {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            {searchText && categories.find(c => c.label === selectedCategory)?.subcategories.find(s => s.name === searchText) && (
-              <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
-                <View style={{ backgroundColor: "#F9FAFB", padding: 10, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border }}>
-                  <Text style={{ fontSize: 12, color: COLORS.textMuted, lineHeight: 18 }}>
-                    ℹ️ {categories.find(c => c.label === selectedCategory)?.subcategories.find(s => s.name === searchText).description}
-                  </Text>
-                </View>
-              </View>
-            )}
           </View>
         )}
 
@@ -371,6 +440,7 @@ function HomeScreen({ onNavigate, currentUser }) {
     </View>
   );
 }
+
 
 function WorkerCard({ worker, onPress }) {
   return (
@@ -2074,7 +2144,7 @@ export default function App() {
 
     switch (screen) {
       case "home":
-        return <HomeScreen onNavigate={navigate} currentUser={currentUser} />;
+        return <HomeScreen onNavigate={navigate} currentUser={currentUser} onSwitchPersona={(role) => setCurrentUser(role)} />;
       case "workerDetail":
         return <WorkerDetailScreen worker={screenData} onNavigate={navigate} />;
       case "createBooking":
@@ -2109,7 +2179,7 @@ export default function App() {
           />
         );
       default:
-        return <HomeScreen onNavigate={navigate} currentUser={currentUser} />;
+        return <HomeScreen onNavigate={navigate} currentUser={currentUser} onSwitchPersona={(role) => setCurrentUser(role)} />;
     }
   };
 
