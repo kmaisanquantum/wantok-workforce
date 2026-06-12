@@ -26,10 +26,18 @@ class AuthController {
       });
     } catch (error) {
       console.error('Signup Error:', error);
+
+      let errorMessage = 'Internal server error during signup';
       if (error.code === '23505') {
-        return res.status(409).json({ error: 'Email or phone number already registered' });
+        errorMessage = 'Email or phone number already registered';
+        return res.status(409).json({ error: errorMessage });
       }
-      return res.status(500).json({ error: 'Internal server error' });
+
+      const detailedError = `DB Error (${error.code || 'No Code'}): ${error.message}`;
+      return res.status(500).json({
+        error: errorMessage,
+        details: detailedError
+      });
     }
   }
 
@@ -61,7 +69,7 @@ class AuthController {
       });
     } catch (error) {
       console.error('Login Error:', error);
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error', details: error.message });
     }
   }
 
@@ -82,7 +90,7 @@ class AuthController {
         active_persona: updated.active_persona
       });
     } catch (error) {
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error', details: error.message });
     }
   }
 
@@ -102,7 +110,7 @@ class AuthController {
         active_persona: updated.active_persona
       });
     } catch (error) {
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error', details: error.message });
     }
   }
 }

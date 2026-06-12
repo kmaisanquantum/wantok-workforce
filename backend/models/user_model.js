@@ -1,20 +1,34 @@
 const { Pool } = require('pg');
 
-const pool = new Pool({
+const poolConfig = {
   connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/wantok',
-});
+};
+
+if (process.env.NODE_ENV === 'production') {
+  poolConfig.ssl = {
+    rejectUnauthorized: false
+  };
+}
+
+const pool = new Pool(poolConfig);
 
 class UserModel {
+  static async checkConnection() {
+    const client = await pool.connect();
+    try {
+      await client.query('SELECT NOW()');
+      return true;
+    } finally {
+      client.release();
+    }
+  }
+
   static async create(userData) {
     const { name, phone, email, passwordHash } = userData;
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      const userQuery = `
-        INSERT INTO users (name, phone_number, email, password_hash)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id, name, email, phone_number, active_persona
-      `;
+      const userQuery = 'INSERT INTO users (name, phone_number, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, name, email, phone_number, active_persona';
       const { rows } = await client.query(userQuery, [name, phone, email, passwordHash]);
       const user = rows[0];
 
@@ -29,25 +43,13 @@ class UserModel {
   }
 
   static async findByIdentifier(identifier) {
-    const query = `
-      SELECT u.*, array_agg(ur.role_name) as roles
-      FROM users u
-      LEFT JOIN user_roles ur ON u.id = ur.user_id
-      WHERE u.email = $1 OR u.phone_number = $1
-      GROUP BY u.id
-    `;
+    const query = 'SELECT u.*, array_agg(ur.role_name) as roles FROM users u LEFT JOIN user_roles ur ON u.id = ur.user_id WHERE u.email = $1 OR u.phone_number = $1 GROUP BY u.id';
     const { rows } = await pool.query(query, [identifier]);
     return rows[0];
   }
 
   static async findById(id) {
-    const query = `
-      SELECT u.*, array_agg(ur.role_name) as roles
-      FROM users u
-      LEFT JOIN user_roles ur ON u.id = ur.user_id
-      WHERE u.id = $1
-      GROUP BY u.id
-    `;
+    const query = 'SELECT u.*, array_agg(ur.role_name) as roles FROM users u LEFT JOIN user_roles ur ON u.id = ur.user_id WHERE u.id = $1 GROUP BY u.id';
     const { rows } = await pool.query(query, [id]);
     return rows[0];
   }
