@@ -1189,7 +1189,7 @@ function CreateBookingScreen({ worker, onNavigate }) {
   );
 }
 
-function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout }) {
+function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout, user }) {
   const isProvider = currentUser === "provider";
 
   return (
@@ -1223,10 +1223,10 @@ function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout }) {
             </View>
             <View style={{ alignItems: "center" }}>
               <Text style={{ color: "#fff", fontWeight: "800", fontSize: 18 }}>
-                {isProvider ? "James Kapi" : "Sarah Mano"}
+                {user?.name || (isProvider ? "James Kapi" : "Sarah Mano")}
               </Text>
               <Text style={{ color: "rgba(255,255,255,0.75)", marginTop: 4, fontSize: 13 }}>
-                {isProvider ? "Electrician · Port Moresby" : "Customer · Lae, PNG"}
+                {isProvider ? ((user?.role || "Electrician") + " · " + (user?.location || "Port Moresby")) : "Customer · Lae, PNG"}
               </Text>
             </View>
           </View>
@@ -1631,11 +1631,163 @@ function BookingsScreen({ onNavigate }) {
   );
 }
 
+
+function RoleSelectionScreen({ onSelectRole }) {
+  return (
+    <View style={{ flex: 1, backgroundColor: COLORS.bg, padding: 24, justifyContent: "center" }}>
+      <Text style={{ fontSize: 24, fontWeight: "900", color: COLORS.primary, textAlign: "center", marginBottom: 8 }}>
+        Choose Your Role
+      </Text>
+      <Text style={{ fontSize: 16, color: COLORS.textMuted, textAlign: "center", marginBottom: 32 }}>
+        Select how you want to use Wantok Workforce
+      </Text>
+
+      <View style={{ gap: 16 }}>
+        <TouchableOpacity
+          onPress={() => onSelectRole("customer")}
+          style={{
+            backgroundColor: "#fff",
+            borderRadius: 20,
+            padding: 24,
+            flexDirection: "row",
+            alignItems: "center",
+            borderWidth: 2,
+            borderColor: COLORS.border,
+            gap: 16,
+          }}
+        >
+          <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: "#F0FDF4", alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ fontSize: 32 }}>🤝</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 18, fontWeight: "800", color: COLORS.text, marginBottom: 4 }}>
+              Become a Customer
+            </Text>
+            <Text style={{ fontSize: 13, color: COLORS.textMuted, lineHeight: 18 }}>
+              I want to find and hire trusted local professionals in Port Moresby.
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => onSelectRole("provider")}
+          style={{
+            backgroundColor: "#fff",
+            borderRadius: 20,
+            padding: 24,
+            flexDirection: "row",
+            alignItems: "center",
+            borderWidth: 2,
+            borderColor: COLORS.border,
+            gap: 16,
+          }}
+        >
+          <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: "#F0FDF4", alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ fontSize: 32 }}>🔧</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 18, fontWeight: "800", color: COLORS.text, marginBottom: 4 }}>
+              Become a Service Provider
+            </Text>
+            <Text style={{ fontSize: 13, color: COLORS.textMuted, lineHeight: 18 }}>
+              I want to list my trade, grow my business, and find local jobs.
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+function ProviderOnboardingScreen({ onComplete }) {
+  const [trade, setTrade] = useState("");
+  const [city, setCity] = useState("");
+
+  return (
+    <View style={{ flex: 1, backgroundColor: COLORS.bg, padding: 24 }}>
+      <Text style={{ fontSize: 22, fontWeight: "800", color: COLORS.text, marginBottom: 8, marginTop: 40 }}>
+        Complete Your Trade Profile
+      </Text>
+      <Text style={{ fontSize: 14, color: COLORS.textMuted, marginBottom: 32 }}>
+        Tell us a bit more about your services to get started.
+      </Text>
+
+      <View style={{ marginBottom: 20 }}>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+          Trade Type
+        </Text>
+        <TextInput
+          style={{
+            backgroundColor: "#fff",
+            borderWidth: 1,
+            borderColor: COLORS.border,
+            borderRadius: 12,
+            padding: 14,
+            fontSize: 15,
+          }}
+          placeholder="e.g. Electrician, Plumber, Tailor"
+          value={trade}
+          onChangeText={setTrade}
+        />
+      </View>
+
+      <View style={{ marginBottom: 32 }}>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+          City Location
+        </Text>
+        <TextInput
+          style={{
+            backgroundColor: "#fff",
+            borderWidth: 1,
+            borderColor: COLORS.border,
+            borderRadius: 12,
+            padding: 14,
+            fontSize: 15,
+          }}
+          placeholder="e.g. Port Moresby, Lae"
+          value={city}
+          onChangeText={setCity}
+        />
+      </View>
+
+      <TouchableOpacity
+        onPress={() => onComplete({ role: trade, location: city })}
+        disabled={!trade || !city}
+        style={{
+          backgroundColor: (!trade || !city) ? COLORS.textLight : COLORS.primary,
+          paddingVertical: 16,
+          borderRadius: 14,
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>
+          Complete Profile
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+
 function AuthScreen({ onAuth }) {
   const [mode, setMode] = useState("signin");
+  const [signUpStep, setSignUpStep] = useState(1);
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+
+  const handleSignIn = () => {
+    onAuth({ email, phone, name: name || "User" }, false);
+  };
+
+  const handleSignUpNext = () => {
+    if (signUpStep === 1) {
+      setSignUpStep(2);
+    } else {
+      onAuth({ email, phone, name }, true);
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
@@ -1653,129 +1805,246 @@ function AuthScreen({ onAuth }) {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 24 }}>
-        <Text style={{ fontSize: 22, fontWeight: "800", color: COLORS.text, marginBottom: 8 }}>
-          {mode === "signin" ? "Welcome Back" : "Create Account"}
-        </Text>
-        <Text style={{ fontSize: 14, color: COLORS.textMuted, marginBottom: 24 }}>
-          {mode === "signin" ? "Sign in to continue your journey" : "Join the workforce community in PNG"}
-        </Text>
+        <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 24, elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 }}>
+          <Text style={{ fontSize: 22, fontWeight: "800", color: COLORS.text, marginBottom: 8 }}>
+            {mode === "signin" ? "Welcome Back" : "Create Account"}
+          </Text>
+          <Text style={{ fontSize: 14, color: COLORS.textMuted, marginBottom: 24 }}>
+            {mode === "signin"
+              ? "Sign in to continue your journey"
+              : `Step ${signUpStep} of 2: ${signUpStep === 1 ? "Basic Info" : "Security"}`}
+          </Text>
 
-        {mode === "signup" && (
-          <View style={{ marginBottom: 16 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
-              Full Name
+          {mode === "signin" ? (
+            <>
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+                  Phone Number or Email
+                </Text>
+                <TextInput
+                  style={{
+                    backgroundColor: "#fff",
+                    borderWidth: 1,
+                    borderColor: COLORS.border,
+                    borderRadius: 10,
+                    padding: 12,
+                    fontSize: 14,
+                  }}
+                  placeholder="0000 0000 or email@example.com"
+                  value={phone || email}
+                  onChangeText={(val) => val.includes("@") ? setEmail(val) : setPhone(val)}
+                  autoCapitalize="none"
+                />
+              </View>
+              <View style={{ marginBottom: 24 }}>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+                  Password
+                </Text>
+                <TextInput
+                  style={{
+                    backgroundColor: "#fff",
+                    borderWidth: 1,
+                    borderColor: COLORS.border,
+                    borderRadius: 10,
+                    padding: 12,
+                    fontSize: 14,
+                  }}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                />
+              </View>
+              <TouchableOpacity
+                onPress={handleSignIn}
+                style={{
+                  backgroundColor: COLORS.primary,
+                  paddingVertical: 14,
+                  borderRadius: 12,
+                  alignItems: "center",
+                  marginBottom: 16,
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>Sign In</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              {signUpStep === 1 ? (
+                <>
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+                      Full Name
+                    </Text>
+                    <TextInput
+                      style={{
+                        backgroundColor: "#fff",
+                        borderWidth: 1,
+                        borderColor: COLORS.border,
+                        borderRadius: 10,
+                        padding: 12,
+                        fontSize: 14,
+                      }}
+                      placeholder="e.g. James Kapi"
+                      value={name}
+                      onChangeText={setName}
+                    />
+                  </View>
+                  <View style={{ marginBottom: 24 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+                      Email Address
+                    </Text>
+                    <TextInput
+                      style={{
+                        backgroundColor: "#fff",
+                        borderWidth: 1,
+                        borderColor: COLORS.border,
+                        borderRadius: 10,
+                        padding: 12,
+                        fontSize: 14,
+                      }}
+                      placeholder="name@example.com"
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                    />
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+                      Phone Number
+                    </Text>
+                    <TextInput
+                      style={{
+                        backgroundColor: "#fff",
+                        borderWidth: 1,
+                        borderColor: COLORS.border,
+                        borderRadius: 10,
+                        padding: 12,
+                        fontSize: 14,
+                      }}
+                      placeholder="e.g. 7000 1234"
+                      value={phone}
+                      onChangeText={setPhone}
+                      keyboardType="phone-pad"
+                    />
+                  </View>
+                  <View style={{ marginBottom: 24 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+                      Create Password
+                    </Text>
+                    <TextInput
+                      style={{
+                        backgroundColor: "#fff",
+                        borderWidth: 1,
+                        borderColor: COLORS.border,
+                        borderRadius: 10,
+                        padding: 12,
+                        fontSize: 14,
+                      }}
+                      placeholder="Min. 8 characters"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry
+                    />
+                  </View>
+                </>
+              )}
+              <TouchableOpacity
+                onPress={handleSignUpNext}
+                style={{
+                  backgroundColor: COLORS.primary,
+                  paddingVertical: 14,
+                  borderRadius: 12,
+                  alignItems: "center",
+                  marginBottom: 16,
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>
+                  {signUpStep === 1 ? "Next Step" : "Create Account"}
+                </Text>
+              </TouchableOpacity>
+              {signUpStep === 2 && (
+                <TouchableOpacity onPress={() => setSignUpStep(1)} style={{ alignItems: "center", marginBottom: 16 }}>
+                  <Text style={{ color: COLORS.textMuted, fontSize: 14 }}>Back to Basic Info</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+
+          <View style={{ flexDirection: "row", justifyContent: "center", gap: 6 }}>
+            <Text style={{ color: COLORS.textMuted, fontSize: 14 }}>
+              {mode === "signin" ? "Don't have an account?" : "Already have an account?"}
             </Text>
-            <TextInput
-              style={{
-                backgroundColor: "#fff",
-                borderWidth: 1,
-                borderColor: COLORS.border,
-                borderRadius: 10,
-                padding: 12,
-                fontSize: 14,
-              }}
-              placeholder="e.g. James Kapi"
-              value={name}
-              onChangeText={setName}
-            />
+            <TouchableOpacity onPress={() => {
+              setMode(mode === "signin" ? "signup" : "signin");
+              setSignUpStep(1);
+            }}>
+              <Text style={{ color: COLORS.primary, fontWeight: "700", fontSize: 14 }}>
+                {mode === "signin" ? "Sign Up" : "Sign In"}
+              </Text>
+            </TouchableOpacity>
           </View>
-        )}
-
-        <View style={{ marginBottom: 16 }}>
-          <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
-            Email Address
-          </Text>
-          <TextInput
-            style={{
-              backgroundColor: "#fff",
-              borderWidth: 1,
-              borderColor: COLORS.border,
-              borderRadius: 10,
-              padding: 12,
-              fontSize: 14,
-            }}
-            placeholder="name@example.com"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-          />
-        </View>
-
-        <View style={{ marginBottom: 24 }}>
-          <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
-            Password
-          </Text>
-          <TextInput
-            style={{
-              backgroundColor: "#fff",
-              borderWidth: 1,
-              borderColor: COLORS.border,
-              borderRadius: 10,
-              padding: 12,
-              fontSize: 14,
-            }}
-            placeholder="Enter your password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-        </View>
-
-        <TouchableOpacity
-          onPress={() => onAuth({ email, name })}
-          style={{
-            backgroundColor: COLORS.primary,
-            paddingVertical: 14,
-            borderRadius: 12,
-            alignItems: "center",
-            marginBottom: 16,
-          }}
-        >
-          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>
-            {mode === "signin" ? "Sign In" : "Sign Up"}
-          </Text>
-        </TouchableOpacity>
-
-        <View style={{ flexDirection: "row", justifyContent: "center", gap: 6 }}>
-          <Text style={{ color: COLORS.textMuted, fontSize: 14 }}>
-            {mode === "signin" ? "Don't have an account?" : "Already have an account?"}
-          </Text>
-          <TouchableOpacity onPress={() => setMode(mode === "signin" ? "signup" : "signin")}>
-            <Text style={{ color: COLORS.primary, fontWeight: "700", fontSize: 14 }}>
-              {mode === "signin" ? "Sign Up" : "Sign In"}
-            </Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
   );
 }
+
+
 export default function App() {
   const [screen, setScreen] = useState("home");
   const [screenData, setScreenData] = useState(null);
-  const [currentUser, setCurrentUser] = useState("customer");
+  const [currentUser, setCurrentUser] = useState(null); // "customer" or "provider"
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
 
   const navigate = (to, data = null) => {
     setScreen(to);
     setScreenData(data);
   };
 
-  const handleAuth = (userData) => {
+  const handleAuth = (userData, isSignUp = false) => {
     setUser(userData);
     setIsAuthenticated(true);
+    if (isSignUp) {
+      setCurrentUser(null);
+      setOnboardingComplete(false);
+    } else {
+      // Mocking existing user data
+      setCurrentUser("customer");
+      setOnboardingComplete(true);
+    }
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     setUser(null);
+    setCurrentUser(null);
+    setOnboardingComplete(false);
     setScreen("home");
   };
 
   const renderScreen = () => {
     if (!isAuthenticated) {
       return <AuthScreen onAuth={handleAuth} />;
+    }
+
+    if (!currentUser) {
+      return <RoleSelectionScreen onSelectRole={(role) => {
+        setCurrentUser(role);
+        if (role === "customer") setOnboardingComplete(true);
+      }} />;
+    }
+
+    if (currentUser === "provider" && !onboardingComplete) {
+      return <ProviderOnboardingScreen onComplete={(details) => {
+        setUser({ ...user, ...details });
+        setOnboardingComplete(true);
+      }} />;
     }
 
     switch (screen) {
@@ -1794,8 +2063,22 @@ export default function App() {
           <ProfileScreen
             onNavigate={navigate}
             currentUser={currentUser}
-            onToggleUser={() => setCurrentUser((u) => (u === "customer" ? "provider" : "customer"))}
+            onToggleUser={() => {
+              if (currentUser === "customer") {
+                if (user?.role && user?.location) {
+                  setCurrentUser("provider");
+                  setOnboardingComplete(true);
+                } else {
+                  setCurrentUser("provider");
+                  setOnboardingComplete(false);
+                }
+              } else {
+                setCurrentUser("customer");
+                setOnboardingComplete(true);
+              }
+            }}
             onLogout={handleLogout}
+            user={user}
           />
         );
       default:
@@ -1857,7 +2140,7 @@ export default function App() {
       <View style={{ flex: 1, backgroundColor: COLORS.bg }}>{renderScreen()}</View>
 
       {/* Bottom Nav */}
-      {isAuthenticated && (
+      {isAuthenticated && currentUser && onboardingComplete && (
         <View
           style={{
             backgroundColor: "#fff",
