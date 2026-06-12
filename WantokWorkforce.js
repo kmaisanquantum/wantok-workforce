@@ -1861,7 +1861,7 @@ function AuthScreen({ onAuth }) {
       if (response.ok) {
         onAuth({ ...data.user, token: data.token }, false);
       } else {
-        alert(data.error || 'Signin failed');
+        alert(data.details || data.error || 'Signin failed');
       }
     } catch (error) {
       alert('Network error. Is the server running?');
@@ -1882,7 +1882,7 @@ function AuthScreen({ onAuth }) {
         if (response.ok) {
           onAuth({ ...data.user, token: data.token }, true);
         } else {
-          alert(data.error || 'Signup failed');
+          alert(data.details || data.error || 'Signup failed');
         }
       } catch (error) {
         alert('Network error. Is the server running?');

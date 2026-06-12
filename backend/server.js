@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth_routes');
+const UserModel = require('./models/user_model');
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -23,7 +24,16 @@ app.get('/', (req, res) => {
 });
 
 // Initialize server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Wantok Backend running on port ${PORT}`);
+
+  // DB Connectivity Check
+  try {
+    await UserModel.checkConnection();
+    console.log('✅ Database connection established successfully.');
+  } catch (err) {
+    console.error('❌ Database connection failed:', err.message);
+  }
+
   console.log(`Accepting requests at http://localhost:${PORT}/api/auth`);
 });
