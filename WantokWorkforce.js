@@ -1848,17 +1848,30 @@ function AuthScreen({ onAuth }) {
   const [signUpStep, setSignUpStep] = useState(1);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [identifier, setIdentifier] = useState(""); // Unified local state for Sign In to fix lag
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
-    const handleSignIn = async () => {
+      const handleSignIn = async () => {
     if (loading) return;
     setLoading(true);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
     try {
+      // Determine if identifier is email or phone
+      const loginPayload = {
+        identifier: identifier,
+        password: password
+      };
+
       const response = await fetch(`${API_BASE}/api/auth/signin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: phone || email, password })
+        body: JSON.stringify(loginPayload),
+        signal: controller.signal
       });
 
       const data = await response.json().catch(() => ({ error: 'Invalid response from server' }));
@@ -1869,24 +1882,34 @@ function AuthScreen({ onAuth }) {
         alert(data.details || data.error || 'Signin failed');
       }
     } catch (error) {
-      console.error('SignIn Error:', error);
-      alert('Network error. Is the server running?');
+      if (error.name === 'AbortError') {
+        alert('Request timed out. Please try again.');
+      } else {
+        console.error('SignIn Error:', error);
+        alert('Network error. Is the server running?');
+      }
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };
 
-    const handleSignUpNext = async () => {
+      const handleSignUpNext = async () => {
     if (signUpStep === 1) {
       setSignUpStep(2);
     } else {
       if (loading) return;
       setLoading(true);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
       try {
         const response = await fetch(`${API_BASE}/api/auth/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, phone, password })
+          body: JSON.stringify({ name, email, phone, password }),
+          signal: controller.signal
         });
 
         const data = await response.json().catch(() => ({ error: 'Invalid response from server' }));
@@ -1897,9 +1920,14 @@ function AuthScreen({ onAuth }) {
           alert(data.details || data.error || 'Signup failed');
         }
       } catch (error) {
-        console.error('SignUp Error:', error);
-        alert('Network error. Is the server running?');
+        if (error.name === 'AbortError') {
+          alert('Request timed out. Please try again.');
+        } else {
+          console.error('SignUp Error:', error);
+          alert('Network error. Is the server running?');
+        }
       } finally {
+        clearTimeout(timeoutId);
         setLoading(false);
       }
     }
@@ -1947,8 +1975,8 @@ function AuthScreen({ onAuth }) {
                     fontSize: 14,
                   }}
                   placeholder="0000 0000 or email@example.com"
-                  value={phone || email}
-                  onChangeText={(val) => val.includes("@") ? setEmail(val) : setPhone(val)}
+                  value={identifier}
+                  onChangeText={setIdentifier}
                   autoCapitalize="none"
                 />
               </View>
@@ -1956,20 +1984,31 @@ function AuthScreen({ onAuth }) {
                 <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
                   Password
                 </Text>
-                <TextInput
-                  style={{
-                    backgroundColor: "#fff",
-                    borderWidth: 1,
-                    borderColor: COLORS.border,
-                    borderRadius: 10,
-                    padding: 12,
-                    fontSize: 14,
-                  }}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                />
+                <View style={{ position: 'relative' }}>
+                  <TextInput
+                    style={{
+                      backgroundColor: "#fff",
+                      borderWidth: 1,
+                      borderColor: COLORS.border,
+                      borderRadius: 10,
+                      padding: 12,
+                      paddingRight: 50,
+                      fontSize: 14,
+                    }}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={{ position: 'absolute', right: 12, top: 12 }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: COLORS.primary }}>
+                      {showPassword ? "HIDE" : "SHOW"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
               <TouchableOpacity
                 onPress={handleSignIn}
@@ -2051,20 +2090,31 @@ function AuthScreen({ onAuth }) {
                     <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
                       Create Password
                     </Text>
-                    <TextInput
-                      style={{
-                        backgroundColor: "#fff",
-                        borderWidth: 1,
-                        borderColor: COLORS.border,
-                        borderRadius: 10,
-                        padding: 12,
-                        fontSize: 14,
-                      }}
-                      placeholder="Min. 8 characters"
-                      value={password}
-                      onChangeText={setPassword}
-                      secureTextEntry
-                    />
+                    <View style={{ position: 'relative' }}>
+                      <TextInput
+                        style={{
+                          backgroundColor: "#fff",
+                          borderWidth: 1,
+                          borderColor: COLORS.border,
+                          borderRadius: 10,
+                          padding: 12,
+                          paddingRight: 50,
+                          fontSize: 14,
+                        }}
+                        placeholder="Min. 8 characters"
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry={!showPassword}
+                      />
+                      <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                        style={{ position: 'absolute', right: 12, top: 12 }}
+                      >
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: COLORS.primary }}>
+                          {showPassword ? "HIDE" : "SHOW"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </>
               )}
