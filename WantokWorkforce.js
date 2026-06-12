@@ -1843,6 +1843,7 @@ function ProviderOnboardingScreen({ onComplete }) {
 
 
 function AuthScreen({ onAuth }) {
+  const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState("signin");
   const [signUpStep, setSignUpStep] = useState(1);
   const [email, setEmail] = useState("");
@@ -1850,42 +1851,56 @@ function AuthScreen({ onAuth }) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
 
-  const handleSignIn = async () => {
+    const handleSignIn = async () => {
+    if (loading) return;
+    setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/api/auth/signin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: phone || email, password })
       });
-      const data = await response.json();
+
+      const data = await response.json().catch(() => ({ error: 'Invalid response from server' }));
+
       if (response.ok) {
         onAuth({ ...data.user, token: data.token }, false);
       } else {
         alert(data.details || data.error || 'Signin failed');
       }
     } catch (error) {
+      console.error('SignIn Error:', error);
       alert('Network error. Is the server running?');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSignUpNext = async () => {
+    const handleSignUpNext = async () => {
     if (signUpStep === 1) {
       setSignUpStep(2);
     } else {
+      if (loading) return;
+      setLoading(true);
       try {
         const response = await fetch(`${API_BASE}/api/auth/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, email, phone, password })
         });
-        const data = await response.json();
+
+        const data = await response.json().catch(() => ({ error: 'Invalid response from server' }));
+
         if (response.ok) {
           onAuth({ ...data.user, token: data.token }, true);
         } else {
           alert(data.details || data.error || 'Signup failed');
         }
       } catch (error) {
+        console.error('SignUp Error:', error);
         alert('Network error. Is the server running?');
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -1966,7 +1981,7 @@ function AuthScreen({ onAuth }) {
                   marginBottom: 16,
                 }}
               >
-                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>Sign In</Text>
+                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>{loading ? "Signing In..." : "Sign In"}</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -2064,7 +2079,7 @@ function AuthScreen({ onAuth }) {
                 }}
               >
                 <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>
-                  {signUpStep === 1 ? "Next Step" : "Create Account"}
+                  {loading ? "Creating Account..." : (signUpStep === 1 ? "Next Step" : "Create Account")}
                 </Text>
               </TouchableOpacity>
               {signUpStep === 2 && (
