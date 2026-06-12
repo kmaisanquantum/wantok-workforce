@@ -7,7 +7,7 @@ import '../models/models.dart';
  */
 class ApiService {
   final Dio _dio = Dio(BaseOptions(
-    baseUrl: 'http://45.32.243.144:8000',
+    baseUrl: 'http://45.32.243.144:3000',
     connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 3),
   ));

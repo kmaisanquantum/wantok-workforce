@@ -4,7 +4,7 @@ const authRoutes = require('./routes/auth_routes');
 const UserModel = require('./models/user_model');
 
 const app = express();
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({ origin: '*' }));
