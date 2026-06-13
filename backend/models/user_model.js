@@ -12,6 +12,9 @@ if (process.env.NODE_ENV === 'production') {
 
 const pool = new Pool(poolConfig);
 
+// Export pool for initialization
+module.exports.pool = pool;
+
 class UserModel {
   static async checkConnection() {
     const client = await pool.connect();
@@ -36,6 +39,7 @@ class UserModel {
       return user;
     } catch (e) {
       await client.query('ROLLBACK');
+      console.error('UserModel.create Error:', e.message);
       throw e;
     } finally {
       client.release();
@@ -44,26 +48,48 @@ class UserModel {
 
   static async findByIdentifier(identifier) {
     const query = 'SELECT u.*, array_agg(ur.role_name) as roles FROM users u LEFT JOIN user_roles ur ON u.id = ur.user_id WHERE u.email = $1 OR u.phone_number = $1 GROUP BY u.id';
-    const { rows } = await pool.query(query, [identifier]);
-    return rows[0];
+    try {
+      const { rows } = await pool.query(query, [identifier]);
+      return rows[0];
+    } catch (e) {
+      console.error('UserModel.findByIdentifier Error:', e.message);
+      throw e;
+    }
   }
 
   static async findById(id) {
     const query = 'SELECT u.*, array_agg(ur.role_name) as roles FROM users u LEFT JOIN user_roles ur ON u.id = ur.user_id WHERE u.id = $1 GROUP BY u.id';
-    const { rows } = await pool.query(query, [id]);
-    return rows[0];
+    try {
+      const { rows } = await pool.query(query, [id]);
+      return rows[0];
+    } catch (e) {
+      console.error('UserModel.findById Error:', e.message);
+      throw e;
+    }
   }
 
   static async updateActivePersona(userId, persona) {
     const query = 'UPDATE users SET active_persona = $2 WHERE id = $1 RETURNING active_persona';
-    const { rows } = await pool.query(query, [userId, persona]);
-    return rows[0];
+    try {
+      const { rows } = await pool.query(query, [userId, persona]);
+      return rows[0];
+    } catch (e) {
+      console.error('UserModel.updateActivePersona Error:', e.message);
+      throw e;
+    }
   }
 
   static async addRole(userId, role) {
     const query = 'INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2) ON CONFLICT DO NOTHING';
-    await pool.query(query, [userId, role]);
+    try {
+      await pool.query(query, [userId, role]);
+    } catch (e) {
+      console.error('UserModel.addRole Error:', e.message);
+      throw e;
+    }
   }
 }
 
 module.exports = UserModel;
+// Ensure we re-export pool since we overwrote module.exports
+module.exports.pool = pool;
