@@ -11,16 +11,21 @@ const getPoolConfig = () => {
   const isProduction = process.env.NODE_ENV === 'production';
   const isLocalHost = config.host === 'localhost' || config.host === '127.0.0.1' || config.host === 'host.docker.internal';
 
+  // Detect if the host is a Coolify internal one that might fail (e.g., postgresql-database-...)
+  const isCoolifyInternal = config.host && (config.host.startsWith('postgresql-database-') || config.host.includes('.coolify'));
+
   // We only apply fallback if:
   // 1. It's localhost in production (which usually means the URL wasn't updated)
-  // 2. OR we are explicitly told to force fallback via env
+  // 2. It's a Coolify internal host that is failing with ENOTFOUND in this specific environment
+  // 3. OR we are explicitly told to force fallback via env
   const forceFallback = process.env.FORCE_DB_FALLBACK === 'true';
-  const shouldFallback = (isProduction && (config.host === 'localhost' || config.host === '127.0.0.1')) || forceFallback;
+  const shouldFallback = (isProduction && (isLocalHost || isCoolifyInternal)) || forceFallback;
 
   console.log('🔍 [DB] Host Detection:', {
     host: config.host,
     isProduction,
     isLocalHost,
+    isCoolifyInternal,
     forceFallback,
     shouldFallback
   });
