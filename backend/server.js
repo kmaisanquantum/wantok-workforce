@@ -58,7 +58,7 @@ app.listen(PORT, async () => {
 
   // DB Connectivity & Schema Sync
   try {
-    const pool = require('./models/user_model').pool;
+    const pool = UserModel.getPool();
     await initializeDatabase(pool);
     console.log('✅ Backend is ready and database is synced.');
   } catch (err) {
