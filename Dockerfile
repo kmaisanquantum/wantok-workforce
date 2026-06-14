@@ -3,23 +3,32 @@ FROM node:20 AS build
 
 WORKDIR /app
 
-# Copy package files first for better caching
+# Copy root package files
 COPY package*.json ./
 RUN npm ci
+
+# Copy backend package files
+COPY backend/package*.json ./backend/
+RUN cd backend && npm ci
 
 # Copy the rest of the application
 COPY . .
 RUN npm run build
 
 # Production stage
-FROM nginx:stable-alpine
+FROM node:20-slim
 
-# Copy custom Nginx config to serve SPA correctly on port 3000
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+WORKDIR /app
 
-# Copy build artifacts from the build stage
-COPY --from=build /app/dist /usr/share/nginx/html
+# Copy built assets
+COPY --from=build /app/dist ./dist
+
+# Copy backend code and dependencies
+COPY --from=build /app/backend ./backend
+COPY --from=build /app/package.json ./package.json
 
 EXPOSE 3000
 
-CMD ["nginx", "-g", "daemon off;"]
+ENV NODE_ENV=production
+
+CMD ["npm", "run", "start:prod"]

@@ -16,9 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import categories from "./categories.json";
 
 const { width } = Dimensions.get("window");
-const API_BASE = Platform.OS === 'web'
-  ? (window.location.hostname === 'localhost' ? 'http://45.32.243.144:3000' : 'http://45.32.243.144:3000')
-  : 'http://45.32.243.144:3000';
+const API_BASE = Platform.OS === 'web' ? '' : 'http://45.32.243.144:3000';
 
 const COLORS = {
   primary: "#1A6B3C",
@@ -1844,6 +1842,20 @@ function ProviderOnboardingScreen({ onComplete }) {
 
 function AuthScreen({ onAuth }) {
   const [loading, setLoading] = useState(false);
+  const [dbStatus, setDbStatus] = useState("checking");
+
+  useEffect(() => {
+    const checkDB = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/health/db`);
+        if (res.ok) setDbStatus("connected");
+        else setDbStatus("error");
+      } catch (e) {
+        setDbStatus("offline");
+      }
+    };
+    checkDB();
+  }, []);
   const [mode, setMode] = useState("signin");
   const [signUpStep, setSignUpStep] = useState(1);
   const [email, setEmail] = useState("");
@@ -1858,7 +1870,7 @@ function AuthScreen({ onAuth }) {
     setLoading(true);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
     try {
       // Determine if identifier is email or phone
@@ -1902,7 +1914,7 @@ function AuthScreen({ onAuth }) {
       setLoading(true);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
       try {
         const response = await fetch(`${API_BASE}/api/auth/signup`, {
@@ -1946,6 +1958,12 @@ function AuthScreen({ onAuth }) {
         <Text style={{ color: "#fff", fontSize: 24, fontWeight: "900" }}>
           WANTOK WORKFORCE
         </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", marginTop: 12, backgroundColor: "rgba(0,0,0,0.2)", paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: dbStatus === "connected" ? "#4ADE80" : (dbStatus === "checking" ? "#FBBF24" : "#EF4444"), marginRight: 6 }} />
+          <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700", textTransform: "uppercase" }}>
+            System Status: {dbStatus}
+          </Text>
+        </View>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 24 }}>

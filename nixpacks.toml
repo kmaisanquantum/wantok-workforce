@@ -2,11 +2,11 @@
 nixPkgs = ["nodejs_20"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["npm ci", "cd backend && npm install"]
 
 [phases.build]
 cmds = ["npm run build"]
 dependsOn = ["install"]
 
 [start]
-cmd = "npx serve -s dist -l 3000"
+cmd = "npm run start:prod"
