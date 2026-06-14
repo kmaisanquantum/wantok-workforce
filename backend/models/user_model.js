@@ -13,7 +13,7 @@ const getPoolConfig = () => {
   if (process.env.NODE_ENV === 'production' || isInternalCoolifyHost) {
     console.log(`🛠️ Detected internal host ${config.host}, preparing fallback routing...`);
     // Direct fallback to host bridge or public IP
-    config.host = process.env.DB_FALLBACK_HOST || '172.17.0.1';
+    config.host = process.env.DB_FALLBACK_HOST || '45.32.243.144';
     console.log(`📡 Using fallback host: ${config.host}`);
 
     config.ssl = {
