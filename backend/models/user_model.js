@@ -1,16 +1,30 @@
 const { Pool } = require('pg');
+const { parse } = require('pg-connection-string');
 
-const poolConfig = {
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/wantok',
+const getPoolConfig = () => {
+  const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/wantok';
+  let config = parse(dbUrl);
+
+  // Coolify Container Name Lookup Bug Fallback
+  // If we're in production or the host looks like a long internal Coolify name,
+  // we add a fallback mechanism in the connection attempt or simply use the IP.
+  const isInternalCoolifyHost = config.host && config.host.includes('.coolify');
+
+  if (process.env.NODE_ENV === 'production' || isInternalCoolifyHost) {
+    console.log(`🛠️ Detected internal host ${config.host}, preparing fallback routing...`);
+    // Direct fallback to host bridge or public IP
+    config.host = process.env.DB_FALLBACK_HOST || '172.17.0.1';
+    console.log(`📡 Using fallback host: ${config.host}`);
+
+    config.ssl = {
+      rejectUnauthorized: false
+    };
+  }
+
+  return config;
 };
 
-if (process.env.NODE_ENV === 'production') {
-  poolConfig.ssl = {
-    rejectUnauthorized: false
-  };
-}
-
-const pool = new Pool(poolConfig);
+const pool = new Pool(getPoolConfig());
 
 // Export pool for initialization
 module.exports.pool = pool;
