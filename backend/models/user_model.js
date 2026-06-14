@@ -3,47 +3,73 @@ const { parse } = require('pg-connection-string');
 
 const getPoolConfig = () => {
   const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/wantok';
+  console.log('🔍 [DB] Database URL found:', dbUrl.replace(/:[^:]+@/, ':****@'));
+
   let config = parse(dbUrl);
 
-  // Coolify Container Name Lookup Bug Fallback
-  // If we're in production or the host looks like a long internal Coolify name,
-  // we add a fallback mechanism in the connection attempt or simply use the IP.
-  const isInternalCoolifyHost = config.host && config.host.includes('.coolify');
+  // Force a more robust host detection
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isLocalHost = config.host === 'localhost' || config.host === '127.0.0.1';
+  const isCoolifyInternal = config.host && config.host.includes('.coolify');
 
-  if (process.env.NODE_ENV === 'production' || isInternalCoolifyHost) {
-    console.log(`🛠️ Detected internal host ${config.host}, preparing fallback routing...`);
-    // Direct fallback to host bridge or public IP
-    config.host = process.env.DB_FALLBACK_HOST || '45.32.243.144';
-    console.log(`📡 Using fallback host: ${config.host}`);
+  console.log('🔍 [DB] Host Detection:', { host: config.host, isProduction, isLocalHost, isCoolifyInternal });
+
+  if (isProduction || isCoolifyInternal || isLocalHost) {
+    // If we're in production but the host is localhost (default), or it's a coolify internal host that might fail
+    // we use the known working public IP as a fallback if the environment doesn't provide a specific DB_FALLBACK_HOST
+    const fallbackHost = process.env.DB_FALLBACK_HOST || '45.32.243.144';
+
+    console.log(`🛠️ [DB] Applying resilience routing. Target was: ${config.host}. Fallback: ${fallbackHost}`);
+    config.host = fallbackHost;
 
     config.ssl = {
       rejectUnauthorized: false
     };
   }
 
+  // Enhanced Resilience Settings
+  config.connectionTimeoutMillis = 10000; // 10 seconds to connect (increased for potentially slow network)
+  config.idleTimeoutMillis = 30000;
+  config.max = 20;
+  config.statement_timeout = 15000; // 15 seconds per query
+
   return config;
 };
 
-const pool = new Pool(getPoolConfig());
+let pool;
+try {
+    pool = new Pool(getPoolConfig());
+    pool.on('error', (err, client) => {
+        console.error('❌ [DB] Unexpected error on idle client', err);
+    });
+} catch (err) {
+    console.error('❌ [DB] Failed to initialize pool:', err);
+}
 
-// Export pool for initialization
 module.exports.pool = pool;
 
 class UserModel {
   static async checkConnection() {
-    const client = await pool.connect();
+    if (!pool) return false;
     try {
-      await client.query('SELECT NOW()');
-      return true;
-    } finally {
-      client.release();
+      const client = await pool.connect();
+      try {
+        await client.query('SELECT NOW()');
+        return true;
+      } finally {
+        client.release();
+      }
+    } catch (e) {
+      console.error('❌ [DB] checkConnection Error:', e.message);
+      return false;
     }
   }
 
   static async create(userData) {
     const { name, phone, email, passwordHash } = userData;
-    const client = await pool.connect();
+    let client;
     try {
+      client = await pool.connect();
       await client.query('BEGIN');
       const userQuery = 'INSERT INTO users (name, phone_number, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, name, email, phone_number, active_persona';
       const { rows } = await client.query(userQuery, [name, phone, email, passwordHash]);
@@ -52,11 +78,11 @@ class UserModel {
       await client.query('COMMIT');
       return user;
     } catch (e) {
-      await client.query('ROLLBACK');
-      console.error('UserModel.create Error:', e.message);
+      if (client) await client.query('ROLLBACK');
+      console.error('❌ [DB] UserModel.create Error:', e.message);
       throw e;
     } finally {
-      client.release();
+      if (client) client.release();
     }
   }
 
@@ -66,7 +92,7 @@ class UserModel {
       const { rows } = await pool.query(query, [identifier]);
       return rows[0];
     } catch (e) {
-      console.error('UserModel.findByIdentifier Error:', e.message);
+      console.error('❌ [DB] UserModel.findByIdentifier Error:', e.message);
       throw e;
     }
   }
@@ -77,7 +103,7 @@ class UserModel {
       const { rows } = await pool.query(query, [id]);
       return rows[0];
     } catch (e) {
-      console.error('UserModel.findById Error:', e.message);
+      console.error('❌ [DB] UserModel.findById Error:', e.message);
       throw e;
     }
   }
@@ -88,7 +114,7 @@ class UserModel {
       const { rows } = await pool.query(query, [userId, persona]);
       return rows[0];
     } catch (e) {
-      console.error('UserModel.updateActivePersona Error:', e.message);
+      console.error('❌ [DB] UserModel.updateActivePersona Error:', e.message);
       throw e;
     }
   }
@@ -98,12 +124,11 @@ class UserModel {
     try {
       await pool.query(query, [userId, role]);
     } catch (e) {
-      console.error('UserModel.addRole Error:', e.message);
+      console.error('❌ [DB] UserModel.addRole Error:', e.message);
       throw e;
     }
   }
 }
 
 module.exports = UserModel;
-// Ensure we re-export pool since we overwrote module.exports
 module.exports.pool = pool;

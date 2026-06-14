@@ -1846,12 +1846,16 @@ function AuthScreen({ onAuth }) {
 
   useEffect(() => {
     const checkDB = async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       try {
-        const res = await fetch(`${API_BASE}/api/health/db`);
+        const res = await fetch(`${API_BASE}/api/health/db`, { signal: controller.signal });
         if (res.ok) setDbStatus("connected");
         else setDbStatus("error");
       } catch (e) {
         setDbStatus("offline");
+      } finally {
+        clearTimeout(timeoutId);
       }
     };
     checkDB();
@@ -1870,7 +1874,7 @@ function AuthScreen({ onAuth }) {
     setLoading(true);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
     try {
       // Determine if identifier is email or phone
@@ -1914,7 +1918,7 @@ function AuthScreen({ onAuth }) {
       setLoading(true);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
       try {
         const response = await fetch(`${API_BASE}/api/auth/signup`, {
