@@ -20,13 +20,13 @@ CREATE TABLE IF NOT EXISTS users (
     phone_number TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    role account_role NOT NULL DEFAULT 'customer',
+    active_persona account_role, -- The current active persona context
 
     -- Location handling via PostGIS
     location_coords GEOGRAPHY(POINT, 4326),
     location_name TEXT, -- Human readable location/district
 
-    -- Provider-specific nullable fields (avoiding separate table for low-complexity auditing)
+    -- Provider-specific nullable fields
     primary_skill TEXT,
     bio TEXT,
     hourly_rate DECIMAL(10, 2),
@@ -36,7 +36,14 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Index for geo-spatial searches (crucial for finding nearby wantoks)
+-- Establish a multi-role mapping table
+CREATE TABLE IF NOT EXISTS user_roles (
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    role_name account_role NOT NULL,
+    PRIMARY KEY (user_id, role_name)
+);
+
+-- Index for geo-spatial searches
 CREATE INDEX IF NOT EXISTS idx_users_location ON users USING GIST (location_coords);
 
 COMMIT;

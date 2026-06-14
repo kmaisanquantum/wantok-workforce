@@ -16,6 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import categories from "./categories.json";
 
 const { width } = Dimensions.get("window");
+const API_BASE = Platform.OS === 'web' ? '' : 'http://45.32.243.144:3000';
 
 const COLORS = {
   primary: "#1A6B3C",
@@ -84,14 +85,14 @@ const TrustBadge = () => (
 
 // ─── SCREENS ───────────────────────────────────────────────────────────────
 
-function HomeScreen({ onNavigate, currentUser }) {
+
+function HomeScreen({ onNavigate, currentUser, onSwitchPersona }) {
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [filtered, setFiltered] = useState(mockWorkers);
 
   useEffect(() => {
     let result = mockWorkers;
-
     if (selectedCategory) {
       const category = categories.find(c => c.label === selectedCategory);
       if (category) {
@@ -101,32 +102,110 @@ function HomeScreen({ onNavigate, currentUser }) {
         );
       }
     }
-
     if (searchText) {
-      result = result.filter(
-        (w) =>
-          w.name.toLowerCase().includes(searchText.toLowerCase()) ||
-          w.role.toLowerCase().includes(searchText.toLowerCase()) ||
-          w.location.toLowerCase().includes(searchText.toLowerCase()) ||
-          w.tags.some(t => t.toLowerCase().includes(searchText.toLowerCase()))
+      result = result.filter(w =>
+        w.name.toLowerCase().includes(searchText.toLowerCase()) ||
+        w.role.toLowerCase().includes(searchText.toLowerCase()) ||
+        w.tags.some(t => t.toLowerCase().includes(searchText.toLowerCase()))
       );
     }
-
     setFiltered(result);
   }, [searchText, selectedCategory]);
+
+  if (currentUser === "provider") {
+    return (
+      <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <LinearGradient
+            colors={[COLORS.primaryDark, COLORS.primary]}
+            style={{ padding: 24, paddingBottom: 40 }}
+          >
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <View>
+                <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>
+                  Welcome Back, Provider
+                </Text>
+                <Text style={{ color: "#fff", fontSize: 24, fontWeight: "900", marginTop: 4 }}>
+                  Your Dashboard
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => onNavigate("profile")}
+                style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.3)" }}
+              >
+                <Text style={{ fontSize: 24 }}>🔧</Text>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+
+          <View style={{ padding: 16, marginTop: -20, gap: 16 }}>
+            {/* Trust Score Card */}
+            <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 20, elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.text }}>Current Trust Score</Text>
+                <Text style={{ fontSize: 18, fontWeight: "900", color: COLORS.primary }}>92%</Text>
+              </View>
+              <View style={{ height: 8, backgroundColor: "#E5E7EB", borderRadius: 4, overflow: "hidden" }}>
+                <View style={{ width: "92%", height: "100%", backgroundColor: COLORS.primary }} />
+              </View>
+              <Text style={{ marginTop: 8, fontSize: 12, color: COLORS.textMuted }}>
+                Keep completing jobs to maintain your top-tier status in Port Moresby!
+              </Text>
+            </View>
+
+            {/* Quick Actions */}
+            <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 16, elevation: 2 }}>
+              <Text style={{ fontSize: 15, fontWeight: "700", color: COLORS.text, marginBottom: 12 }}>Quick Actions</Text>
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                <TouchableOpacity style={{ flex: 1, backgroundColor: "#F0FDF4", padding: 12, borderRadius: 12, alignItems: "center" }}>
+                  <Text style={{ fontSize: 20, marginBottom: 4 }}>📅</Text>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: COLORS.primary }}>Schedule</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ flex: 1, backgroundColor: "#EFF6FF", padding: 12, borderRadius: 12, alignItems: "center" }}>
+                  <Text style={{ fontSize: 20, marginBottom: 4 }}>📈</Text>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#1D4ED8" }}>Earnings</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ flex: 1, backgroundColor: "#FFFBEB", padding: 12, borderRadius: 12, alignItems: "center" }}>
+                  <Text style={{ fontSize: 20, marginBottom: 4 }}>⭐</Text>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#C2410C" }}>Reviews</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Switch Mode Button */}
+            <TouchableOpacity
+              onPress={() => onSwitchPersona("customer")}
+              style={{
+                backgroundColor: "#ECFDF5",
+                borderRadius: 16,
+                padding: 16,
+                alignItems: "center",
+                borderWidth: 1.5,
+                borderColor: "#A7F3D0",
+              }}
+            >
+              <Text style={{ color: "#047857", fontWeight: "800", fontSize: 15 }}>
+                Switch to Customer Mode
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
+        {/* Header Section */}
         <LinearGradient
           colors={[COLORS.primaryDark, COLORS.primary]}
           style={{
-            paddingTop: 20,
+            paddingTop: 10,
             paddingHorizontal: 16,
-            paddingBottom: 28,
-            borderBottomLeftRadius: 28,
-            borderBottomRightRadius: 28,
+            paddingBottom: 25,
+            borderBottomLeftRadius: 30,
+            borderBottomRightRadius: 30,
           }}
         >
           <View
@@ -142,7 +221,7 @@ function HomeScreen({ onNavigate, currentUser }) {
                 Good morning 👋
               </Text>
               <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800", marginTop: 2 }}>
-                {currentUser === "customer" ? "Find a Wantok" : "Your Dashboard"}
+                Find a Wantok
               </Text>
             </View>
             <TouchableOpacity
@@ -322,15 +401,6 @@ function HomeScreen({ onNavigate, currentUser }) {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            {searchText && categories.find(c => c.label === selectedCategory)?.subcategories.find(s => s.name === searchText) && (
-              <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
-                <View style={{ backgroundColor: "#F9FAFB", padding: 10, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border }}>
-                  <Text style={{ fontSize: 12, color: COLORS.textMuted, lineHeight: 18 }}>
-                    ℹ️ {categories.find(c => c.label === selectedCategory)?.subcategories.find(s => s.name === searchText).description}
-                  </Text>
-                </View>
-              </View>
-            )}
           </View>
         )}
 
@@ -371,6 +441,7 @@ function HomeScreen({ onNavigate, currentUser }) {
     </View>
   );
 }
+
 
 function WorkerCard({ worker, onPress }) {
   return (
@@ -1189,7 +1260,7 @@ function CreateBookingScreen({ worker, onNavigate }) {
   );
 }
 
-function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout }) {
+function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout, user }) {
   const isProvider = currentUser === "provider";
 
   return (
@@ -1223,10 +1294,10 @@ function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout }) {
             </View>
             <View style={{ alignItems: "center" }}>
               <Text style={{ color: "#fff", fontWeight: "800", fontSize: 18 }}>
-                {isProvider ? "James Kapi" : "Sarah Mano"}
+                {user?.name || (isProvider ? "James Kapi" : "Sarah Mano")}
               </Text>
               <Text style={{ color: "rgba(255,255,255,0.75)", marginTop: 4, fontSize: 13 }}>
-                {isProvider ? "Electrician · Port Moresby" : "Customer · Lae, PNG"}
+                {isProvider ? ((user?.role || "Electrician") + " · " + (user?.location || "Port Moresby")) : "Customer · Lae, PNG"}
               </Text>
             </View>
           </View>
@@ -1631,11 +1702,266 @@ function BookingsScreen({ onNavigate }) {
   );
 }
 
+
+function RoleSelectionScreen({ onSelectRole }) {
+  return (
+    <View style={{ flex: 1, backgroundColor: COLORS.bg, padding: 20, justifyContent: "center" }}>
+      <Text style={{ fontSize: 26, fontWeight: "900", color: COLORS.primary, textAlign: "center", marginBottom: 12 }}>
+        Choose Your Role
+      </Text>
+      <Text style={{ fontSize: 16, color: COLORS.textMuted, textAlign: "center", marginBottom: 40, paddingHorizontal: 20 }}>
+        How would you like to use the Wantok Workforce platform today?
+      </Text>
+
+      <View style={{ flexDirection: "row", gap: 12 }}>
+        <TouchableOpacity
+          onPress={() => onSelectRole("customer")}
+          style={{
+            flex: 1,
+            backgroundColor: "#fff",
+            borderRadius: 24,
+            padding: 20,
+            alignItems: "center",
+            borderWidth: 2,
+            borderColor: COLORS.border,
+            elevation: 4,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 10,
+          }}
+        >
+          <View style={{ width: 70, height: 70, borderRadius: 35, backgroundColor: "#F0FDF4", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+            <Text style={{ fontSize: 36 }}>🤝</Text>
+          </View>
+          <Text style={{ fontSize: 16, fontWeight: "800", color: COLORS.text, textAlign: "center", marginBottom: 8 }}>
+            Become a Customer
+          </Text>
+          <Text style={{ fontSize: 12, color: COLORS.textMuted, textAlign: "center", lineHeight: 16 }}>
+            I want to find and hire trusted local professionals.
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => onSelectRole("provider")}
+          style={{
+            flex: 1,
+            backgroundColor: "#fff",
+            borderRadius: 24,
+            padding: 20,
+            alignItems: "center",
+            borderWidth: 2,
+            borderColor: COLORS.border,
+            elevation: 4,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 10,
+          }}
+        >
+          <View style={{ width: 70, height: 70, borderRadius: 35, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+            <Text style={{ fontSize: 36 }}>🔧</Text>
+          </View>
+          <Text style={{ fontSize: 16, fontWeight: "800", color: COLORS.text, textAlign: "center", marginBottom: 8 }}>
+            Become a Provider
+          </Text>
+          <Text style={{ fontSize: 12, color: COLORS.textMuted, textAlign: "center", lineHeight: 16 }}>
+            I want to list my trade and find local jobs.
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+function ProviderOnboardingScreen({ onComplete }) {
+  const [trade, setTrade] = useState("");
+  const [city, setCity] = useState("");
+
+  return (
+    <View style={{ flex: 1, backgroundColor: COLORS.bg, padding: 24 }}>
+      <Text style={{ fontSize: 22, fontWeight: "800", color: COLORS.text, marginBottom: 8, marginTop: 40 }}>
+        Complete Your Trade Profile
+      </Text>
+      <Text style={{ fontSize: 14, color: COLORS.textMuted, marginBottom: 32 }}>
+        Tell us a bit more about your services to get started.
+      </Text>
+
+      <View style={{ marginBottom: 20 }}>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+          Trade Type
+        </Text>
+        <TextInput
+          style={{
+            backgroundColor: "#fff",
+            borderWidth: 1,
+            borderColor: COLORS.border,
+            borderRadius: 12,
+            padding: 14,
+            fontSize: 15,
+          }}
+          placeholder="e.g. Electrician, Plumber, Tailor"
+          value={trade}
+          onChangeText={setTrade}
+        />
+      </View>
+
+      <View style={{ marginBottom: 32 }}>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+          City Location
+        </Text>
+        <TextInput
+          style={{
+            backgroundColor: "#fff",
+            borderWidth: 1,
+            borderColor: COLORS.border,
+            borderRadius: 12,
+            padding: 14,
+            fontSize: 15,
+          }}
+          placeholder="e.g. Port Moresby, Lae"
+          value={city}
+          onChangeText={setCity}
+        />
+      </View>
+
+      <TouchableOpacity
+        onPress={() => onComplete({ role: trade, location: city })}
+        disabled={!trade || !city}
+        style={{
+          backgroundColor: (!trade || !city) ? COLORS.textLight : COLORS.primary,
+          paddingVertical: 16,
+          borderRadius: 14,
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>
+          Complete Profile
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+
 function AuthScreen({ onAuth }) {
+  const [loading, setLoading] = useState(false);
+  const [dbStatus, setDbStatus] = useState("checking");
+
+  useEffect(() => {
+    const checkDB = async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      try {
+        const res = await fetch(`${API_BASE}/api/health/db`, { signal: controller.signal });
+        if (res.ok) setDbStatus("connected");
+        else setDbStatus("error");
+      } catch (e) {
+        setDbStatus("offline");
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    };
+    checkDB();
+  }, []);
   const [mode, setMode] = useState("signin");
+  const [signUpStep, setSignUpStep] = useState(1);
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [identifier, setIdentifier] = useState(""); // Unified local state for Sign In to fix lag
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleSignIn = async () => {
+    if (!identifier || !password) {
+      alert("Please enter both identifier (Phone/Email) and password.");
+      return;
+    }
+    if (loading) return;
+    setLoading(true);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/signin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, password }),
+        signal: controller.signal
+      });
+
+      const data = await response.json().catch(() => ({ error: 'Invalid response from server' }));
+
+      if (response.ok) {
+        onAuth({ ...data.user, token: data.token }, false);
+      } else {
+        alert(data.details || data.error || 'Signin failed');
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        alert('Request timed out. Please try again.');
+      } else {
+        console.error('SignIn Error:', error);
+        alert('Network error. Is the server running?');
+      }
+    } finally {
+      clearTimeout(timeoutId);
+      setLoading(false);
+    }
+  };
+
+  const handleSignUpNext = async () => {
+    if (signUpStep === 1) {
+      if (!name || !email) {
+        alert("Please provide your full name and email address.");
+        return;
+      }
+      setSignUpStep(2);
+    } else {
+      if (!phone || !password) {
+        alert("Please provide your phone number and create a password.");
+        return;
+      }
+      if (password.length < 6) {
+        alert("Password must be at least 6 characters long.");
+        return;
+      }
+      if (loading) return;
+      setLoading(true);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+      try {
+        const response = await fetch(`${API_BASE}/api/auth/signup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, phone, password }),
+          signal: controller.signal
+        });
+
+        const data = await response.json().catch(() => ({ error: 'Invalid response from server' }));
+
+        if (response.ok) {
+          onAuth({ ...data.user, token: data.token }, true);
+        } else {
+          alert(data.details || data.error || 'Signup failed');
+        }
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          alert('Request timed out. Please try again.');
+        } else {
+          console.error('SignUp Error:', error);
+          alert('Network error. Is the server running?');
+        }
+      } finally {
+        clearTimeout(timeoutId);
+        setLoading(false);
+      }
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
@@ -1650,126 +1976,289 @@ function AuthScreen({ onAuth }) {
         <Text style={{ color: "#fff", fontSize: 24, fontWeight: "900" }}>
           WANTOK WORKFORCE
         </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", marginTop: 12, backgroundColor: "rgba(0,0,0,0.2)", paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: dbStatus === "connected" ? "#4ADE80" : (dbStatus === "checking" ? "#FBBF24" : "#EF4444"), marginRight: 6 }} />
+          <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700", textTransform: "uppercase" }}>
+            System Status: {dbStatus}
+          </Text>
+        </View>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 24 }}>
-        <Text style={{ fontSize: 22, fontWeight: "800", color: COLORS.text, marginBottom: 8 }}>
-          {mode === "signin" ? "Welcome Back" : "Create Account"}
-        </Text>
-        <Text style={{ fontSize: 14, color: COLORS.textMuted, marginBottom: 24 }}>
-          {mode === "signin" ? "Sign in to continue your journey" : "Join the workforce community in PNG"}
-        </Text>
+        <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 24, elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 }}>
+          <Text style={{ fontSize: 22, fontWeight: "800", color: COLORS.text, marginBottom: 8 }}>
+            {mode === "signin" ? "Welcome Back" : "Create Account"}
+          </Text>
+          <Text style={{ fontSize: 14, color: COLORS.textMuted, marginBottom: 24 }}>
+            {mode === "signin"
+              ? "Sign in to continue your journey"
+              : `Step ${signUpStep} of 2: ${signUpStep === 1 ? "Basic Info" : "Security"}`}
+          </Text>
 
-        {mode === "signup" && (
-          <View style={{ marginBottom: 16 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
-              Full Name
+          {mode === "signin" ? (
+            <>
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+                  Phone Number or Email
+                </Text>
+                <TextInput
+                  style={{
+                    backgroundColor: "#fff",
+                    borderWidth: 1,
+                    borderColor: COLORS.border,
+                    borderRadius: 10,
+                    padding: 12,
+                    fontSize: 14,
+                  }}
+                  placeholder="0000 0000 or email@example.com"
+                  value={identifier}
+                  onChangeText={setIdentifier}
+                  autoCapitalize="none"
+                />
+              </View>
+              <View style={{ marginBottom: 24 }}>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+                  Password
+                </Text>
+                <View style={{ position: 'relative' }}>
+                  <TextInput
+                    style={{
+                      backgroundColor: "#fff",
+                      borderWidth: 1,
+                      borderColor: COLORS.border,
+                      borderRadius: 10,
+                      padding: 12,
+                      paddingRight: 50,
+                      fontSize: 14,
+                    }}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={{ position: 'absolute', right: 12, top: 12 }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: COLORS.primary }}>
+                      {showPassword ? "HIDE" : "SHOW"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={handleSignIn}
+                style={{
+                  backgroundColor: COLORS.primary,
+                  paddingVertical: 14,
+                  borderRadius: 12,
+                  alignItems: "center",
+                  marginBottom: 16,
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>{loading ? "Signing In..." : "Sign In"}</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              {signUpStep === 1 ? (
+                <>
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+                      Full Name
+                    </Text>
+                    <TextInput
+                      style={{
+                        backgroundColor: "#fff",
+                        borderWidth: 1,
+                        borderColor: COLORS.border,
+                        borderRadius: 10,
+                        padding: 12,
+                        fontSize: 14,
+                      }}
+                      placeholder="e.g. James Kapi"
+                      value={name}
+                      onChangeText={setName}
+                    />
+                  </View>
+                  <View style={{ marginBottom: 24 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+                      Email Address
+                    </Text>
+                    <TextInput
+                      style={{
+                        backgroundColor: "#fff",
+                        borderWidth: 1,
+                        borderColor: COLORS.border,
+                        borderRadius: 10,
+                        padding: 12,
+                        fontSize: 14,
+                      }}
+                      placeholder="name@example.com"
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                    />
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+                      Phone Number
+                    </Text>
+                    <TextInput
+                      style={{
+                        backgroundColor: "#fff",
+                        borderWidth: 1,
+                        borderColor: COLORS.border,
+                        borderRadius: 10,
+                        padding: 12,
+                        fontSize: 14,
+                      }}
+                      placeholder="e.g. 7000 1234"
+                      value={phone}
+                      onChangeText={setPhone}
+                      keyboardType="phone-pad"
+                    />
+                  </View>
+                  <View style={{ marginBottom: 24 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
+                      Create Password
+                    </Text>
+                    <View style={{ position: 'relative' }}>
+                      <TextInput
+                        style={{
+                          backgroundColor: "#fff",
+                          borderWidth: 1,
+                          borderColor: COLORS.border,
+                          borderRadius: 10,
+                          padding: 12,
+                          paddingRight: 50,
+                          fontSize: 14,
+                        }}
+                        placeholder="Min. 8 characters"
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry={!showPassword}
+                      />
+                      <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                        style={{ position: 'absolute', right: 12, top: 12 }}
+                      >
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: COLORS.primary }}>
+                          {showPassword ? "HIDE" : "SHOW"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </>
+              )}
+              <TouchableOpacity
+                onPress={handleSignUpNext}
+                style={{
+                  backgroundColor: COLORS.primary,
+                  paddingVertical: 14,
+                  borderRadius: 12,
+                  alignItems: "center",
+                  marginBottom: 16,
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>
+                  {loading ? "Creating Account..." : (signUpStep === 1 ? "Next Step" : "Create Account")}
+                </Text>
+              </TouchableOpacity>
+              {signUpStep === 2 && (
+                <TouchableOpacity onPress={() => setSignUpStep(1)} style={{ alignItems: "center", marginBottom: 16 }}>
+                  <Text style={{ color: COLORS.textMuted, fontSize: 14 }}>Back to Basic Info</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+
+          <View style={{ flexDirection: "row", justifyContent: "center", gap: 6 }}>
+            <Text style={{ color: COLORS.textMuted, fontSize: 14 }}>
+              {mode === "signin" ? "Don't have an account?" : "Already have an account?"}
             </Text>
-            <TextInput
-              style={{
-                backgroundColor: "#fff",
-                borderWidth: 1,
-                borderColor: COLORS.border,
-                borderRadius: 10,
-                padding: 12,
-                fontSize: 14,
-              }}
-              placeholder="e.g. James Kapi"
-              value={name}
-              onChangeText={setName}
-            />
+            <TouchableOpacity onPress={() => {
+              setMode(mode === "signin" ? "signup" : "signin");
+              setSignUpStep(1);
+            }}>
+              <Text style={{ color: COLORS.primary, fontWeight: "700", fontSize: 14 }}>
+                {mode === "signin" ? "Sign Up" : "Sign In"}
+              </Text>
+            </TouchableOpacity>
           </View>
-        )}
-
-        <View style={{ marginBottom: 16 }}>
-          <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
-            Email Address
-          </Text>
-          <TextInput
-            style={{
-              backgroundColor: "#fff",
-              borderWidth: 1,
-              borderColor: COLORS.border,
-              borderRadius: 10,
-              padding: 12,
-              fontSize: 14,
-            }}
-            placeholder="name@example.com"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-          />
-        </View>
-
-        <View style={{ marginBottom: 24 }}>
-          <Text style={{ fontSize: 13, fontWeight: "700", color: COLORS.textLight, marginBottom: 6 }}>
-            Password
-          </Text>
-          <TextInput
-            style={{
-              backgroundColor: "#fff",
-              borderWidth: 1,
-              borderColor: COLORS.border,
-              borderRadius: 10,
-              padding: 12,
-              fontSize: 14,
-            }}
-            placeholder="Enter your password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-        </View>
-
-        <TouchableOpacity
-          onPress={() => onAuth({ email, name })}
-          style={{
-            backgroundColor: COLORS.primary,
-            paddingVertical: 14,
-            borderRadius: 12,
-            alignItems: "center",
-            marginBottom: 16,
-          }}
-        >
-          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>
-            {mode === "signin" ? "Sign In" : "Sign Up"}
-          </Text>
-        </TouchableOpacity>
-
-        <View style={{ flexDirection: "row", justifyContent: "center", gap: 6 }}>
-          <Text style={{ color: COLORS.textMuted, fontSize: 14 }}>
-            {mode === "signin" ? "Don't have an account?" : "Already have an account?"}
-          </Text>
-          <TouchableOpacity onPress={() => setMode(mode === "signin" ? "signup" : "signin")}>
-            <Text style={{ color: COLORS.primary, fontWeight: "700", fontSize: 14 }}>
-              {mode === "signin" ? "Sign Up" : "Sign In"}
-            </Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
   );
 }
+
+
+
+function AdminScreen({ onNavigate }) {
+  return (
+    <View style={{ flex: 1, backgroundColor: COLORS.bg, padding: 16 }}>
+      <Text style={{ fontSize: 20, fontWeight: "800", color: COLORS.text, marginBottom: 16 }}>
+        Admin Control Panel
+      </Text>
+      <View style={{ gap: 12 }}>
+        <View style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, elevation: 2 }}>
+          <Text style={{ fontSize: 14, color: COLORS.textMuted }}>Total Workers</Text>
+          <Text style={{ fontSize: 24, fontWeight: "800", color: COLORS.primary }}>1,248</Text>
+        </View>
+        <View style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, elevation: 2 }}>
+          <Text style={{ fontSize: 14, color: COLORS.textMuted }}>Pending Verifications</Text>
+          <Text style={{ fontSize: 24, fontWeight: "800", color: "#F5A623" }}>42</Text>
+        </View>
+        <View style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, elevation: 2 }}>
+          <Text style={{ fontSize: 14, color: COLORS.textMuted }}>Active Disputes</Text>
+          <Text style={{ fontSize: 24, fontWeight: "800", color: COLORS.danger }}>7</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export default function App() {
   const [screen, setScreen] = useState("home");
   const [screenData, setScreenData] = useState(null);
-  const [currentUser, setCurrentUser] = useState("customer");
+  const [currentUser, setCurrentUser] = useState(null); // "customer" or "provider"
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
 
   const navigate = (to, data = null) => {
     setScreen(to);
     setScreenData(data);
   };
 
-  const handleAuth = (userData) => {
+  const handleAuth = (userData, isSignUp = false) => {
     setUser(userData);
     setIsAuthenticated(true);
+    if (isSignUp) {
+      setCurrentUser(null);
+      setOnboardingComplete(false);
+    } else {
+      // Handle login with existing persona
+      const persona = userData.active_persona || (userData.roles && userData.roles[0]) || 'customer';
+      setCurrentUser(persona);
+
+      // If provider, check if they have completed profile (role/location)
+      if (persona === 'provider' && (!userData.role || !userData.location)) {
+        setOnboardingComplete(false);
+      } else {
+        setOnboardingComplete(true);
+      }
+    }
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     setUser(null);
+    setCurrentUser(null);
+    setOnboardingComplete(false);
     setScreen("home");
   };
 
@@ -1778,9 +2267,28 @@ export default function App() {
       return <AuthScreen onAuth={handleAuth} />;
     }
 
+    if (!currentUser) {
+      return <RoleSelectionScreen onSelectRole={async (role) => {
+        // Optimistic UI update
+        setCurrentUser(role);
+        if (role === "customer") setOnboardingComplete(true);
+        else setOnboardingComplete(false);
+
+        // In a real app, we'd call the API here:
+        // await fetch(`${API_BASE}/api/auth/select-role`, { ... })
+      }} />;
+    }
+
+    if (currentUser === "provider" && !onboardingComplete) {
+      return <ProviderOnboardingScreen onComplete={(details) => {
+        setUser({ ...user, ...details });
+        setOnboardingComplete(true);
+      }} />;
+    }
+
     switch (screen) {
       case "home":
-        return <HomeScreen onNavigate={navigate} currentUser={currentUser} />;
+        return <HomeScreen onNavigate={navigate} currentUser={currentUser} onSwitchPersona={(role) => setCurrentUser(role)} />;
       case "workerDetail":
         return <WorkerDetailScreen worker={screenData} onNavigate={navigate} />;
       case "createBooking":
@@ -1789,17 +2297,38 @@ export default function App() {
         return <BookingsScreen onNavigate={navigate} />;
       case "trust":
         return <TrustScreen onNavigate={navigate} />;
+      case "admin":
+        return <AdminScreen onNavigate={navigate} />;
       case "profile":
         return (
           <ProfileScreen
             onNavigate={navigate}
             currentUser={currentUser}
-            onToggleUser={() => setCurrentUser((u) => (u === "customer" ? "provider" : "customer"))}
+            onToggleUser={async () => {
+              const targetRole = currentUser === 'customer' ? 'provider' : 'customer';
+
+              // Optimistic switch
+              setCurrentUser(targetRole);
+
+              if (targetRole === 'provider') {
+                if (user?.role && user?.location) {
+                  setOnboardingComplete(true);
+                } else {
+                  setOnboardingComplete(false);
+                }
+              } else {
+                setOnboardingComplete(true);
+              }
+
+              // We would ideally call API here to update active_persona
+              // await fetch(`${API_BASE}/api/auth/switch-persona`, { ... })
+            }}
             onLogout={handleLogout}
+            user={user}
           />
         );
       default:
-        return <HomeScreen onNavigate={navigate} currentUser={currentUser} />;
+        return <HomeScreen onNavigate={navigate} currentUser={currentUser} onSwitchPersona={(role) => setCurrentUser(role)} />;
     }
   };
 
@@ -1836,20 +2365,35 @@ export default function App() {
         >
           WANTOK WORKFORCE
         </Text>
-        <View
-          style={{
-            marginLeft: "auto",
-            backgroundColor: COLORS.primaryLight,
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            alignItems: "center",
-            justifyContent: "center",
-            borderWidth: 1.5,
-            borderColor: "rgba(255,255,255,0.4)",
-          }}
-        >
-          <Text style={{ fontSize: 16 }}>🤝</Text>
+        <View style={{ marginLeft: "auto", flexDirection: "row", backgroundColor: "rgba(0,0,0,0.1)", borderRadius: 8, padding: 2 }}>
+          {['customer', 'provider', 'admin'].map((role) => (
+            <TouchableOpacity
+              key={role}
+              onPress={() => {
+                setCurrentUser(role);
+                if (role === "customer" || role === "admin") {
+                  setOnboardingComplete(true);
+                  if (role === "admin") navigate("admin");
+                  else navigate("home");
+                } else {
+                  // provider
+                  if (user?.role && user?.location) setOnboardingComplete(true);
+                  else setOnboardingComplete(false);
+                  navigate("home");
+                }
+              }}
+              style={{
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                borderRadius: 6,
+                backgroundColor: currentUser === role ? (role === "admin" ? "#C47F0A" : COLORS.primary) : "transparent",
+              }}
+            >
+              <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700", textTransform: "capitalize" }}>
+                {role.substring(0, 4)}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
@@ -1857,7 +2401,7 @@ export default function App() {
       <View style={{ flex: 1, backgroundColor: COLORS.bg }}>{renderScreen()}</View>
 
       {/* Bottom Nav */}
-      {isAuthenticated && (
+      {isAuthenticated && currentUser && onboardingComplete && (
         <View
           style={{
             backgroundColor: "#fff",
