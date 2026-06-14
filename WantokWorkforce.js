@@ -1870,7 +1870,7 @@ function AuthScreen({ onAuth }) {
     setLoading(true);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
     try {
       // Determine if identifier is email or phone
@@ -1914,7 +1914,7 @@ function AuthScreen({ onAuth }) {
       setLoading(true);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
       try {
         const response = await fetch(`${API_BASE}/api/auth/signup`, {

@@ -58,14 +58,12 @@ app.listen(PORT, async () => {
 
   // DB Connectivity & Schema Sync
   try {
-    console.log('🔗 Connecting to database...');
     const pool = require('./models/user_model').pool;
     await initializeDatabase(pool);
     console.log('✅ Backend is ready and database is synced.');
   } catch (err) {
     console.error('❌ CRITICAL ERROR during startup:');
-    console.error('Type:', err.name);
-    console.error('Message:', err.message);
+    console.error('Database connection failed details:', err);
 
     if (err.code === 'ECONNREFUSED') {
       console.error('💡 Recommendation: Check if the database server is running and accessible.');
