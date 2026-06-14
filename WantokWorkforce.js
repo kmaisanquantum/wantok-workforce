@@ -1705,65 +1705,69 @@ function BookingsScreen({ onNavigate }) {
 
 function RoleSelectionScreen({ onSelectRole }) {
   return (
-    <View style={{ flex: 1, backgroundColor: COLORS.bg, padding: 24, justifyContent: "center" }}>
-      <Text style={{ fontSize: 24, fontWeight: "900", color: COLORS.primary, textAlign: "center", marginBottom: 8 }}>
+    <View style={{ flex: 1, backgroundColor: COLORS.bg, padding: 20, justifyContent: "center" }}>
+      <Text style={{ fontSize: 26, fontWeight: "900", color: COLORS.primary, textAlign: "center", marginBottom: 12 }}>
         Choose Your Role
       </Text>
-      <Text style={{ fontSize: 16, color: COLORS.textMuted, textAlign: "center", marginBottom: 32 }}>
-        Select how you want to use Wantok Workforce
+      <Text style={{ fontSize: 16, color: COLORS.textMuted, textAlign: "center", marginBottom: 40, paddingHorizontal: 20 }}>
+        How would you like to use the Wantok Workforce platform today?
       </Text>
 
-      <View style={{ gap: 16 }}>
+      <View style={{ flexDirection: "row", gap: 12 }}>
         <TouchableOpacity
           onPress={() => onSelectRole("customer")}
           style={{
+            flex: 1,
             backgroundColor: "#fff",
-            borderRadius: 20,
-            padding: 24,
-            flexDirection: "row",
+            borderRadius: 24,
+            padding: 20,
             alignItems: "center",
             borderWidth: 2,
             borderColor: COLORS.border,
-            gap: 16,
+            elevation: 4,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 10,
           }}
         >
-          <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: "#F0FDF4", alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontSize: 32 }}>🤝</Text>
+          <View style={{ width: 70, height: 70, borderRadius: 35, backgroundColor: "#F0FDF4", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+            <Text style={{ fontSize: 36 }}>🤝</Text>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 18, fontWeight: "800", color: COLORS.text, marginBottom: 4 }}>
-              Become a Customer
-            </Text>
-            <Text style={{ fontSize: 13, color: COLORS.textMuted, lineHeight: 18 }}>
-              I want to find and hire trusted local professionals in Port Moresby.
-            </Text>
-          </View>
+          <Text style={{ fontSize: 16, fontWeight: "800", color: COLORS.text, textAlign: "center", marginBottom: 8 }}>
+            Become a Customer
+          </Text>
+          <Text style={{ fontSize: 12, color: COLORS.textMuted, textAlign: "center", lineHeight: 16 }}>
+            I want to find and hire trusted local professionals.
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => onSelectRole("provider")}
           style={{
+            flex: 1,
             backgroundColor: "#fff",
-            borderRadius: 20,
-            padding: 24,
-            flexDirection: "row",
+            borderRadius: 24,
+            padding: 20,
             alignItems: "center",
             borderWidth: 2,
             borderColor: COLORS.border,
-            gap: 16,
+            elevation: 4,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 10,
           }}
         >
-          <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: "#F0FDF4", alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontSize: 32 }}>🔧</Text>
+          <View style={{ width: 70, height: 70, borderRadius: 35, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+            <Text style={{ fontSize: 36 }}>🔧</Text>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 18, fontWeight: "800", color: COLORS.text, marginBottom: 4 }}>
-              Become a Service Provider
-            </Text>
-            <Text style={{ fontSize: 13, color: COLORS.textMuted, lineHeight: 18 }}>
-              I want to list my trade, grow my business, and find local jobs.
-            </Text>
-          </View>
+          <Text style={{ fontSize: 16, fontWeight: "800", color: COLORS.text, textAlign: "center", marginBottom: 8 }}>
+            Become a Provider
+          </Text>
+          <Text style={{ fontSize: 12, color: COLORS.textMuted, textAlign: "center", lineHeight: 16 }}>
+            I want to list my trade and find local jobs.
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -1869,24 +1873,22 @@ function AuthScreen({ onAuth }) {
   const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-      const handleSignIn = async () => {
+  const handleSignIn = async () => {
+    if (!identifier || !password) {
+      alert("Please enter both identifier (Phone/Email) and password.");
+      return;
+    }
     if (loading) return;
     setLoading(true);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
 
     try {
-      // Determine if identifier is email or phone
-      const loginPayload = {
-        identifier: identifier,
-        password: password
-      };
-
       const response = await fetch(`${API_BASE}/api/auth/signin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginPayload),
+        body: JSON.stringify({ identifier, password }),
         signal: controller.signal
       });
 
@@ -1910,15 +1912,27 @@ function AuthScreen({ onAuth }) {
     }
   };
 
-      const handleSignUpNext = async () => {
+  const handleSignUpNext = async () => {
     if (signUpStep === 1) {
+      if (!name || !email) {
+        alert("Please provide your full name and email address.");
+        return;
+      }
       setSignUpStep(2);
     } else {
+      if (!phone || !password) {
+        alert("Please provide your phone number and create a password.");
+        return;
+      }
+      if (password.length < 6) {
+        alert("Password must be at least 6 characters long.");
+        return;
+      }
       if (loading) return;
       setLoading(true);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 45000);
 
       try {
         const response = await fetch(`${API_BASE}/api/auth/signup`, {
@@ -2227,9 +2241,16 @@ export default function App() {
       setCurrentUser(null);
       setOnboardingComplete(false);
     } else {
-      // Mocking existing user data
-      setCurrentUser("customer");
-      setOnboardingComplete(true);
+      // Handle login with existing persona
+      const persona = userData.active_persona || (userData.roles && userData.roles[0]) || 'customer';
+      setCurrentUser(persona);
+
+      // If provider, check if they have completed profile (role/location)
+      if (persona === 'provider' && (!userData.role || !userData.location)) {
+        setOnboardingComplete(false);
+      } else {
+        setOnboardingComplete(true);
+      }
     }
   };
 
@@ -2247,9 +2268,14 @@ export default function App() {
     }
 
     if (!currentUser) {
-      return <RoleSelectionScreen onSelectRole={(role) => {
+      return <RoleSelectionScreen onSelectRole={async (role) => {
+        // Optimistic UI update
         setCurrentUser(role);
         if (role === "customer") setOnboardingComplete(true);
+        else setOnboardingComplete(false);
+
+        // In a real app, we'd call the API here:
+        // await fetch(`${API_BASE}/api/auth/select-role`, { ... })
       }} />;
     }
 
@@ -2278,19 +2304,24 @@ export default function App() {
           <ProfileScreen
             onNavigate={navigate}
             currentUser={currentUser}
-            onToggleUser={() => {
-              if (currentUser === "customer") {
+            onToggleUser={async () => {
+              const targetRole = currentUser === 'customer' ? 'provider' : 'customer';
+
+              // Optimistic switch
+              setCurrentUser(targetRole);
+
+              if (targetRole === 'provider') {
                 if (user?.role && user?.location) {
-                  setCurrentUser("provider");
                   setOnboardingComplete(true);
                 } else {
-                  setCurrentUser("provider");
                   setOnboardingComplete(false);
                 }
               } else {
-                setCurrentUser("customer");
                 setOnboardingComplete(true);
               }
+
+              // We would ideally call API here to update active_persona
+              // await fetch(`${API_BASE}/api/auth/switch-persona`, { ... })
             }}
             onLogout={handleLogout}
             user={user}

@@ -7,31 +7,53 @@ const getPoolConfig = () => {
 
   let config = parse(dbUrl);
 
-  // Force a more robust host detection
+  // Smarter host detection
   const isProduction = process.env.NODE_ENV === 'production';
-  const isLocalHost = config.host === 'localhost' || config.host === '127.0.0.1';
-  const isCoolifyInternal = config.host && config.host.includes('.coolify');
+  const isLocalHost = config.host === 'localhost' || config.host === '127.0.0.1' || config.host === 'host.docker.internal';
 
-  console.log('🔍 [DB] Host Detection:', { host: config.host, isProduction, isLocalHost, isCoolifyInternal });
+  // We only apply fallback if:
+  // 1. It's localhost in production (which usually means the URL wasn't updated)
+  // 2. OR we are explicitly told to force fallback via env
+  const forceFallback = process.env.FORCE_DB_FALLBACK === 'true';
+  const shouldFallback = (isProduction && (config.host === 'localhost' || config.host === '127.0.0.1')) || forceFallback;
 
-  if (isProduction || isCoolifyInternal || isLocalHost) {
-    // If we're in production but the host is localhost (default), or it's a coolify internal host that might fail
-    // we use the known working public IP as a fallback if the environment doesn't provide a specific DB_FALLBACK_HOST
-    const fallbackHost = process.env.DB_FALLBACK_HOST || '45.32.243.144';
+  console.log('🔍 [DB] Host Detection:', {
+    host: config.host,
+    isProduction,
+    isLocalHost,
+    forceFallback,
+    shouldFallback
+  });
 
+  if (shouldFallback) {
+    const fallbackHost = process.env.DB_FALLBACK_HOST || 'host.docker.internal';
     console.log(`🛠️ [DB] Applying resilience routing. Target was: ${config.host}. Fallback: ${fallbackHost}`);
     config.host = fallbackHost;
 
-    config.ssl = {
-      rejectUnauthorized: false
-    };
+    // Disable SSL for host.docker.internal to avoid handshake issues on internal bridge
+    if (config.host === 'host.docker.internal') {
+      console.log('🔌 [DB] Disabling SSL for internal Docker bridge communication');
+      delete config.ssl;
+    } else {
+      config.ssl = {
+        rejectUnauthorized: false
+      };
+    }
+  } else {
+    console.log(`✅ [DB] Using primary host: ${config.host}`);
+    // Still apply SSL if it's a remote host and not localhost/internal
+    if (!isLocalHost) {
+        config.ssl = {
+            rejectUnauthorized: false
+        };
+    }
   }
 
   // Enhanced Resilience Settings
-  config.connectionTimeoutMillis = 10000; // 10 seconds to connect (increased for potentially slow network)
+  config.connectionTimeoutMillis = 15000; // 15 seconds to connect
   config.idleTimeoutMillis = 30000;
   config.max = 20;
-  config.statement_timeout = 15000; // 15 seconds per query
+  config.statement_timeout = 30000; // 30 seconds per query
 
   return config;
 };
