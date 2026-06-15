@@ -17,7 +17,8 @@ async function initializeDatabase() {
     null, // Try default first
     'host.docker.internal',
     '172.17.0.1',
-    '127.0.0.1'
+    '127.0.0.1',
+    '45.32.243.144'
   ];
 
   for (const host of fallbacks) {
@@ -43,7 +44,7 @@ async function initializeDatabase() {
       client.release();
       return; // Success!
     } catch (error) {
-      console.error(`⚠️ Connection failed for ${host || 'native host'}: ${error.message}`);
+      console.error(`⚠️ Connection failed for ${host || 'native host'}: [${error.code || 'NO_CODE'}] ${error.message}`);
       if (error.code !== 'ENOTFOUND' && error.code !== 'ECONNREFUSED' && !error.message.includes('timeout')) {
         // If it's a real error (auth, etc.), stop and throw
         throw error;
