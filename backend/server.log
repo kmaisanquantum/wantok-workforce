@@ -4,34 +4,16 @@
 
 Wantok Unified Server running on port 3000
 🔄 Connecting natively using process.env.DATABASE_URL...
-❌ Database connection failed:
+⚠️ Connection failed for native host:
+🔄 Attempting fallback connection to host: host.docker.internal...
+⚠️ Connection failed for host.docker.internal: getaddrinfo ENOTFOUND host.docker.internal
+🔄 Attempting fallback connection to host: 172.17.0.1...
+⚠️ Connection failed for 172.17.0.1: connect ECONNREFUSED 172.17.0.1:5432
+🔄 Attempting fallback connection to host: 127.0.0.1...
+⚠️ Connection failed for 127.0.0.1: connect ECONNREFUSED 127.0.0.1:5432
 ❌ CRITICAL ERROR during startup:
-Database connection failed details: AggregateError [ECONNREFUSED]:
-    at /app/backend/node_modules/pg-pool/index.js:45:11
+Database connection failed details: Error: All database connection routes failed (including fallbacks).
+    at initializeDatabase (/app/backend/db/db_init.js:55:9)
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-    at async initializeDatabase (/app/backend/db/db_init.js:13:20)
-    at async Server.<anonymous> (/app/backend/server.js:61:5) {
-  code: 'ECONNREFUSED',
-  [errors]: [
-    Error: connect ECONNREFUSED ::1:5432
-        at createConnectionError (node:net:1678:14)
-        at afterConnectMultiple (node:net:1708:16) {
-      errno: -111,
-      code: 'ECONNREFUSED',
-      syscall: 'connect',
-      address: '::1',
-      port: 5432
-    },
-    Error: connect ECONNREFUSED 127.0.0.1:5432
-        at createConnectionError (node:net:1678:14)
-        at afterConnectMultiple (node:net:1708:16) {
-      errno: -111,
-      code: 'ECONNREFUSED',
-      syscall: 'connect',
-      address: '127.0.0.1',
-      port: 5432
-    }
-  ]
-}
-💡 Recommendation: Check if the database server is running and accessible.
+    at async Server.<anonymous> (/app/backend/server.js:61:5)
 Terminated
