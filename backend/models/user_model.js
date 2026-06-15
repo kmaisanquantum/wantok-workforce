@@ -28,10 +28,12 @@ const getPoolConfig = (overrideHost = null) => {
     finalHost.startsWith('192.168.') ||
     finalHost === 'localhost' ||
     finalHost === '127.0.0.1' ||
+    finalHost === 'devbox' ||
+    finalHost === 'devbox-gateway.internal' ||
     finalHost === 'host.docker.internal' ||
     finalHost === 'gateway.docker.internal' ||
     finalHost.includes('postgresql-database-') ||
-    finalHost === 'm3j8li3n4e9d2kk2h4c019po'; // The short ID
+    finalHost === 'm3j8li3n4e9d2kk2h4c019po';
 
   if (isInternal || finalHost === '45.32.243.144') {
     console.log(`🔌 [DB] Internal/IP detected (${finalHost}) - Disabling SSL`);
@@ -40,11 +42,13 @@ const getPoolConfig = (overrideHost = null) => {
     config.ssl = { rejectUnauthorized: false };
   }
 
-  // Hardened Timeouts per Memory Instructions
-  config.connectionTimeoutMillis = 10000;
-  config.statement_timeout = 15000;
+  // Hardened Timeouts
+  config.connectionTimeoutMillis = 15000;
+  config.statement_timeout = 20000;
   config.idleTimeoutMillis = 30000;
   config.max = 20;
+
+  console.log(`📡 [DB] Final Config Host: ${config.host}, Port: ${config.port}, DB: ${config.database}, SSL: ${!!config.ssl}`);
 
   return config;
 };

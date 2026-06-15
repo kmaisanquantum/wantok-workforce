@@ -4,36 +4,80 @@
 
 🚀 [DB] Production Fallback: Routing through public IP 45.32.243.144
 🔌 [DB] Internal/IP detected (45.32.243.144) - Disabling SSL
+📡 [DB] Final Config Host: 45.32.243.144, Port: 5432, DB: wantok, SSL: false
 Wantok Unified Server running on port 3000
+📦 [DB Init] Target database: wantok
 🔄 [DB Handshake] Probing host: 45.32.243.144...
 ⚠️ [Failed] Host 45.32.243.144 unreachable: Connection terminated due to connection timeout
-🔄 [DB Handshake] Probing host: m3j8li3n4e9d2kk2h4c019po...
-🔄 [DB] Re-initializing pool with host: m3j8li3n4e9d2kk2h4c019po
-🛠️ [DB] Manual override: m3j8li3n4e9d2kk2h4c019po
-🔌 [DB] Internal/IP detected (m3j8li3n4e9d2kk2h4c019po) - Disabling SSL
-⚠️ [Failed] Host m3j8li3n4e9d2kk2h4c019po unreachable: getaddrinfo ENOTFOUND m3j8li3n4e9d2kk2h4c019po
+🔄 [DB Handshake] Probing host: localhost...
+🔄 [DB] Re-initializing pool with host: localhost
+🛠️ [DB] Manual override: localhost
+🔌 [DB] Internal/IP detected (localhost) - Disabling SSL
+📡 [DB] Final Config Host: localhost, Port: 5432, DB: wantok, SSL: false
+⚠️ [Failed] Host localhost unreachable:
+🔄 [DB Handshake] Probing host: 127.0.0.1...
+🔄 [DB] Re-initializing pool with host: 127.0.0.1
+🛠️ [DB] Manual override: 127.0.0.1
+🔌 [DB] Internal/IP detected (127.0.0.1) - Disabling SSL
+📡 [DB] Final Config Host: 127.0.0.1, Port: 5432, DB: wantok, SSL: false
+⚠️ [Failed] Host 127.0.0.1 unreachable: connect ECONNREFUSED 127.0.0.1:5432
 🔄 [DB Handshake] Probing host: 192.168.0.1...
 🔄 [DB] Re-initializing pool with host: 192.168.0.1
 🛠️ [DB] Manual override: 192.168.0.1
 🔌 [DB] Internal/IP detected (192.168.0.1) - Disabling SSL
+📡 [DB] Final Config Host: 192.168.0.1, Port: 5432, DB: wantok, SSL: false
 ⚠️ [Failed] Host 192.168.0.1 unreachable: connect ECONNREFUSED 192.168.0.1:5432
+🔄 [DB Handshake] Probing host: 192.168.0.2...
+🔄 [DB] Re-initializing pool with host: 192.168.0.2
+🛠️ [DB] Manual override: 192.168.0.2
+🔌 [DB] Internal/IP detected (192.168.0.2) - Disabling SSL
+📡 [DB] Final Config Host: 192.168.0.2, Port: 5432, DB: wantok, SSL: false
+⚠️ [Failed] Host 192.168.0.2 unreachable: connect ECONNREFUSED 192.168.0.2:5432
+🔄 [DB Handshake] Probing host: devbox...
+🔄 [DB] Re-initializing pool with host: devbox
+🛠️ [DB] Manual override: devbox
+🔌 [DB] Internal/IP detected (devbox) - Disabling SSL
+📡 [DB] Final Config Host: devbox, Port: 5432, DB: wantok, SSL: false
+⚠️ [Failed] Host devbox unreachable: connect ECONNREFUSED 192.168.0.2:5432
+🔄 [DB Handshake] Probing host: devbox-gateway.internal...
+🔄 [DB] Re-initializing pool with host: devbox-gateway.internal
+🛠️ [DB] Manual override: devbox-gateway.internal
+🔌 [DB] Internal/IP detected (devbox-gateway.internal) - Disabling SSL
+📡 [DB] Final Config Host: devbox-gateway.internal, Port: 5432, DB: wantok, SSL: false
+⚠️ [Failed] Host devbox-gateway.internal unreachable: connect ECONNREFUSED 192.168.0.1:5432
+🔄 [DB Handshake] Probing host: m3j8li3n4e9d2kk2h4c019po...
+🔄 [DB] Re-initializing pool with host: m3j8li3n4e9d2kk2h4c019po
+🛠️ [DB] Manual override: m3j8li3n4e9d2kk2h4c019po
+🔌 [DB] Internal/IP detected (m3j8li3n4e9d2kk2h4c019po) - Disabling SSL
+📡 [DB] Final Config Host: m3j8li3n4e9d2kk2h4c019po, Port: 5432, DB: wantok, SSL: false
+⚠️ [Failed] Host m3j8li3n4e9d2kk2h4c019po unreachable: getaddrinfo ENOTFOUND m3j8li3n4e9d2kk2h4c019po
+🔄 [DB Handshake] Probing host: host.docker.internal...
+🔄 [DB] Re-initializing pool with host: host.docker.internal
+🛠️ [DB] Manual override: host.docker.internal
+🔌 [DB] Internal/IP detected (host.docker.internal) - Disabling SSL
+📡 [DB] Final Config Host: host.docker.internal, Port: 5432, DB: wantok, SSL: false
+⚠️ [Failed] Host host.docker.internal unreachable: getaddrinfo ENOTFOUND host.docker.internal
+🔄 [DB Handshake] Probing host: gateway.docker.internal...
+🔄 [DB] Re-initializing pool with host: gateway.docker.internal
+🛠️ [DB] Manual override: gateway.docker.internal
+🔌 [DB] Internal/IP detected (gateway.docker.internal) - Disabling SSL
+📡 [DB] Final Config Host: gateway.docker.internal, Port: 5432, DB: wantok, SSL: false
+⚠️ [Failed] Host gateway.docker.internal unreachable: getaddrinfo ENOTFOUND gateway.docker.internal
 🔄 [DB Handshake] Probing host: 172.17.0.1...
 🔄 [DB] Re-initializing pool with host: 172.17.0.1
 🛠️ [DB] Manual override: 172.17.0.1
 🔌 [DB] Internal/IP detected (172.17.0.1) - Disabling SSL
+📡 [DB] Final Config Host: 172.17.0.1, Port: 5432, DB: wantok, SSL: false
 ⚠️ [Failed] Host 172.17.0.1 unreachable: connect ECONNREFUSED 172.17.0.1:5432
 🔄 [DB Handshake] Probing host: 172.18.0.1...
 🔄 [DB] Re-initializing pool with host: 172.18.0.1
 🛠️ [DB] Manual override: 172.18.0.1
 🔌 [DB] Internal/IP detected (172.18.0.1) - Disabling SSL
+📡 [DB] Final Config Host: 172.18.0.1, Port: 5432, DB: wantok, SSL: false
 ⚠️ [Failed] Host 172.18.0.1 unreachable: Connection terminated due to connection timeout
 🔄 [DB Handshake] Probing host: 172.19.0.1...
 🔄 [DB] Re-initializing pool with host: 172.19.0.1
 🛠️ [DB] Manual override: 172.19.0.1
 🔌 [DB] Internal/IP detected (172.19.0.1) - Disabling SSL
-⚠️ [Failed] Host 172.19.0.1 unreachable: Connection terminated due to connection timeout
-🔄 [DB Handshake] Probing host: 172.20.0.1...
-🔄 [DB] Re-initializing pool with host: 172.20.0.1
-🛠️ [DB] Manual override: 172.20.0.1
-🔌 [DB] Internal/IP detected (172.20.0.1) - Disabling SSL
+📡 [DB] Final Config Host: 172.19.0.1, Port: 5432, DB: wantok, SSL: false
 Terminated

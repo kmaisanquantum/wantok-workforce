@@ -9,16 +9,28 @@ async function initializeDatabase(initialPool) {
   const database = initialPool.options.database;
   const initialHost = initialPool.options.host;
 
+  console.log(`📦 [DB Init] Target database: ${database}`);
+
   // Final Hope: Exhaustive Fallback Chain
   const fallbackHosts = [
+    'localhost',
+    '127.0.0.1',
+    '192.168.0.1',             // devbox-gateway.internal
+    '192.168.0.2',             // devbox
+    'devbox',
+    'devbox-gateway.internal',
     'm3j8li3n4e9d2kk2h4c019po', // Short internal alias
-    '192.168.0.1',             // VERIFIED GATEWAY FROM IP ROUTE
-    '172.17.0.1',              // Docker Default Bridge
-    '172.18.0.1',              // Coolify Bridge
-    '172.19.0.1',              // Alt Bridge 1
-    '172.20.0.1',              // Alt Bridge 2
-    'host.docker.internal',    // Docker Host Alias
-    'gateway.docker.internal', // Gateway Alias
+    'host.docker.internal',
+    'gateway.docker.internal',
+    '172.17.0.1',
+    '172.18.0.1',
+    '172.19.0.1',
+    '172.20.0.1',
+    '172.21.0.1',
+    '172.22.0.1',
+    '172.23.0.1',
+    '172.24.0.1',
+    '172.25.0.1',
     '45.32.243.144'            // Public Backup Route
   ];
 
