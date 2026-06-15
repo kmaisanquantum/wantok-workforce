@@ -10,16 +10,27 @@ const getPoolConfig = (overrideHost = null) => {
     config.host = overrideHost;
   }
 
-  // Detect internal-like hosts
   const hostStr = String(config.host);
+
+  // Production Fallback for Coolify Isolation
+  if (process.env.NODE_ENV === 'production' && !overrideHost) {
+    if (hostStr === 'localhost' || hostStr === '127.0.0.1' || hostStr.includes('.coolify')) {
+      console.log(`🚀 [DB] Production Fallback: Routing through public IP 45.32.243.144`);
+      config.host = '45.32.243.144';
+      config.port = 5432;
+    }
+  }
+
+  // Detect internal-like hosts
+  const finalHost = String(config.host);
   const isInternal =
-    hostStr.startsWith('172.') ||
-    hostStr.startsWith('192.168.') ||
-    hostStr === 'localhost' ||
-    hostStr === '127.0.0.1' ||
-    hostStr === 'host.docker.internal' ||
-    hostStr.includes('postgresql-database-') ||
-    hostStr === 'm3j8li3n4e9d2kk2h4c019po'; // The short ID
+    finalHost.startsWith('172.') ||
+    finalHost.startsWith('192.168.') ||
+    finalHost === 'localhost' ||
+    finalHost === '127.0.0.1' ||
+    finalHost === 'host.docker.internal' ||
+    finalHost.includes('postgresql-database-') ||
+    finalHost === 'm3j8li3n4e9d2kk2h4c019po'; // The short ID
 
   if (isInternal) {
     console.log(`🔌 [DB] Internal/Local detected (${config.host}) - Disabling SSL`);

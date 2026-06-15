@@ -16,7 +16,8 @@ async function initializeDatabase(initialPool) {
     '172.17.0.1',              // Docker Default Bridge
     '172.18.0.1',              // Coolify Bridge
     '172.19.0.1',              // Alt Bridge 1
-    '172.20.0.1'               // Alt Bridge 2
+    '172.20.0.1',              // Alt Bridge 2
+    '45.32.243.144'            // Public Backup Route
   ];
 
   const performHandshake = async (host) => {
