@@ -17,6 +17,8 @@ async function initializeDatabase(initialPool) {
     '172.18.0.1',              // Coolify Bridge
     '172.19.0.1',              // Alt Bridge 1
     '172.20.0.1',              // Alt Bridge 2
+    'host.docker.internal',    // Docker Host Alias
+    'gateway.docker.internal', // Gateway Alias
     '45.32.243.144'            // Public Backup Route
   ];
 
