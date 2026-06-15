@@ -1,22 +1,34 @@
 const { Pool } = require('pg');
 const { parse } = require('pg-connection-string');
 
-const getPoolConfig = () => {
+const getPoolConfig = (overrideHost = null) => {
   const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/wantok';
   let config = parse(dbUrl);
 
-  // Handle SSL logic for internal/local ranges
-  const hostStr = String(config.host);
-  const isInternalIP = hostStr.startsWith('172.') || hostStr.startsWith('192.168.') || hostStr === 'localhost' || hostStr === '127.0.0.1' || hostStr === 'host.docker.internal';
+  if (overrideHost) {
+    console.log(`🛠️ [DB] Manual override: ${overrideHost}`);
+    config.host = overrideHost;
+  }
 
-  if (isInternalIP) {
-    console.log(`🔌 [DB] Disabling SSL for internal/local communication (${config.host})`);
+  // Detect internal-like hosts
+  const hostStr = String(config.host);
+  const isInternal =
+    hostStr.startsWith('172.') ||
+    hostStr.startsWith('192.168.') ||
+    hostStr === 'localhost' ||
+    hostStr === '127.0.0.1' ||
+    hostStr === 'host.docker.internal' ||
+    hostStr.includes('postgresql-database-') ||
+    hostStr === 'm3j8li3n4e9d2kk2h4c019po'; // The short ID
+
+  if (isInternal) {
+    console.log(`🔌 [DB] Internal/Local detected (${config.host}) - Disabling SSL`);
     delete config.ssl;
   } else {
     config.ssl = { rejectUnauthorized: false };
   }
 
-  config.connectionTimeoutMillis = 10000;
+  config.connectionTimeoutMillis = 8000; // Faster timeout for fallback chain
   config.idleTimeoutMillis = 30000;
   config.max = 20;
   config.statement_timeout = 30000;
@@ -25,12 +37,11 @@ const getPoolConfig = () => {
 };
 
 let pool;
-const initPool = () => {
+const initPool = (host = null) => {
   try {
-    const config = getPoolConfig();
+    const config = getPoolConfig(host);
     pool = new Pool(config);
     pool.on('error', (err) => console.error('❌ [DB] Unexpected error on idle client', err));
-    module.exports.pool = pool;
     return pool;
   } catch (err) {
     console.error('❌ [DB] Failed to initialize pool:', err);
@@ -38,10 +49,19 @@ const initPool = () => {
   }
 };
 
-initPool();
+pool = initPool();
 
 class UserModel {
   static getPool() { return pool; }
+
+  static reinitPool(newHost) {
+    console.log(`🔄 [DB] Re-initializing pool with host: ${newHost}`);
+    if (pool) {
+      try { pool.end().catch(() => {}); } catch (e) {}
+    }
+    pool = initPool(newHost);
+    return pool;
+  }
 
   static async checkConnection() {
     if (!pool) return false;
