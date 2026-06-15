@@ -9,7 +9,7 @@ Wantok Unified Server running on port 3000
 Database connection failed details: AggregateError [ECONNREFUSED]:
     at /app/backend/node_modules/pg-pool/index.js:45:11
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-    at async initializeDatabase (/app/backend/db/db_init.js:16:16)
+    at async initializeDatabase (/app/backend/db/db_init.js:13:20)
     at async Server.<anonymous> (/app/backend/server.js:61:5) {
   code: 'ECONNREFUSED',
   [errors]: [
