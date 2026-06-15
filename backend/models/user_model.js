@@ -1,16 +1,29 @@
 const { Pool } = require('pg');
 const { parse } = require('pg-connection-string');
+const { execSync } = require('child_process');
+
+const getDockerGateway = () => {
+  try {
+    // Attempt to get the gateway IP from the internal routing table
+    const route = execSync("ip route show | grep default | awk '{print $3}'", { encoding: 'utf8' }).trim();
+    if (route && /^(\d{1,3}\.){3}\d{1,3}$/.test(route)) {
+      console.log(`📡 [Network] Detected default gateway IP: ${route}`);
+      return route;
+    }
+  } catch (e) {
+    // Silent fail if ip route is not available
+  }
+  return null;
+};
 
 const getPoolConfig = (overrideHost = null) => {
   const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/wantok';
-
   let config = parse(dbUrl);
 
   if (overrideHost) {
     console.log(`🛠️ [DB] Applying manual override host: ${overrideHost}`);
     config.host = overrideHost;
   } else {
-    // Smarter host detection
     const isProduction = process.env.NODE_ENV === 'production';
     const isLocalHost = config.host === 'localhost' || config.host === '127.0.0.1';
     const isCoolifyInternal = config.host && (config.host.startsWith('postgresql-database-') || config.host.includes('.coolify'));
@@ -19,15 +32,16 @@ const getPoolConfig = (overrideHost = null) => {
     const shouldFallback = (isProduction && (isLocalHost || isCoolifyInternal)) || forceFallback;
 
     if (shouldFallback) {
-      // Default to Docker bridge gateway IP instead of hostname
-      const fallbackHost = process.env.DB_FALLBACK_HOST || '172.17.0.1';
+      const gateway = getDockerGateway();
+      const fallbackHost = process.env.DB_FALLBACK_HOST || gateway || '172.17.0.1';
       console.log(`🛠️ [DB] Applying resilience routing. Target was: ${config.host}. Fallback: ${fallbackHost}`);
       config.host = fallbackHost;
     }
   }
 
-  // Handle SSL logic
-  const isInternalIP = config.host === '172.17.0.1' || config.host === '172.18.0.1' || config.host === 'localhost' || config.host === '127.0.0.1';
+  // Handle SSL logic for internal ranges
+  const hostStr = String(config.host);
+  const isInternalIP = hostStr.startsWith('172.') || hostStr.startsWith('192.168.') || hostStr === 'localhost' || hostStr === '127.0.0.1' || hostStr === 'host.docker.internal';
 
   if (isInternalIP) {
     console.log(`🔌 [DB] Disabling SSL for internal/local communication (${config.host})`);
@@ -36,7 +50,7 @@ const getPoolConfig = (overrideHost = null) => {
     config.ssl = { rejectUnauthorized: false };
   }
 
-  config.connectionTimeoutMillis = 15000;
+  config.connectionTimeoutMillis = 10000; // 10s handshake
   config.idleTimeoutMillis = 30000;
   config.max = 20;
   config.statement_timeout = 30000;
@@ -58,17 +72,16 @@ const initPool = (overrideHost = null) => {
   }
 };
 
-// Initial setup
 initPool();
 
 class UserModel {
-  static getPool() {
-    return pool;
-  }
+  static getPool() { return pool; }
 
   static reinitPool(overrideHost) {
     console.log(`🔄 [DB] Re-initializing pool with host: ${overrideHost}`);
-    if (pool) pool.end().catch(() => {});
+    if (pool) {
+        try { pool.end(); } catch (e) {}
+    }
     return initPool(overrideHost);
   }
 
