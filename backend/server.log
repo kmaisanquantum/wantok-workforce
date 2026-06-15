@@ -1,0 +1,44 @@
+
+> wantok-api@1.0.0 start
+> node server.js
+
+🚀 [DB] Production Fallback: Routing through public IP 45.32.243.144
+Wantok Unified Server running on port 3000
+🔄 [DB Handshake] Probing host: 45.32.243.144...
+⚠️ [Failed] Host 45.32.243.144 unreachable: Connection terminated due to connection timeout
+🔄 [DB Handshake] Probing host: m3j8li3n4e9d2kk2h4c019po...
+🔄 [DB] Re-initializing pool with host: m3j8li3n4e9d2kk2h4c019po
+🛠️ [DB] Manual override: m3j8li3n4e9d2kk2h4c019po
+🔌 [DB] Internal/Local detected (m3j8li3n4e9d2kk2h4c019po) - Disabling SSL
+⚠️ [Failed] Host m3j8li3n4e9d2kk2h4c019po unreachable: getaddrinfo ENOTFOUND m3j8li3n4e9d2kk2h4c019po
+🔄 [DB Handshake] Probing host: 192.168.0.1...
+🔄 [DB] Re-initializing pool with host: 192.168.0.1
+🛠️ [DB] Manual override: 192.168.0.1
+🔌 [DB] Internal/Local detected (192.168.0.1) - Disabling SSL
+⚠️ [Failed] Host 192.168.0.1 unreachable: connect ECONNREFUSED 192.168.0.1:5432
+🔄 [DB Handshake] Probing host: 172.17.0.1...
+🔄 [DB] Re-initializing pool with host: 172.17.0.1
+🛠️ [DB] Manual override: 172.17.0.1
+🔌 [DB] Internal/Local detected (172.17.0.1) - Disabling SSL
+⚠️ [Failed] Host 172.17.0.1 unreachable: connect ECONNREFUSED 172.17.0.1:5432
+🔄 [DB Handshake] Probing host: 172.18.0.1...
+🔄 [DB] Re-initializing pool with host: 172.18.0.1
+🛠️ [DB] Manual override: 172.18.0.1
+🔌 [DB] Internal/Local detected (172.18.0.1) - Disabling SSL
+⚠️ [Failed] Host 172.18.0.1 unreachable: Connection terminated due to connection timeout
+🔄 [DB Handshake] Probing host: 172.19.0.1...
+🔄 [DB] Re-initializing pool with host: 172.19.0.1
+🛠️ [DB] Manual override: 172.19.0.1
+🔌 [DB] Internal/Local detected (172.19.0.1) - Disabling SSL
+⚠️ [Failed] Host 172.19.0.1 unreachable: Connection terminated due to connection timeout
+🔄 [DB Handshake] Probing host: 172.20.0.1...
+🔄 [DB] Re-initializing pool with host: 172.20.0.1
+🛠️ [DB] Manual override: 172.20.0.1
+🔌 [DB] Internal/Local detected (172.20.0.1) - Disabling SSL
+⚠️ [Failed] Host 172.20.0.1 unreachable: Connection terminated due to connection timeout
+❌ CRITICAL ERROR during startup:
+Database connection failed details: Error: All database fallback routes failed. Critical network failure.
+    at initializeDatabase (/app/backend/db/db_init.js:54:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Server.<anonymous> (/app/backend/server.js:62:5)
+Terminated
