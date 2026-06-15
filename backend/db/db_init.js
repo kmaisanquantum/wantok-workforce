@@ -9,11 +9,14 @@ async function initializeDatabase(initialPool) {
   const database = initialPool.options.database;
   const initialHost = initialPool.options.host;
 
-  // Hyper-Resilient Fallback Chain
+  // Final Hope: Exhaustive Fallback Chain
   const fallbackHosts = [
     'm3j8li3n4e9d2kk2h4c019po', // Short internal alias
-    '172.17.0.1',             // Docker Default Bridge
-    '172.18.0.1'              // Coolify Bridge
+    '192.168.0.1',             // VERIFIED GATEWAY FROM IP ROUTE
+    '172.17.0.1',              // Docker Default Bridge
+    '172.18.0.1',              // Coolify Bridge
+    '172.19.0.1',              // Alt Bridge 1
+    '172.20.0.1'               // Alt Bridge 2
   ];
 
   const performHandshake = async (host) => {
