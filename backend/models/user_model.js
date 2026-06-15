@@ -1,83 +1,9 @@
-const { Pool } = require('pg');
-const { parse } = require('pg-connection-string');
-
-const getPoolConfig = (overrideHost = null) => {
-  const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/wantok';
-  let config = parse(dbUrl);
-
-  if (overrideHost) {
-    console.log(`🛠️ [DB] Manual override: ${overrideHost}`);
-    config.host = overrideHost;
-  }
-
-  const hostStr = String(config.host);
-
-  // Production Fallback for Coolify Isolation
-  if (process.env.NODE_ENV === 'production' && !overrideHost) {
-    if (hostStr === 'localhost' || hostStr === '127.0.0.1' || hostStr.includes('.coolify')) {
-      console.log(`🚀 [DB] Production Fallback: Routing through public IP 45.32.243.144`);
-      config.host = '45.32.243.144';
-      config.port = 5432;
-    }
-  }
-
-  // Detect internal-like hosts
-  const finalHost = String(config.host);
-  const isInternal =
-    finalHost.startsWith('172.') ||
-    finalHost.startsWith('192.168.') ||
-    finalHost === 'localhost' ||
-    finalHost === '127.0.0.1' ||
-    finalHost === 'host.docker.internal' ||
-    finalHost === 'gateway.docker.internal' ||
-    finalHost.includes('postgresql-database-') ||
-    finalHost === 'm3j8li3n4e9d2kk2h4c019po'; // The short ID
-
-  if (isInternal || finalHost === '45.32.243.144') {
-    console.log(`🔌 [DB] Internal/IP detected (${finalHost}) - Disabling SSL`);
-    delete config.ssl;
-  } else {
-    config.ssl = { rejectUnauthorized: false };
-  }
-
-  // Hardened Timeouts per Memory Instructions
-  config.connectionTimeoutMillis = 10000;
-  config.statement_timeout = 15000;
-  config.idleTimeoutMillis = 30000;
-  config.max = 20;
-
-  return config;
-};
-
-let pool;
-const initPool = (host = null) => {
-  try {
-    const config = getPoolConfig(host);
-    pool = new Pool(config);
-    pool.on('error', (err) => console.error('❌ [DB] Unexpected error on idle client', err));
-    return pool;
-  } catch (err) {
-    console.error('❌ [DB] Failed to initialize pool:', err);
-    throw err;
-  }
-};
-
-pool = initPool();
+const { pool } = require('../db/db_init');
 
 class UserModel {
   static getPool() { return pool; }
 
-  static reinitPool(newHost) {
-    console.log(`🔄 [DB] Re-initializing pool with host: ${newHost}`);
-    if (pool) {
-      try { pool.end().catch(() => {}); } catch (e) {}
-    }
-    pool = initPool(newHost);
-    return pool;
-  }
-
   static async checkConnection() {
-    if (!pool) return false;
     try {
       const client = await pool.connect();
       try {
