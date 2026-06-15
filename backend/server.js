@@ -58,8 +58,7 @@ app.listen(PORT, async () => {
 
   // DB Connectivity & Schema Sync
   try {
-    const pool = UserModel.getPool();
-    await initializeDatabase(pool);
+    await initializeDatabase();
     console.log('✅ Backend is ready and database is synced.');
   } catch (err) {
     console.error('❌ CRITICAL ERROR during startup:');
