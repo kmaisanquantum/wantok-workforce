@@ -29,20 +29,22 @@ const getPoolConfig = (overrideHost = null) => {
     finalHost === 'localhost' ||
     finalHost === '127.0.0.1' ||
     finalHost === 'host.docker.internal' ||
+    finalHost === 'gateway.docker.internal' ||
     finalHost.includes('postgresql-database-') ||
     finalHost === 'm3j8li3n4e9d2kk2h4c019po'; // The short ID
 
-  if (isInternal) {
-    console.log(`🔌 [DB] Internal/Local detected (${config.host}) - Disabling SSL`);
+  if (isInternal || finalHost === '45.32.243.144') {
+    console.log(`🔌 [DB] Internal/IP detected (${finalHost}) - Disabling SSL`);
     delete config.ssl;
   } else {
     config.ssl = { rejectUnauthorized: false };
   }
 
-  config.connectionTimeoutMillis = 8000; // Faster timeout for fallback chain
+  // Hardened Timeouts per Memory Instructions
+  config.connectionTimeoutMillis = 10000;
+  config.statement_timeout = 15000;
   config.idleTimeoutMillis = 30000;
   config.max = 20;
-  config.statement_timeout = 30000;
 
   return config;
 };
