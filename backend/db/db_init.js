@@ -3,8 +3,8 @@ const fs = require('fs');
 const path = require('path');
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/wantok',
-  ssl: false // Coolify internal networks don't use or require SSL
+  connectionString: process.env.DATABASE_URL,
+  ssl: false // Coolify internal Docker bridges do not use or require SSL
 });
 
 async function initializeDatabase() {
