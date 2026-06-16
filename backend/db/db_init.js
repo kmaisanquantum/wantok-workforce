@@ -4,8 +4,8 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration constants
-const CONNECTION_TIMEOUT = 10000; // 10 seconds
-const STATEMENT_TIMEOUT = 15000;  // 15 seconds
+const CONNECTION_TIMEOUT = 15000; // 15 seconds
+const STATEMENT_TIMEOUT = 20000;  // 20 seconds
 const SSL_CONFIG = process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
 
 let poolInstance = new Pool({
@@ -22,7 +22,8 @@ async function initializeDatabase() {
   const fallbacks = [
     null, // Try default first (native host from DATABASE_URL)
     'host.docker.internal',
-    '172.17.0.1',
+    '192.168.0.1', // Gateway IP (common in devbox/docker)
+    '172.17.0.1', '172.18.0.1',  // Docker bridge default
     '127.0.0.1',
     '45.32.243.144'
   ];
@@ -30,6 +31,13 @@ async function initializeDatabase() {
   console.log(`🛠️ [DB Init] NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🛠️ [DB Init] Timeout Settings - Connection: ${CONNECTION_TIMEOUT}ms, Statement: ${STATEMENT_TIMEOUT}ms`);
   console.log(`🛠️ [DB Init] SSL Configuration: ${JSON.stringify(SSL_CONFIG)}`);
+
+  if (process.env.DATABASE_URL) {
+    const parsed = parse(process.env.DATABASE_URL);
+    console.log(`🔍 [DB Init] Primary host from environment: ${parsed.host}:${parsed.port || '5432'}`);
+  } else {
+    console.warn('⚠️ [DB Init] DATABASE_URL is not set!');
+  }
 
   for (const host of fallbacks) {
     try {
@@ -47,6 +55,11 @@ async function initializeDatabase() {
       const targetPort = config.port || '5432';
 
       console.log(`🔄 [DB Init] Attempting connection to ${targetHost}:${targetPort} (Fallback: ${!!host})...`);
+
+      // Close previous pool if it exists to avoid resource leaks during retries
+      if (poolInstance) {
+        try { await poolInstance.end(); } catch (e) {}
+      }
 
       poolInstance = new Pool(config);
 
