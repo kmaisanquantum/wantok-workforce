@@ -35,23 +35,7 @@ const COLORS = {
   statusBar: "#0F4024",
 };
 
-const mockWorkers = [
-  { id: 1, name: "James Kapi", role: "Electrician", rating: 4.8, reviews: 124, location: "Port Moresby", available: true, verified: true, avatar: "JK", type: "blue", tags: ["House & Compound Wiring", "Solar Panel & Inverter Installations", "Electrical Fault Audits"] },
-  { id: 2, name: "Mary Teine", role: "Accountant", rating: 4.9, reviews: 87, location: "Lae", available: true, verified: true, avatar: "MT", type: "white", tags: ["Micro-Bookkeeping", "IRC Tax Compliance", "Cloud Ledger Management"] },
-  { id: 3, name: "Peter Aihi", role: "Plumber", rating: 4.6, reviews: 203, location: "Madang", available: false, verified: true, avatar: "PA", type: "blue", tags: ["Water Pipe Leak Repairs", "Tuffa Tank Connections", "Bathroom Component Plumbing"] },
-  { id: 4, name: "Susan Karo", role: "Nurse", rating: 5.0, reviews: 56, location: "Goroka", available: true, verified: true, avatar: "SK", type: "white", tags: ["Community Nursing", "Basic First Aid", "Wellness Checks"] },
-  { id: 5, name: "Tom Waiko", role: "Carpenter", rating: 4.7, reviews: 178, location: "Port Moresby", available: true, verified: false, avatar: "TW", type: "blue", tags: ["Structural Timber Framework", "Housing Extensions", "Corrugated Iron Roofing"] },
-  { id: 6, name: "Lucy Mondo", role: "Lawyer", rating: 4.5, reviews: 42, location: "Lae", available: true, verified: true, avatar: "LM", type: "white", tags: ["Legal Document Drafting", "Statutory Declarations Prep", "Customary Land Mediation"] },
-  { id: 7, name: "John Vagi", role: "Solar Specialist", rating: 4.9, reviews: 34, location: "Port Moresby", available: true, verified: true, avatar: "JV", type: "blue", tags: ["Solar Panel & Inverter Installations", "Backup Diesel Generator Servicing"] },
-  { id: 8, name: "Kila Piki", role: "Tuffa Tank Expert", rating: 4.7, reviews: 89, location: "Lae", available: true, verified: true, avatar: "KP", type: "blue", tags: ["Tuffa Tank Connections", "Water & Fuel Hauling"] },
-  { id: 9, name: "Sere Mani", role: "PMV Driver", rating: 4.5, reviews: 210, location: "Port Moresby", available: true, verified: true, avatar: "SM", type: "blue", tags: ["PMV & Taxi Operators", "Logistics & Delivery Riders"] },
-  { id: 10, name: "Lulu Gau", role: "Meri Blouse Tailor", rating: 5.0, reviews: 15, location: "Goroka", available: true, verified: true, avatar: "LG", type: "blue", tags: ["Tailoring & Sewing Repairs", "Custom Uniform Screen Printing"] },
-  { id: 11, name: "Boni Kero", role: "EasyPay Reseller", rating: 4.8, reviews: 312, location: "Madang", available: true, verified: true, avatar: "BK", type: "white", tags: ["Utility Token Resellers", "Mobile Money Float Agents"] },
-  { id: 12, name: "Aro Peni", role: "Land Mediator", rating: 4.6, reviews: 28, location: "Mount Hagen", available: true, verified: true, avatar: "AP", type: "white", tags: ["Customary Land Mediation", "ILG Incorporation Advice"] },
-  { id: 13, name: "Henao Morea", role: "Graphic Designer", rating: 4.9, reviews: 67, location: "Port Moresby", available: true, verified: true, avatar: "HM", type: "white", tags: ["Commercial Signage", "E-Commerce Logo Creation", "Digital Printing Layouts"] },
-  { id: 14, name: "Koni Karo", role: "Auto Mechanic", rating: 4.7, reviews: 145, location: "Lae", available: true, verified: false, avatar: "KK", type: "blue", tags: ["Mobile Auto Mechanics", "Welding & Metal Fabrication"] },
-  { id: 15, name: "Miri Tei", role: "Community Nurse", rating: 5.0, reviews: 43, location: "Alotau", available: true, verified: true, avatar: "MT", type: "white", tags: ["Community Nursing", "Health Literacy Guidance"] },
-];
+const mockWorkers = [];
 
 const StarRating = ({ rating }) => {
   const stars = Math.round(rating);
@@ -1294,7 +1278,7 @@ function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout, user }
             </View>
             <View style={{ alignItems: "center" }}>
               <Text style={{ color: "#fff", fontWeight: "800", fontSize: 18 }}>
-                {user?.name || (isProvider ? "James Kapi" : "Sarah Mano")}
+                {user?.name || (isProvider ? "Service Provider" : "Customer")}
               </Text>
               <Text style={{ color: "rgba(255,255,255,0.75)", marginTop: 4, fontSize: 13 }}>
                 {isProvider ? ((user?.role || "Electrician") + " · " + (user?.location || "Port Moresby")) : "Customer · Lae, PNG"}
@@ -1616,11 +1600,7 @@ const NAV_ITEMS = [
 // ─── MAIN APP ───────────────────────────────────────────────────────────────
 
 function BookingsScreen({ onNavigate }) {
-  const [bookings] = useState([
-    { id: 1, workerName: "James Kapi", service: "Electrical Repair", date: "2024-05-20", status: "Completed", amount: "K150" },
-    { id: 2, workerName: "Mary Teine", service: "Tax Consultation", date: "2024-05-25", status: "Upcoming", amount: "K200" },
-    { id: 3, workerName: "Peter Aihi", service: "Plumbing Maintenance", date: "2024-05-15", status: "Completed", amount: "K120" },
-  ]);
+  const [bookings] = useState([]);
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
@@ -2076,7 +2056,7 @@ function AuthScreen({ onAuth }) {
                         padding: 12,
                         fontSize: 14,
                       }}
-                      placeholder="e.g. James Kapi"
+                      placeholder="Your full name"
                       value={name}
                       onChangeText={setName}
                     />
