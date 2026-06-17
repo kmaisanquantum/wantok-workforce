@@ -1,3 +1,10 @@
+// Environment validation
+if (!process.env.DATABASE_URL) {
+  console.error("❌ CRITICAL CONFIG ERROR: DATABASE_URL is not defined in the environment.");
+  console.error("💡 Recommendation: Check your Coolify environment variables or local .env file.");
+  process.exit(1);
+}
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');

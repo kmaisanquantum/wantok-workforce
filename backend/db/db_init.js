@@ -16,6 +16,9 @@ let poolInstance = new Pool({
 });
 
 async function initializeDatabase() {
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL environment variable is required but missing.");
+  }
   const schemaPath = path.join(__dirname, 'schema.sql');
   const schema = fs.existsSync(schemaPath) ? fs.readFileSync(schemaPath, 'utf8') : null;
 
@@ -33,7 +36,7 @@ async function initializeDatabase() {
 
   for (const host of fallbacks) {
     try {
-      const config = parse(process.env.DATABASE_URL || '');
+      const config = parse(process.env.DATABASE_URL);
       if (host) {
         config.host = host;
       }
@@ -44,15 +47,15 @@ async function initializeDatabase() {
       config.statement_timeout = STATEMENT_TIMEOUT;
 
       const targetHost = config.host || 'unknown';
-      const targetPort = config.port || '5432';
+      const targetPort = config.port;
 
-      console.log(`🔄 [DB Init] Attempting connection to ${targetHost}:${targetPort} (Fallback: ${!!host})...`);
+      console.log(`🔄 [DB Init] Attempting connection to ${targetHost}:${targetPort || "default"} (Fallback: ${!!host})...`);
 
       poolInstance = new Pool(config);
 
       // Test the connection
       const client = await poolInstance.connect();
-      console.log(`🚀 [DB Init] SUCCESS! Connected to ${targetHost}:${targetPort}`);
+      console.log(`🚀 [DB Init] SUCCESS! Connected to ${targetHost}:${targetPort || "default"}`);
 
       if (schema) {
         console.log('🔄 [DB Init] Running schema synchronization...');
