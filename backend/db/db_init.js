@@ -71,14 +71,23 @@ async function initializeDatabase() {
         console.log(`🚀 [DB Init] SUCCESS! Connected to ${targetHost}:${targetPort}`);
 
         if (schema) {
-          console.log('🔄 [DB Init] Running schema synchronization...');
-          await client.query(schema);
-          console.log('✅ [DB Init] Database schema synced successfully.');
+          try {
+            console.log('🔄 [DB Init] Running schema synchronization (SQL migration)...');
+            await client.query(schema);
+            console.log('✅ [DB Init] Database schema synced successfully.');
+          } catch (syncError) {
+            console.error('❌ [DB Init] ERROR during schema sync execution:');
+            console.error(`[SQL Error Code: ${syncError.code || 'NO_CODE'}] ${syncError.message}`);
+            client.release();
+            const wrappedError = new Error('ERROR during schema sync execution: ' + syncError.message); wrappedError.code = syncError.code; throw wrappedError; // Propagate the error so startup fails
+          }
+        } else {
+          console.log('⚠️ [DB Init] Warning: schema.sql not found, skipping sync.');
         }
 
         client.release();
 
-        // If we had a previous pool, end it (unless it's the same one, but here we always create new)
+        // If we had a previous pool, end it
         if (poolInstance && poolInstance !== tempPool) {
           await poolInstance.end().catch(() => {});
         }
@@ -88,6 +97,11 @@ async function initializeDatabase() {
       } catch (error) {
         if (tempPool) {
           await tempPool.end().catch(() => {});
+        }
+
+        // If the error was a sync error (already handled and thrown), re-throw it to stop the loop
+        if (error.message.includes('schema sync execution')) {
+          throw error;
         }
 
         const hostLabel = host || 'native host';
