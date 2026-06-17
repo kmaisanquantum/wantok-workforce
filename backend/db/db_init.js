@@ -8,17 +8,23 @@ const CONNECTION_TIMEOUT = 10000; // 10 seconds
 const STATEMENT_TIMEOUT = 15000;  // 15 seconds
 const SSL_CONFIG = process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
 
-let poolInstance = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: SSL_CONFIG,
-  connectionTimeoutMillis: CONNECTION_TIMEOUT,
-  statement_timeout: STATEMENT_TIMEOUT
-});
+let poolInstance;
+
+// Initialize a placeholder pool that will be replaced during initializeDatabase
+if (process.env.DATABASE_URL) {
+  poolInstance = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: SSL_CONFIG,
+    connectionTimeoutMillis: CONNECTION_TIMEOUT,
+    statement_timeout: STATEMENT_TIMEOUT
+  });
+}
 
 async function initializeDatabase() {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL environment variable is required but missing.");
   }
+
   const schemaPath = path.join(__dirname, 'schema.sql');
   const schema = fs.existsSync(schemaPath) ? fs.readFileSync(schemaPath, 'utf8') : null;
 
@@ -34,45 +40,62 @@ async function initializeDatabase() {
   console.log(`🛠️ [DB Init] Timeout Settings - Connection: ${CONNECTION_TIMEOUT}ms, Statement: ${STATEMENT_TIMEOUT}ms`);
   console.log(`🛠️ [DB Init] SSL Configuration: ${JSON.stringify(SSL_CONFIG)}`);
 
+  const parsedConfig = parse(process.env.DATABASE_URL);
+  const originalPort = parsedConfig.port;
+
+  // Define ports to try for each host
+  const portsToTry = [originalPort, '3000', '5432'].filter((p, i, a) => p && a.indexOf(p) === i);
+
   for (const host of fallbacks) {
-    try {
-      const config = parse(process.env.DATABASE_URL);
-      if (host) {
-        config.host = host;
-      }
+    for (const port of portsToTry) {
+      let tempPool = null;
+      try {
+        const config = { ...parsedConfig };
+        if (host) config.host = host;
+        config.port = port;
 
-      // Force hardening of parameters for every attempt
-      config.ssl = SSL_CONFIG;
-      config.connectionTimeoutMillis = CONNECTION_TIMEOUT;
-      config.statement_timeout = STATEMENT_TIMEOUT;
+        // Force hardening of parameters
+        config.ssl = SSL_CONFIG;
+        config.connectionTimeoutMillis = CONNECTION_TIMEOUT;
+        config.statement_timeout = STATEMENT_TIMEOUT;
 
-      const targetHost = config.host || 'unknown';
-      const targetPort = config.port;
+        const targetHost = config.host || 'unknown';
+        const targetPort = config.port || 'default';
 
-      console.log(`🔄 [DB Init] Attempting connection to ${targetHost}:${targetPort || "default"} (Fallback: ${!!host})...`);
+        console.log(`🔄 [DB Init] Attempting connection to ${targetHost}:${targetPort} (Fallback: ${!!host})...`);
 
-      poolInstance = new Pool(config);
+        tempPool = new Pool(config);
 
-      // Test the connection
-      const client = await poolInstance.connect();
-      console.log(`🚀 [DB Init] SUCCESS! Connected to ${targetHost}:${targetPort || "default"}`);
+        // Test the connection
+        const client = await tempPool.connect();
+        console.log(`🚀 [DB Init] SUCCESS! Connected to ${targetHost}:${targetPort}`);
 
-      if (schema) {
-        console.log('🔄 [DB Init] Running schema synchronization...');
-        await client.query(schema);
-        console.log('✅ [DB Init] Database schema synced successfully.');
-      } else {
-        console.log('⚠️ [DB Init] Warning: schema.sql not found, skipping sync.');
-      }
+        if (schema) {
+          console.log('🔄 [DB Init] Running schema synchronization...');
+          await client.query(schema);
+          console.log('✅ [DB Init] Database schema synced successfully.');
+        }
 
-      client.release();
-      return; // Success!
-    } catch (error) {
-      const hostLabel = host || 'native host';
-      console.error(`⚠️ [DB Init] Failed for ${hostLabel}: [${error.code || 'NO_CODE'}] ${error.message}`);
+        client.release();
 
-      if (error.code === '28P01' || error.code === '28000') {
-         console.error('❌ [DB Init] Authentication error detected. Verify DATABASE_URL credentials.');
+        // If we had a previous pool, end it (unless it's the same one, but here we always create new)
+        if (poolInstance && poolInstance !== tempPool) {
+          await poolInstance.end().catch(() => {});
+        }
+
+        poolInstance = tempPool;
+        return; // Success!
+      } catch (error) {
+        if (tempPool) {
+          await tempPool.end().catch(() => {});
+        }
+
+        const hostLabel = host || 'native host';
+        console.error(`⚠️ [DB Init] Failed for ${hostLabel}:${port}: [${error.code || 'NO_CODE'}] ${error.message}`);
+
+        if (error.code === '28P01' || error.code === '28000') {
+           console.error('❌ [DB Init] Authentication error detected. Verify DATABASE_URL credentials.');
+        }
       }
     }
   }
