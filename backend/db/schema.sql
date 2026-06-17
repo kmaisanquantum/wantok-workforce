@@ -3,7 +3,6 @@
 BEGIN;
 
 -- Enable PostGIS if not already enabled
-CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- Create role enum type
 DO $$
