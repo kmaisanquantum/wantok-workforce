@@ -6,7 +6,7 @@ const path = require('path');
 // Configuration constants
 const CONNECTION_TIMEOUT = 10000; // 10 seconds
 const STATEMENT_TIMEOUT = 15000;  // 15 seconds
-const SSL_CONFIG = process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
+const SSL_CONFIG = false;
 
 let poolInstance;
 
