@@ -70,6 +70,20 @@ async function initializeDatabase() {
         const client = await tempPool.connect();
         console.log(`🚀 [DB Init] SUCCESS! Connected to ${targetHost}:${targetPort}`);
 
+        // 1. PostGIS Initialization
+        try {
+          console.log('🔄 [DB Init] Ensuring PostGIS extension is available...');
+          await client.query('CREATE EXTENSION IF NOT EXISTS postgis;');
+          console.log('✅ [DB Init] PostGIS extension verified/created.');
+        } catch (pgisError) {
+          console.error('❌ [DB Init] CRITICAL ERROR: PostGIS initialization failed.');
+          console.error('💡 This usually means the database engine lacks PostGIS support or the user has insufficient permissions.');
+          console.error(`[PostGIS Error Code: ${pgisError.code || 'NO_CODE'}] ${pgisError.message}`);
+          client.release();
+          throw new Error('PostGIS engine check failed: ' + pgisError.message);
+        }
+
+        // 2. Main Schema Synchronization
         if (schema) {
           try {
             console.log('🔄 [DB Init] Running schema synchronization (SQL migration)...');
@@ -79,7 +93,7 @@ async function initializeDatabase() {
             console.error('❌ [DB Init] ERROR during schema sync execution:');
             console.error(`[SQL Error Code: ${syncError.code || 'NO_CODE'}] ${syncError.message}`);
             client.release();
-            const wrappedError = new Error('ERROR during schema sync execution: ' + syncError.message); wrappedError.code = syncError.code; throw wrappedError; // Propagate the error so startup fails
+            const wrappedError = new Error('ERROR during schema sync execution: ' + syncError.message); wrappedError.code = syncError.code; throw wrappedError;
           }
         } else {
           console.log('⚠️ [DB Init] Warning: schema.sql not found, skipping sync.');
@@ -99,8 +113,8 @@ async function initializeDatabase() {
           await tempPool.end().catch(() => {});
         }
 
-        // If the error was a sync error (already handled and thrown), re-throw it to stop the loop
-        if (error.message.includes('schema sync execution')) {
+        // If the error was a sync or PostGIS error (already handled and thrown), re-throw it to stop the loop
+        if (error.message.includes('schema sync execution') || error.message.includes('PostGIS engine check failed')) {
           throw error;
         }
 
