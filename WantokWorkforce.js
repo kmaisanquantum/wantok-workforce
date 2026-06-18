@@ -2388,7 +2388,7 @@ export default function App() {
         else setOnboardingComplete(false);
 
         // In a real app, we'd call the API here:
-        // await fetch(`${API_BASE}/api/auth/select-role`, { ... })
+        try { await fetch(`${API_BASE}/api/auth/select-role`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${user?.token}` }, body: JSON.stringify({ role }) }); } catch (e) { console.error("Role selection persistence failed", e); }
       }} />;
     }
 
@@ -2440,7 +2440,7 @@ export default function App() {
               }
 
               // We would ideally call API here to update active_persona
-              // await fetch(`${API_BASE}/api/auth/switch-persona`, { ... })
+              try { await fetch(`${API_BASE}/api/auth/switch-persona`, { method: "PATCH", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${user?.token}` }, body: JSON.stringify({ role: targetRole }) }); } catch (e) { console.error("Persona switch persistence failed", e); }
             }}
             onLogout={handleLogout}
             user={user}
