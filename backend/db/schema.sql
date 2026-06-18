@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS users (
     phone_number TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
+
+    role account_role NOT NULL DEFAULT 'customer', -- The primary assigned role
     active_persona account_role, -- The current active persona context
 
     -- Location handling via PostGIS

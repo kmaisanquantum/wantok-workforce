@@ -80,18 +80,31 @@ class UserModel {
   }
 
   static async create(userData) {
-    const { name, phone, email, passwordHash } = userData;
+    const { name, phone, email, passwordHash, role } = userData;
     let client;
     try {
       client = await pool.connect();
       await client.query('BEGIN');
-      const userQuery = 'INSERT INTO users (name, phone_number, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, name, email, phone_number, active_persona';
-      const { rows } = await client.query(userQuery, [name, phone, email, passwordHash]);
+
+      const userQuery = `
+        INSERT INTO users (name, phone_number, email, password_hash, role, active_persona)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, name, email, phone_number, role, active_persona
+      `;
+      const { rows } = await client.query(userQuery, [name, phone, email, passwordHash, role, role]);
       const user = rows[0];
+
+      // Also add to user_roles table
+      await client.query(
+        'INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2)',
+        [user.id, role]
+      );
+
       await client.query('COMMIT');
       return user;
     } catch (e) {
       if (client) await client.query('ROLLBACK');
+      console.error('❌ UserModel.create Error:', e.message);
       throw e;
     } finally {
       if (client) client.release();
