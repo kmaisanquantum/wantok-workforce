@@ -84,3 +84,83 @@ class AuthController {
         token,
         user: {
           id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone_number,
+          role: user.role,
+          active_persona: user.active_persona,
+          roles: user.roles,
+          is_available: user.is_available
+        }
+      });
+    } catch (error) {
+      console.error('❌ Login Error:', error);
+      return res.status(500).json({ error: 'Internal server error during login' });
+    }
+  }
+
+  static async selectRole(req, res) {
+    try {
+      const { role } = req.body;
+      const userId = req.user.id;
+
+      if (!['customer', 'provider'].includes(role)) {
+        return res.status(400).json({ error: 'Invalid role selection' });
+      }
+
+      await UserModel.addRole(userId, role);
+      await UserModel.updateActivePersona(userId, role);
+
+      return res.status(200).json({ message: 'Role selected successfully', active_persona: role });
+    } catch (error) {
+      console.error('❌ Select Role Error:', error);
+      return res.status(500).json({ error: 'Internal server error during role selection' });
+    }
+  }
+
+  static async switchPersona(req, res) {
+    try {
+      const { role } = req.body;
+      const userId = req.user.id;
+
+      if (!['customer', 'provider'].includes(role)) {
+        return res.status(400).json({ error: 'Invalid role selection' });
+      }
+
+      // Verify user actually has this role
+      if (!req.user.roles.includes(role)) {
+        return res.status(403).json({ error: 'User does not have this role' });
+      }
+
+      await UserModel.updateActivePersona(userId, role);
+
+      return res.status(200).json({ message: 'Persona switched successfully', active_persona: role });
+    } catch (error) {
+      console.error('❌ Switch Persona Error:', error);
+      return res.status(500).json({ error: 'Internal server error during persona switch' });
+    }
+  }
+
+  static async toggleAvailability(req, res) {
+    try {
+      const { is_available } = req.body;
+      const userId = req.user.id;
+
+      if (typeof is_available !== 'boolean') {
+        return res.status(400).json({ error: 'is_available must be a boolean' });
+      }
+
+      const result = await UserModel.updateAvailability(userId, is_available);
+
+      return res.status(200).json({
+        message: 'Availability updated successfully',
+        is_available: result.is_available
+      });
+    } catch (error) {
+      console.error('❌ Toggle Availability Error:', error);
+      return res.status(500).json({ error: 'Internal server error during availability update' });
+    }
+  }
+}
+
+module.exports = AuthController;
