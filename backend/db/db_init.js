@@ -1,56 +1,34 @@
 const fs = require('fs');
 const path = require('path');
-const UserModel = require('../src/auth/models/user_model');
 
-async function initializeDatabase(initialPool) {
+async function initializeDatabase(pool) {
   const schemaPath = path.join(__dirname, 'schema.sql');
   const schema = fs.readFileSync(schemaPath, 'utf8');
 
-  const database = initialPool.options.database;
-  const initialHost = initialPool.options.host;
+  const host = pool.options.host;
+  const database = pool.options.database;
 
-  // Final Hope: Exhaustive Fallback Chain
-  const fallbackHosts = [
-    'm3j8li3n4e9d2kk2h4c019po', // Short internal alias
-    '192.168.0.1',             // VERIFIED GATEWAY FROM IP ROUTE
-    '172.17.0.1',              // Docker Default Bridge
-    '172.18.0.1',              // Coolify Bridge
-    '172.19.0.1',              // Alt Bridge 1
-    '172.20.0.1'               // Alt Bridge 2
-  ];
+  console.log(`🔄 [DB Handshake] Attempting direct connection to ${host}/${database}...`);
 
-  const performHandshake = async (host) => {
-    console.log(`🔄 [DB Handshake] Probing host: ${host}...`);
-    const pool = (host === initialHost) ? initialPool : UserModel.reinitPool(host);
+  try {
+    const client = await pool.connect();
+    console.log(`🔗 [Success] Database reached successfully via: ${host}`);
 
     try {
-      const client = await pool.connect();
-      console.log(`🔗 [Success] Database reached via: ${host}`);
-
-      try {
-        console.log('🔄 Running schema synchronization...');
-        await client.query(schema);
-        console.log('✅ [Ready] Database synced.');
-        return true;
-      } finally {
-        client.release();
-      }
-    } catch (err) {
-      console.warn(`⚠️ [Failed] Host ${host} unreachable: ${err.message}`);
-      return false;
+      console.log('🔄 Running schema synchronization...');
+      await client.query(schema);
+      console.log('✅ [Ready] Database synced.');
+    } finally {
+      client.release();
     }
-  };
-
-  // 1. Try initial host from env
-  if (await performHandshake(initialHost)) return;
-
-  // 2. Iterate fallbacks
-  for (const host of fallbackHosts) {
-    if (host === initialHost) continue;
-    if (await performHandshake(host)) return;
+  } catch (err) {
+    console.error('❌ [Critical] Database connection failed.');
+    console.error(`Target Host: ${host}`);
+    console.error(`Target Database: ${database}`);
+    console.error('Error Message:', err.message);
+    console.error('Error Code:', err.code);
+    throw err;
   }
-
-  throw new Error('All database fallback routes failed. Critical network failure.');
 }
 
 module.exports = { initializeDatabase };

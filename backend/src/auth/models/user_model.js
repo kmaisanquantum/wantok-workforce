@@ -1,16 +1,13 @@
 const { Pool } = require('pg');
 const { parse } = require('pg-connection-string');
 
-const getPoolConfig = (overrideHost = null) => {
+const getPoolConfig = () => {
   const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/wantok';
+  console.log('🔍 [DB] Initializing pool from DATABASE_URL');
+
   let config = parse(dbUrl);
 
-  if (overrideHost) {
-    console.log(`🛠️ [DB] Manual override: ${overrideHost}`);
-    config.host = overrideHost;
-  }
-
-  // Detect internal-like hosts
+  // Detect internal-like hosts or specific Coolify shorthand
   const hostStr = String(config.host);
   const isInternal =
     hostStr.startsWith('172.') ||
@@ -19,16 +16,17 @@ const getPoolConfig = (overrideHost = null) => {
     hostStr === '127.0.0.1' ||
     hostStr === 'host.docker.internal' ||
     hostStr.includes('postgresql-database-') ||
-    hostStr === 'm3j8li3n4e9d2kk2h4c019po'; // The short ID
+    hostStr === 'm3j8li3n4e9d2kk2h4c019po';
 
   if (isInternal) {
-    console.log(`🔌 [DB] Internal/Local detected (${config.host}) - Disabling SSL`);
+    console.log(`🔌 [DB] Internal/Local network detected (${config.host}). Disabling SSL for clean handshake.`);
     delete config.ssl;
   } else {
     config.ssl = { rejectUnauthorized: false };
   }
 
-  config.connectionTimeoutMillis = 8000; // Faster timeout for fallback chain
+  // Robust connection settings
+  config.connectionTimeoutMillis = 10000;
   config.idleTimeoutMillis = 30000;
   config.max = 20;
   config.statement_timeout = 30000;
@@ -37,9 +35,9 @@ const getPoolConfig = (overrideHost = null) => {
 };
 
 let pool;
-const initPool = (host = null) => {
+const initPool = () => {
   try {
-    const config = getPoolConfig(host);
+    const config = getPoolConfig();
     pool = new Pool(config);
     pool.on('error', (err) => console.error('❌ [DB] Unexpected error on idle client', err));
     return pool;
@@ -53,15 +51,6 @@ pool = initPool();
 
 class UserModel {
   static getPool() { return pool; }
-
-  static reinitPool(newHost) {
-    console.log(`🔄 [DB] Re-initializing pool with host: ${newHost}`);
-    if (pool) {
-      try { pool.end().catch(() => {}); } catch (e) {}
-    }
-    pool = initPool(newHost);
-    return pool;
-  }
 
   static async checkConnection() {
     if (!pool) return false;
@@ -94,7 +83,6 @@ class UserModel {
       const { rows } = await client.query(userQuery, [name, phone, email, passwordHash, role, role]);
       const user = rows[0];
 
-      // Also add to user_roles table
       await client.query(
         'INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2)',
         [user.id, role]
