@@ -8,10 +8,16 @@ class AuthController {
   static async register(req, res) {
     console.log('📥 Registration request received:', { ...req.body, password: '****' });
     try {
-      const { name, phone, email, password } = req.body;
+      const { name, phone, email, password, role } = req.body;
 
       if (!name || !phone || !email || !password) {
         return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      // Default to 'customer' if no role provided, but validate if it is
+      const userRole = role || 'customer';
+      if (!['customer', 'provider'].includes(userRole)) {
+        return res.status(400).json({ error: 'Invalid role selection' });
       }
 
       // Basic email validation
@@ -21,20 +27,31 @@ class AuthController {
       }
 
       console.log('🔐 Hashing password...');
-      const saltRounds = 12; // Increased security
+      const saltRounds = 12;
       const passwordHash = await bcrypt.hash(password, saltRounds);
 
       console.log('🗄️ Saving user to database...');
-      const user = await UserModel.create({ name, phone, email, passwordHash });
+      const user = await UserModel.create({
+        name,
+        phone,
+        email,
+        passwordHash,
+        role: userRole
+      });
 
       console.log('🎟️ Issuing JWT session...');
-      const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '7d' });
+      const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
 
-      console.log('✅ Registration successful for:', email);
+      console.log('✅ Registration successful for:', email, 'Role:', userRole);
       return res.status(201).json({
         message: 'Account registered successfully.',
         token,
-        user: { id: user.id, name: user.name, email: user.email }
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }
       });
     } catch (error) {
       console.error('❌ Registration Error:', error);
@@ -67,7 +84,7 @@ class AuthController {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
-      const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '7d' });
+      const token = jwt.sign({ id: user.id, role: user.active_persona }, JWT_SECRET, { expiresIn: '7d' });
 
       console.log('✅ Login successful:', user.email);
       return res.status(200).json({
@@ -77,7 +94,8 @@ class AuthController {
           id: user.id,
           name: user.name,
           email: user.email,
-          active_persona: user.active_persona
+          active_persona: user.active_persona,
+          roles: user.roles
         }
       });
     } catch (error) {

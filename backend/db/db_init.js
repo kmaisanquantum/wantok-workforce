@@ -4,15 +4,19 @@ const UserModel = require('../src/auth/models/user_model');
 
 async function initializeDatabase(initialPool) {
   const schemaPath = path.join(__dirname, 'schema.sql');
-  const schema = fs.existsSync(schemaPath) ? fs.readFileSync(schemaPath, 'utf8') : null;
+  const schema = fs.readFileSync(schemaPath, 'utf8');
 
-  const fallbacks = [
-    null, // Try default first (native host from DATABASE_URL)
-    'host.docker.internal',
-    '192.168.0.1', // Gateway IP (common in devbox/docker)
-    '172.17.0.1', '172.18.0.1',  // Docker bridge default
-    '127.0.0.1',
-    '45.32.243.144'
+  const database = initialPool.options.database;
+  const initialHost = initialPool.options.host;
+
+  // Final Hope: Exhaustive Fallback Chain
+  const fallbackHosts = [
+    'm3j8li3n4e9d2kk2h4c019po', // Short internal alias
+    '192.168.0.1',             // VERIFIED GATEWAY FROM IP ROUTE
+    '172.17.0.1',              // Docker Default Bridge
+    '172.18.0.1',              // Coolify Bridge
+    '172.19.0.1',              // Alt Bridge 1
+    '172.20.0.1'               // Alt Bridge 2
   ];
 
   const performHandshake = async (host) => {
