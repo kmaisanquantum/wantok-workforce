@@ -35,6 +35,7 @@ const COLORS = {
   statusBar: "#0F4024",
 };
 
+const mockWorkers = [];
 
 const StarRating = ({ rating }) => {
   const stars = Math.round(rating);
@@ -2061,7 +2062,7 @@ function AuthScreen({ onAuth }) {
                         padding: 12,
                         fontSize: 14,
                       }}
-                      placeholder="e.g. John Smith"
+                      placeholder="Your full name"
                       value={name}
                       onChangeText={setName}
                     />

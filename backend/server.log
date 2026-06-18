@@ -1,0 +1,19 @@
+
+> wantok-api@1.0.0 start
+> node server.js
+
+Wantok Unified Server running on port 3000
+🔄 Connecting natively using process.env.DATABASE_URL...
+⚠️ Connection failed for native host:
+🔄 Attempting fallback connection to host: host.docker.internal...
+⚠️ Connection failed for host.docker.internal: getaddrinfo ENOTFOUND host.docker.internal
+🔄 Attempting fallback connection to host: 172.17.0.1...
+⚠️ Connection failed for 172.17.0.1: connect ECONNREFUSED 172.17.0.1:5432
+🔄 Attempting fallback connection to host: 127.0.0.1...
+⚠️ Connection failed for 127.0.0.1: connect ECONNREFUSED 127.0.0.1:5432
+❌ CRITICAL ERROR during startup:
+Database connection failed details: Error: All database connection routes failed (including fallbacks).
+    at initializeDatabase (/app/backend/db/db_init.js:55:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Server.<anonymous> (/app/backend/server.js:61:5)
+Terminated

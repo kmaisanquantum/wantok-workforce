@@ -1,3 +1,10 @@
+// Environment validation
+if (!process.env.DATABASE_URL) {
+  console.error("❌ CRITICAL CONFIG ERROR: DATABASE_URL is not defined in the environment.");
+  console.error("💡 Recommendation: Check your Coolify environment variables or local .env file.");
+  process.exit(1);
+}
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -52,25 +59,33 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
-// Initialize server
-app.listen(PORT, async () => {
-  console.log(`Wantok Unified Server running on port ${PORT}`);
+// Start initialization sequence
+async function startServer() {
+  console.log('🚀 Starting Wantok Unified Server initialization...');
 
-  // DB Connectivity & Schema Sync
+  // 1. DB Connectivity & Schema Sync MUST happen before listening
   try {
-    const pool = UserModel.getPool();
-    await initializeDatabase(pool);
-    console.log('✅ Backend is ready and database is synced.');
+    await initializeDatabase();
+    console.log('✅ Database initialization and schema sync complete.');
   } catch (err) {
-    console.error('❌ CRITICAL ERROR during startup:');
-    console.error('Database connection failed details:', err);
+    console.error('❌ CRITICAL ERROR during database initialization:');
+    console.error(err);
 
     if (err.code === 'ECONNREFUSED') {
       console.error('💡 Recommendation: Check if the database server is running and accessible.');
     } else if (err.code === '28P01' || err.code === '28000') {
       console.error('💡 Recommendation: Check your DATABASE_URL credentials.');
-    } else if (err.code === '3D000') {
-      console.error('💡 Recommendation: Check if the database name exists.');
     }
+
+    // Do not start the server if DB fails
+    process.exit(1);
   }
-});
+
+  // 2. Start listening only after DB is ready
+  app.listen(PORT, () => {
+    console.log(`✅ Wantok Unified Server is now running on port ${PORT}`);
+    console.log('🚀 Backend is ready to handle requests.');
+  });
+}
+
+startServer();
