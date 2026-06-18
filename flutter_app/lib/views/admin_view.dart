@@ -94,7 +94,7 @@ class AdminView extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Wallet Unlock - #JK-001', style: TextStyle(fontWeight: FontWeight.bold)),
-                    Text('Match unlocked for James Kapi', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text('Match unlocked for Service Provider', style: TextStyle(fontSize: 12, color: Colors.grey)),
                   ],
                 ),
               ),

@@ -4,18 +4,27 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration constants
-const CONNECTION_TIMEOUT = 15000; // 15 seconds
-const STATEMENT_TIMEOUT = 20000;  // 20 seconds
-const SSL_CONFIG = process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
+const CONNECTION_TIMEOUT = 10000; // 10 seconds
+const STATEMENT_TIMEOUT = 15000;  // 15 seconds
+const SSL_CONFIG = false;
 
-let poolInstance = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: SSL_CONFIG,
-  connectionTimeoutMillis: CONNECTION_TIMEOUT,
-  statement_timeout: STATEMENT_TIMEOUT
-});
+let poolInstance;
+
+// Initialize a placeholder pool that will be replaced during initializeDatabase
+if (process.env.DATABASE_URL) {
+  poolInstance = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: SSL_CONFIG,
+    connectionTimeoutMillis: CONNECTION_TIMEOUT,
+    statement_timeout: STATEMENT_TIMEOUT
+  });
+}
 
 async function initializeDatabase() {
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL environment variable is required but missing.");
+  }
+
   const schemaPath = path.join(__dirname, 'schema.sql');
   const schema = fs.existsSync(schemaPath) ? fs.readFileSync(schemaPath, 'utf8') : null;
 
@@ -32,57 +41,90 @@ async function initializeDatabase() {
   console.log(`🛠️ [DB Init] Timeout Settings - Connection: ${CONNECTION_TIMEOUT}ms, Statement: ${STATEMENT_TIMEOUT}ms`);
   console.log(`🛠️ [DB Init] SSL Configuration: ${JSON.stringify(SSL_CONFIG)}`);
 
-  if (process.env.DATABASE_URL) {
-    const parsed = parse(process.env.DATABASE_URL);
-    console.log(`🔍 [DB Init] Primary host from environment: ${parsed.host}:${parsed.port || '5432'}`);
-  } else {
-    console.warn('⚠️ [DB Init] DATABASE_URL is not set!');
-  }
+  const parsedConfig = parse(process.env.DATABASE_URL);
+  const originalPort = parsedConfig.port;
+
+  // Define ports to try for each host
+  const portsToTry = [originalPort, '3000', '5432'].filter((p, i, a) => p && a.indexOf(p) === i);
 
   for (const host of fallbacks) {
-    try {
-      const config = parse(process.env.DATABASE_URL || '');
-      if (host) {
-        config.host = host;
-      }
+    for (const port of portsToTry) {
+      let tempPool = null;
+      try {
+        const config = { ...parsedConfig };
+        if (host) config.host = host;
+        config.port = port;
 
-      // Force hardening of parameters for every attempt
-      config.ssl = SSL_CONFIG;
-      config.connectionTimeoutMillis = CONNECTION_TIMEOUT;
-      config.statement_timeout = STATEMENT_TIMEOUT;
+        // Force hardening of parameters
+        config.ssl = SSL_CONFIG;
+        config.connectionTimeoutMillis = CONNECTION_TIMEOUT;
+        config.statement_timeout = STATEMENT_TIMEOUT;
 
-      const targetHost = config.host || 'unknown';
-      const targetPort = config.port || '5432';
+        const targetHost = config.host || 'unknown';
+        const targetPort = config.port || 'default';
 
-      console.log(`🔄 [DB Init] Attempting connection to ${targetHost}:${targetPort} (Fallback: ${!!host})...`);
+        console.log(`🔄 [DB Init] Attempting connection to ${targetHost}:${targetPort} (Fallback: ${!!host})...`);
 
-      // Close previous pool if it exists to avoid resource leaks during retries
-      if (poolInstance) {
-        try { await poolInstance.end(); } catch (e) {}
-      }
+        tempPool = new Pool(config);
 
-      poolInstance = new Pool(config);
+        // Test the connection
+        const client = await tempPool.connect();
+        console.log(`🚀 [DB Init] SUCCESS! Connected to ${targetHost}:${targetPort}`);
 
-      // Test the connection
-      const client = await poolInstance.connect();
-      console.log(`🚀 [DB Init] SUCCESS! Connected to ${targetHost}:${targetPort}`);
+        // 1. PostGIS Initialization
+        try {
+          console.log('🔄 [DB Init] Ensuring PostGIS extension is available...');
+          await client.query('CREATE EXTENSION IF NOT EXISTS postgis;');
+          console.log('✅ [DB Init] PostGIS extension verified/created.');
+        } catch (pgisError) {
+          console.error('❌ [DB Init] CRITICAL ERROR: PostGIS initialization failed.');
+          console.error('💡 This usually means the database engine lacks PostGIS support or the user has insufficient permissions.');
+          console.error(`[PostGIS Error Code: ${pgisError.code || 'NO_CODE'}] ${pgisError.message}`);
+          client.release();
+          throw new Error('PostGIS engine check failed: ' + pgisError.message);
+        }
 
-      if (schema) {
-        console.log('🔄 [DB Init] Running schema synchronization...');
-        await client.query(schema);
-        console.log('✅ [DB Init] Database schema synced successfully.');
-      } else {
-        console.log('⚠️ [DB Init] Warning: schema.sql not found, skipping sync.');
-      }
+        // 2. Main Schema Synchronization
+        if (schema) {
+          try {
+            console.log('🔄 [DB Init] Running schema synchronization (SQL migration)...');
+            await client.query(schema);
+            console.log('✅ [DB Init] Database schema synced successfully.');
+          } catch (syncError) {
+            console.error('❌ [DB Init] ERROR during schema sync execution:');
+            console.error(`[SQL Error Code: ${syncError.code || 'NO_CODE'}] ${syncError.message}`);
+            client.release();
+            const wrappedError = new Error('ERROR during schema sync execution: ' + syncError.message); wrappedError.code = syncError.code; throw wrappedError;
+          }
+        } else {
+          console.log('⚠️ [DB Init] Warning: schema.sql not found, skipping sync.');
+        }
 
-      client.release();
-      return; // Success!
-    } catch (error) {
-      const hostLabel = host || 'native host';
-      console.error(`⚠️ [DB Init] Failed for ${hostLabel}: [${error.code || 'NO_CODE'}] ${error.message}`);
+        client.release();
 
-      if (error.code === '28P01' || error.code === '28000') {
-         console.error('❌ [DB Init] Authentication error detected. Verify DATABASE_URL credentials.');
+        // If we had a previous pool, end it
+        if (poolInstance && poolInstance !== tempPool) {
+          await poolInstance.end().catch(() => {});
+        }
+
+        poolInstance = tempPool;
+        return; // Success!
+      } catch (error) {
+        if (tempPool) {
+          await tempPool.end().catch(() => {});
+        }
+
+        // If the error was a sync or PostGIS error (already handled and thrown), re-throw it to stop the loop
+        if (error.message.includes('schema sync execution') || error.message.includes('PostGIS engine check failed')) {
+          throw error;
+        }
+
+        const hostLabel = host || 'native host';
+        console.error(`⚠️ [DB Init] Failed for ${hostLabel}:${port}: [${error.code || 'NO_CODE'}] ${error.message}`);
+
+        if (error.code === '28P01' || error.code === '28000') {
+           console.error('❌ [DB Init] Authentication error detected. Verify DATABASE_URL credentials.');
+        }
       }
     }
   }
