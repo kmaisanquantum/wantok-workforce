@@ -41,9 +41,20 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Ensure column is_available exists if table was created previously without it
+-- Migrations for existing tables
 DO $$
 BEGIN
+    -- Check for 'role' column
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='role') THEN
+        ALTER TABLE users ADD COLUMN role account_role NOT NULL DEFAULT 'customer';
+    END IF;
+
+    -- Check for 'active_persona' column
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='active_persona') THEN
+        ALTER TABLE users ADD COLUMN active_persona account_role;
+    END IF;
+
+    -- Check for 'is_available' column
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='is_available') THEN
         ALTER TABLE users ADD COLUMN is_available BOOLEAN DEFAULT TRUE;
     END IF;
