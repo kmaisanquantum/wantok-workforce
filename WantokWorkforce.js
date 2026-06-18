@@ -2310,6 +2310,118 @@ function AuthScreen({ onAuth }) {
 
 
 
+
+function AdminAuthScreen({ onAuth }) {
+  const [loading, setLoading] = useState(false);
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleAdminLogin = async () => {
+    if (!identifier || !password) {
+      alert("Please enter admin credentials.");
+      return;
+    }
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Strict Role Check: Must be admin
+        if (data.user.roles && data.user.roles.includes('admin')) {
+          onAuth({ ...data.user, token: data.token }, false);
+        } else {
+          alert("Access Denied: Administrative privileges required.");
+          if (Platform.OS === 'web') window.location.href = '/';
+        }
+      } else {
+        alert(data.error || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Admin Login Error:', error);
+      alert('Network error.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: "#0F172A", justifyContent: "center", padding: 24 }}>
+      <View style={{ alignItems: "center", marginBottom: 40 }}>
+        <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "#334155", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+          <Text style={{ fontSize: 32 }}>🔐</Text>
+        </View>
+        <Text style={{ color: "#fff", fontSize: 24, fontWeight: "900", letterSpacing: 1 }}>
+          ADMIN PORTAL
+        </Text>
+        <Text style={{ color: "#94A3B8", fontSize: 14, marginTop: 8 }}>
+          Wantok Workforce Back-Office
+        </Text>
+      </View>
+
+      <View style={{ backgroundColor: "#1E293B", borderRadius: 16, padding: 24, elevation: 8 }}>
+        <View style={{ marginBottom: 16 }}>
+          <Text style={{ color: "#94A3B8", fontSize: 12, fontWeight: "700", marginBottom: 8, textTransform: "uppercase" }}>
+            Admin Identifier
+          </Text>
+          <TextInput
+            style={{ backgroundColor: "#0F172A", color: "#fff", borderRadius: 8, padding: 12, borderWidth: 1, borderColor: "#334155" }}
+            placeholder="Username or Email"
+            placeholderTextColor="#475569"
+            value={identifier}
+            onChangeText={setIdentifier}
+            autoCapitalize="none"
+          />
+        </View>
+
+        <View style={{ marginBottom: 24 }}>
+          <Text style={{ color: "#94A3B8", fontSize: 12, fontWeight: "700", marginBottom: 8, textTransform: "uppercase" }}>
+            Security Key
+          </Text>
+          <TextInput
+            style={{ backgroundColor: "#0F172A", color: "#fff", borderRadius: 8, padding: 12, borderWidth: 1, borderColor: "#334155" }}
+            placeholder="Enter password"
+            placeholderTextColor="#475569"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+          />
+        </View>
+
+        <TouchableOpacity
+          onPress={handleAdminLogin}
+          disabled={loading}
+          style={{
+            backgroundColor: "#3B82F6",
+            padding: 16,
+            borderRadius: 8,
+            alignItems: "center",
+            opacity: loading ? 0.7 : 1
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>
+            {loading ? "AUTHENTICATING..." : "AUTHORIZE ACCESS"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity
+        onPress={() => { if (Platform.OS === 'web') window.location.href = '/'; }}
+        style={{ marginTop: 24, alignItems: "center" }}
+      >
+        <Text style={{ color: "#475569", fontSize: 13 }}>Return to Public Site</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 function AdminScreen({ onNavigate }) {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg, padding: 16 }}>
@@ -2335,6 +2447,14 @@ function AdminScreen({ onNavigate }) {
 }
 
 export default function App() {
+  useEffect(() => {
+    if (Platform.OS === "web") {
+      const path = window.location.pathname;
+      if (path === "/@dm1n") {
+        setScreen("admin-auth");
+      }
+    }
+  }, []);
   const [screen, setScreen] = useState("home");
   const [screenData, setScreenData] = useState(null);
   const [currentUser, setCurrentUser] = useState(null); // "customer" or "provider"
@@ -2376,10 +2496,31 @@ export default function App() {
   };
 
   const renderScreen = () => {
+    // Hidden Admin Route Handling
+    if (screen === "admin-auth") {
+      if (isAuthenticated) {
+        if (user?.roles?.includes('admin')) {
+          setCurrentUser('admin');
+          setScreen('admin');
+          setOnboardingComplete(true);
+        } else {
+          handleLogout();
+          alert("Unauthorized access attempt.");
+          return <AuthScreen onAuth={handleAuth} />;
+        }
+      }
+      return <AdminAuthScreen onAuth={handleAuth} />;
+    }
+
     if (!isAuthenticated) {
       return <AuthScreen onAuth={handleAuth} />;
     }
 
+    // Role-based Access Guard for Admin Screen
+    if (screen === "admin" && (!user?.roles?.includes('admin') || currentUser !== 'admin')) {
+      handleLogout();
+      return <AuthScreen onAuth={handleAuth} />;
+    }
     if (!currentUser) {
       return <RoleSelectionScreen onSelectRole={async (role) => {
         // Optimistic UI update

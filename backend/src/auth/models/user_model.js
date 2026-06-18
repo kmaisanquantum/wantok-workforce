@@ -76,7 +76,7 @@ class UserModel {
       const userQuery = `
         INSERT INTO users (name, phone_number, email, password_hash, role, active_persona)
         VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id, name, email, phone_number, role, active_persona
+        RETURNING id, name, email, phone_number, role, active_persona, is_available
       `;
       const { rows } = await client.query(userQuery, [name, phone, email, passwordHash, role, role]);
       const user = rows[0];
