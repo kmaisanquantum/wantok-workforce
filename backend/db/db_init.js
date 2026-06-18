@@ -31,7 +31,8 @@ async function initializeDatabase() {
   const fallbacks = [
     null, // Try default first (native host from DATABASE_URL)
     'host.docker.internal',
-    '172.17.0.1',
+    '192.168.0.1', // Gateway IP (common in devbox/docker)
+    '172.17.0.1', '172.18.0.1',  // Docker bridge default
     '127.0.0.1',
     '45.32.243.144'
   ];
