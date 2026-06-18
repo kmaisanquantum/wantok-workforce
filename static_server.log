@@ -1,0 +1,11 @@
+ INFO  Accepting connections at http://localhost:8080
+ HTTP  6/18/2026 3:24:51 PM 127.0.0.1 GET /@dm1n
+ HTTP  6/18/2026 3:24:51 PM 127.0.0.1 Returned 200 in 24 ms
+ HTTP  6/18/2026 3:24:51 PM 127.0.0.1 GET /_expo/static/js/web/AppEntry-5b628f2878e033c4be8648cd565e80b0.js
+ HTTP  6/18/2026 3:24:51 PM 127.0.0.1 Returned 200 in 4 ms
+ HTTP  6/18/2026 3:24:51 PM 127.0.0.1 GET /api/health/db
+ HTTP  6/18/2026 3:24:51 PM 127.0.0.1 Returned 200 in 2 ms
+ HTTP  6/18/2026 3:24:51 PM 127.0.0.1 GET /assets/assets/logo.8eba79e04acca3f4baef089c5cc45103.jpg
+ HTTP  6/18/2026 3:24:51 PM 127.0.0.1 Returned 200 in 2 ms
+
+ INFO  Gracefully shutting down. Please wait...
