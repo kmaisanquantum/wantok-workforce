@@ -14,13 +14,11 @@ class AuthController {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
-      // Default to 'customer' if no role provided, but validate if it is
       const userRole = role || 'customer';
       if (!['customer', 'provider'].includes(userRole)) {
         return res.status(400).json({ error: 'Invalid role selection' });
       }
 
-      // Basic email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         return res.status(400).json({ error: 'Invalid email format' });
@@ -50,16 +48,13 @@ class AuthController {
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role
+          role: user.role,
+          is_available: true
         }
       });
     } catch (error) {
       console.error('❌ Registration Error:', error);
-
-      if (error.code === '23505') {
-        return res.status(409).json({ error: 'Email or phone number already registered' });
-      }
-
+      if (error.code === '23505') return res.status(409).json({ error: 'Email or phone number already registered' });
       return res.status(500).json({ error: 'Internal server error during registration' });
     }
   }
@@ -74,15 +69,11 @@ class AuthController {
       }
 
       const user = await UserModel.findByIdentifier(identifier);
-      if (!user) {
-        return res.status(401).json({ error: 'Invalid credentials' });
-      }
+      if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
       console.log('🔐 Verifying credentials...');
       const isMatch = await bcrypt.compare(password, user.password_hash);
-      if (!isMatch) {
-        return res.status(401).json({ error: 'Invalid credentials' });
-      }
+      if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
 
       const token = jwt.sign({ id: user.id, role: user.active_persona }, JWT_SECRET, { expiresIn: '7d' });
 
@@ -95,11 +86,34 @@ class AuthController {
           name: user.name,
           email: user.email,
           active_persona: user.active_persona,
-          roles: user.roles
+          roles: user.roles,
+          is_available: user.is_available
         }
       });
     } catch (error) {
       console.error('❌ Login Error:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  static async toggleAvailability(req, res) {
+    try {
+      const { is_available } = req.body;
+      const userId = req.user.id;
+
+      if (typeof is_available !== 'boolean') {
+        return res.status(400).json({ error: 'is_available must be a boolean' });
+      }
+
+      console.log(`📡 [Availability] Toggling status for user ${userId} to: ${is_available}`);
+      const updated = await UserModel.updateAvailability(userId, is_available);
+
+      return res.status(200).json({
+        message: 'Availability updated',
+        is_available: updated.is_available
+      });
+    } catch (error) {
+      console.error('❌ toggleAvailability Error:', error);
       return res.status(500).json({ error: 'Internal server error' });
     }
   }
