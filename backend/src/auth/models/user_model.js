@@ -7,14 +7,7 @@ const getPoolConfig = () => {
 
   let config = parse(dbUrl);
 
-  // Detect internal-like hosts or specific Coolify shorthand
   const hostStr = String(config.host);
-
-  // A robust check for internal/container networking:
-  // 1. Common local/private IP ranges
-  // 2. Localhost aliases
-  // 3. Known Coolify prefixes
-  // 4. Shorthand container IDs (usually alphanumeric, no dots)
   const isInternal =
     hostStr.startsWith('172.') ||
     hostStr.startsWith('192.168.') ||
@@ -22,17 +15,15 @@ const getPoolConfig = () => {
     hostStr === '127.0.0.1' ||
     hostStr === 'host.docker.internal' ||
     hostStr.includes('postgresql-database-') ||
-    !hostStr.includes('.'); // Generic check for container aliases without FQDN
+    !hostStr.includes('.');
 
   if (isInternal) {
     console.log(`🔌 [DB] Internal/Local network detected (${config.host}). Disabling SSL for clean handshake.`);
     delete config.ssl;
   } else {
-    // For external databases, we still default to lenient SSL
     config.ssl = { rejectUnauthorized: false };
   }
 
-  // Robust connection settings
   config.connectionTimeoutMillis = 10000;
   config.idleTimeoutMillis = 30000;
   config.max = 20;
@@ -47,6 +38,7 @@ const initPool = () => {
     const config = getPoolConfig();
     pool = new Pool(config);
     pool.on('error', (err) => console.error('❌ [DB] Unexpected error on idle client', err));
+    module.exports.pool = pool;
     return pool;
   } catch (err) {
     console.error('❌ [DB] Failed to initialize pool:', err);
@@ -54,7 +46,7 @@ const initPool = () => {
   }
 };
 
-pool = initPool();
+initPool();
 
 class UserModel {
   static getPool() { return pool; }
@@ -81,7 +73,6 @@ class UserModel {
     try {
       client = await pool.connect();
       await client.query('BEGIN');
-
       const userQuery = `
         INSERT INTO users (name, phone_number, email, password_hash, role, active_persona)
         VALUES ($1, $2, $3, $4, $5, $6)
@@ -89,17 +80,11 @@ class UserModel {
       `;
       const { rows } = await client.query(userQuery, [name, phone, email, passwordHash, role, role]);
       const user = rows[0];
-
-      await client.query(
-        'INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2)',
-        [user.id, role]
-      );
-
+      await client.query('INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2)', [user.id, role]);
       await client.query('COMMIT');
       return user;
     } catch (e) {
       if (client) await client.query('ROLLBACK');
-      console.error('❌ UserModel.create Error:', e.message);
       throw e;
     } finally {
       if (client) client.release();
@@ -109,6 +94,12 @@ class UserModel {
   static async findByIdentifier(identifier) {
     const query = 'SELECT u.*, array_agg(ur.role_name) as roles FROM users u LEFT JOIN user_roles ur ON u.id = ur.user_id WHERE u.email = $1 OR u.phone_number = $1 GROUP BY u.id';
     const { rows } = await pool.query(query, [identifier]);
+    return rows[0];
+  }
+
+  static async updateAvailability(userId, isAvailable) {
+    const query = 'UPDATE users SET is_available = $2 WHERE id = $1 RETURNING is_available';
+    const { rows } = await pool.query(query, [userId, isAvailable]);
     return rows[0];
   }
 

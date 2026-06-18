@@ -69,7 +69,7 @@ const TrustBadge = () => (
 // ─── SCREENS ───────────────────────────────────────────────────────────────
 
 
-function HomeScreen({ onNavigate, currentUser, onSwitchPersona }) {
+function HomeScreen({ onNavigate, currentUser, onSwitchPersona, user, onUpdateUser }) {
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [filtered, setFiltered] = useState([]);
@@ -122,17 +122,76 @@ function HomeScreen({ onNavigate, currentUser, onSwitchPersona }) {
           </LinearGradient>
 
           <View style={{ padding: 16, marginTop: -20, gap: 16 }}>
-            {/* Trust Score Card */}
+            {/* Availability & Trust Score */}
             <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 20, elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 }}>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.text }}>Current Trust Score</Text>
-                <Text style={{ fontSize: 18, fontWeight: "900", color: COLORS.primary }}>92%</Text>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <View>
+                  <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.text }}>Work Status</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: user?.is_available ? "#10B981" : "#9CA3AF", marginRight: 6 }} />
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: user?.is_available ? "#10B981" : "#6B7280" }}>
+                      {user?.is_available ? "Available for Jobs" : "Busy / Offline"}
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  onPress={async () => {
+                    const newStatus = !user?.is_available;
+                    // Optimistic update
+                    onUpdateUser({ ...user, is_available: newStatus });
+
+                    try {
+                      const response = await fetch(`${API_BASE}/api/auth/availability`, {
+                        method: 'PATCH',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${user?.token}`
+                        },
+                        body: JSON.stringify({ is_available: newStatus })
+                      });
+                      if (!response.ok) throw new Error('Failed to update status');
+                    } catch (err) {
+                      console.error('Availability update failed:', err);
+                      // Rollback on error
+                      onUpdateUser({ ...user, is_available: !newStatus });
+                      alert("Could not update status. Please check your connection.");
+                    }
+                  }}
+                  style={{
+                    width: 50,
+                    height: 28,
+                    borderRadius: 14,
+                    backgroundColor: user?.is_available ? COLORS.primary : "#E5E7EB",
+                    padding: 2,
+                    justifyContent: "center"
+                  }}
+                >
+                  <View style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 12,
+                    backgroundColor: "#fff",
+                    transform: [{ translateX: user?.is_available ? 22 : 0 }],
+                    elevation: 2,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 2
+                  }} />
+                </TouchableOpacity>
               </View>
-              <View style={{ height: 8, backgroundColor: "#E5E7EB", borderRadius: 4, overflow: "hidden" }}>
+
+              <View style={{ height: 1, backgroundColor: COLORS.border, marginBottom: 16 }} />
+
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <Text style={{ fontSize: 14, fontWeight: "700", color: COLORS.text }}>Trust Score</Text>
+                <Text style={{ fontSize: 16, fontWeight: "900", color: COLORS.primary }}>92%</Text>
+              </View>
+              <View style={{ height: 6, backgroundColor: "#E5E7EB", borderRadius: 3, overflow: "hidden" }}>
                 <View style={{ width: "92%", height: "100%", backgroundColor: COLORS.primary }} />
               </View>
-              <Text style={{ marginTop: 8, fontSize: 12, color: COLORS.textMuted }}>
-                Keep completing jobs to maintain your top-tier status in Port Moresby!
+              <Text style={{ marginTop: 8, fontSize: 11, color: COLORS.textMuted }}>
+                Maintain high ratings to keep your top-tier status!
               </Text>
             </View>
 
@@ -2273,7 +2332,13 @@ export default function App() {
 
     switch (screen) {
       case "home":
-        return <HomeScreen onNavigate={navigate} currentUser={currentUser} onSwitchPersona={(role) => setCurrentUser(role)} />;
+        return <HomeScreen
+          onNavigate={navigate}
+          currentUser={currentUser}
+          onSwitchPersona={(role) => setCurrentUser(role)}
+          user={user}
+          onUpdateUser={(updated) => setUser(updated)}
+        />;
       case "workerDetail":
         return <WorkerDetailScreen worker={screenData} onNavigate={navigate} />;
       case "createBooking":
@@ -2313,7 +2378,13 @@ export default function App() {
           />
         );
       default:
-        return <HomeScreen onNavigate={navigate} currentUser={currentUser} onSwitchPersona={(role) => setCurrentUser(role)} />;
+        return <HomeScreen
+          onNavigate={navigate}
+          currentUser={currentUser}
+          onSwitchPersona={(role) => setCurrentUser(role)}
+          user={user}
+          onUpdateUser={(updated) => setUser(updated)}
+        />;
     }
   };
 

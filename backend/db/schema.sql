@@ -24,6 +24,9 @@ CREATE TABLE IF NOT EXISTS users (
     role account_role NOT NULL DEFAULT 'customer', -- The primary assigned role
     active_persona account_role, -- The current active persona context
 
+    -- Availability for providers
+    is_available BOOLEAN DEFAULT TRUE,
+
     -- Location handling via PostGIS
     location_coords GEOGRAPHY(POINT, 4326),
     location_name TEXT, -- Human readable location/district
