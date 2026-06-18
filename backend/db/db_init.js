@@ -1,30 +1,8 @@
-const { Pool } = require('pg');
-const { parse } = require('pg-connection-string');
 const fs = require('fs');
 const path = require('path');
+const UserModel = require('../src/auth/models/user_model');
 
-// Configuration constants
-const CONNECTION_TIMEOUT = 10000; // 10 seconds
-const STATEMENT_TIMEOUT = 15000;  // 15 seconds
-const SSL_CONFIG = false;
-
-let poolInstance;
-
-// Initialize a placeholder pool that will be replaced during initializeDatabase
-if (process.env.DATABASE_URL) {
-  poolInstance = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: SSL_CONFIG,
-    connectionTimeoutMillis: CONNECTION_TIMEOUT,
-    statement_timeout: STATEMENT_TIMEOUT
-  });
-}
-
-async function initializeDatabase() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL environment variable is required but missing.");
-  }
-
+async function initializeDatabase(initialPool) {
   const schemaPath = path.join(__dirname, 'schema.sql');
   const schema = fs.existsSync(schemaPath) ? fs.readFileSync(schemaPath, 'utf8') : null;
 
@@ -37,102 +15,38 @@ async function initializeDatabase() {
     '45.32.243.144'
   ];
 
-  console.log(`🛠️ [DB Init] NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🛠️ [DB Init] Timeout Settings - Connection: ${CONNECTION_TIMEOUT}ms, Statement: ${STATEMENT_TIMEOUT}ms`);
-  console.log(`🛠️ [DB Init] SSL Configuration: ${JSON.stringify(SSL_CONFIG)}`);
+  const performHandshake = async (host) => {
+    console.log(`🔄 [DB Handshake] Probing host: ${host}...`);
+    const pool = (host === initialHost) ? initialPool : UserModel.reinitPool(host);
 
-  const parsedConfig = parse(process.env.DATABASE_URL);
-  const originalPort = parsedConfig.port;
+    try {
+      const client = await pool.connect();
+      console.log(`🔗 [Success] Database reached via: ${host}`);
 
-  // Define ports to try for each host
-  const portsToTry = [originalPort, '3000', '5432'].filter((p, i, a) => p && a.indexOf(p) === i);
-
-  for (const host of fallbacks) {
-    for (const port of portsToTry) {
-      let tempPool = null;
       try {
-        const config = { ...parsedConfig };
-        if (host) config.host = host;
-        config.port = port;
-
-        // Force hardening of parameters
-        config.ssl = SSL_CONFIG;
-        config.connectionTimeoutMillis = CONNECTION_TIMEOUT;
-        config.statement_timeout = STATEMENT_TIMEOUT;
-
-        const targetHost = config.host || 'unknown';
-        const targetPort = config.port || 'default';
-
-        console.log(`🔄 [DB Init] Attempting connection to ${targetHost}:${targetPort} (Fallback: ${!!host})...`);
-
-        tempPool = new Pool(config);
-
-        // Test the connection
-        const client = await tempPool.connect();
-        console.log(`🚀 [DB Init] SUCCESS! Connected to ${targetHost}:${targetPort}`);
-
-        // 1. PostGIS Initialization
-        try {
-          console.log('🔄 [DB Init] Ensuring PostGIS extension is available...');
-          await client.query('CREATE EXTENSION IF NOT EXISTS postgis;');
-          console.log('✅ [DB Init] PostGIS extension verified/created.');
-        } catch (pgisError) {
-          console.error('❌ [DB Init] CRITICAL ERROR: PostGIS initialization failed.');
-          console.error('💡 This usually means the database engine lacks PostGIS support or the user has insufficient permissions.');
-          console.error(`[PostGIS Error Code: ${pgisError.code || 'NO_CODE'}] ${pgisError.message}`);
-          client.release();
-          throw new Error('PostGIS engine check failed: ' + pgisError.message);
-        }
-
-        // 2. Main Schema Synchronization
-        if (schema) {
-          try {
-            console.log('🔄 [DB Init] Running schema synchronization (SQL migration)...');
-            await client.query(schema);
-            console.log('✅ [DB Init] Database schema synced successfully.');
-          } catch (syncError) {
-            console.error('❌ [DB Init] ERROR during schema sync execution:');
-            console.error(`[SQL Error Code: ${syncError.code || 'NO_CODE'}] ${syncError.message}`);
-            client.release();
-            const wrappedError = new Error('ERROR during schema sync execution: ' + syncError.message); wrappedError.code = syncError.code; throw wrappedError;
-          }
-        } else {
-          console.log('⚠️ [DB Init] Warning: schema.sql not found, skipping sync.');
-        }
-
+        console.log('🔄 Running schema synchronization...');
+        await client.query(schema);
+        console.log('✅ [Ready] Database synced.');
+        return true;
+      } finally {
         client.release();
-
-        // If we had a previous pool, end it
-        if (poolInstance && poolInstance !== tempPool) {
-          await poolInstance.end().catch(() => {});
-        }
-
-        poolInstance = tempPool;
-        return; // Success!
-      } catch (error) {
-        if (tempPool) {
-          await tempPool.end().catch(() => {});
-        }
-
-        // If the error was a sync or PostGIS error (already handled and thrown), re-throw it to stop the loop
-        if (error.message.includes('schema sync execution') || error.message.includes('PostGIS engine check failed')) {
-          throw error;
-        }
-
-        const hostLabel = host || 'native host';
-        console.error(`⚠️ [DB Init] Failed for ${hostLabel}:${port}: [${error.code || 'NO_CODE'}] ${error.message}`);
-
-        if (error.code === '28P01' || error.code === '28000') {
-           console.error('❌ [DB Init] Authentication error detected. Verify DATABASE_URL credentials.');
-        }
       }
+    } catch (err) {
+      console.warn(`⚠️ [Failed] Host ${host} unreachable: ${err.message}`);
+      return false;
     }
+  };
+
+  // 1. Try initial host from env
+  if (await performHandshake(initialHost)) return;
+
+  // 2. Iterate fallbacks
+  for (const host of fallbackHosts) {
+    if (host === initialHost) continue;
+    if (await performHandshake(host)) return;
   }
 
-  throw new Error('All database connection routes failed (including fallbacks). Critical network failure.');
+  throw new Error('All database fallback routes failed. Critical network failure.');
 }
 
-module.exports = {
-  get pool() { return poolInstance; },
-  initializeDatabase
-};
+module.exports = { initializeDatabase };

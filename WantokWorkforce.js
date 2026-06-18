@@ -35,7 +35,6 @@ const COLORS = {
   statusBar: "#0F4024",
 };
 
-const mockWorkers = [];
 
 const StarRating = ({ rating }) => {
   const stars = Math.round(rating);
@@ -73,10 +72,10 @@ const TrustBadge = () => (
 function HomeScreen({ onNavigate, currentUser, onSwitchPersona }) {
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [filtered, setFiltered] = useState(mockWorkers);
+  const [filtered, setFiltered] = useState([]);
 
   useEffect(() => {
-    let result = mockWorkers;
+    let result = [];
     if (selectedCategory) {
       const category = categories.find(c => c.label === selectedCategory);
       if (category) {
@@ -1453,7 +1452,7 @@ function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout, user }
 
 function TrustScreen({ onNavigate }) {
   const [workers] = useState(
-    mockWorkers.map((w) => ({ ...w, trustScore: Math.floor(70 + Math.random() * 30) }))
+    [].map((w) => ({ ...w, trustScore: Math.floor(70 + Math.random() * 30) }))
   );
 
   return (
@@ -1622,7 +1621,13 @@ function BookingsScreen({ onNavigate }) {
         </LinearGradient>
 
         <View style={{ padding: 16, gap: 12 }}>
-          {bookings.map((b) => (
+          {bookings.length === 0 ? (
+            <View style={{ padding: 40, alignItems: 'center', backgroundColor: '#fff', borderRadius: 16 }}>
+              <Text style={{ fontSize: 14, color: COLORS.textMuted, textAlign: 'center' }}>
+                No active bookings found.
+              </Text>
+            </View>
+          ) : bookings.map((b) => (
             <View
               key={b.id}
               style={{
@@ -1865,7 +1870,7 @@ function AuthScreen({ onAuth }) {
     const timeoutId = setTimeout(() => controller.abort(), 45000);
 
     try {
-      const response = await fetch(`${API_BASE}/api/auth/signin`, {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier, password }),
@@ -1915,7 +1920,7 @@ function AuthScreen({ onAuth }) {
       const timeoutId = setTimeout(() => controller.abort(), 45000);
 
       try {
-        const response = await fetch(`${API_BASE}/api/auth/signup`, {
+        const response = await fetch(`${API_BASE}/api/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, email, phone, password }),
@@ -2056,7 +2061,7 @@ function AuthScreen({ onAuth }) {
                         padding: 12,
                         fontSize: 14,
                       }}
-                      placeholder="Your full name"
+                      placeholder="e.g. John Smith"
                       value={name}
                       onChangeText={setName}
                     />
