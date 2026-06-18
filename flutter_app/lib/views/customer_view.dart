@@ -133,7 +133,7 @@ class _WorkerCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text('Service Provider', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                    Text('James Kapi', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                     SizedBox(width: 4),
                     Icon(Icons.check_circle, size: 14, color: Color(0xFF1A6B3C)),
                   ],

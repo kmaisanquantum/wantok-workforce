@@ -1,5 +1,0 @@
-
-> wantok-workforce@1.0.1 build
-> NODE_OPTIONS='--max-old-space-size=4096' expo export --platform web
-
-sh: 1: expo: not found

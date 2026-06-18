@@ -35,7 +35,6 @@ const COLORS = {
   statusBar: "#0F4024",
 };
 
-const mockWorkers = [];
 
 const StarRating = ({ rating }) => {
   const stars = Math.round(rating);
@@ -1871,7 +1870,7 @@ function AuthScreen({ onAuth }) {
     const timeoutId = setTimeout(() => controller.abort(), 45000);
 
     try {
-      const response = await fetch(`${API_BASE}/api/auth/signin`, {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier, password }),
@@ -1921,7 +1920,7 @@ function AuthScreen({ onAuth }) {
       const timeoutId = setTimeout(() => controller.abort(), 45000);
 
       try {
-        const response = await fetch(`${API_BASE}/api/auth/signup`, {
+        const response = await fetch(`${API_BASE}/api/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, email, phone, password }),
@@ -2062,7 +2061,7 @@ function AuthScreen({ onAuth }) {
                         padding: 12,
                         fontSize: 14,
                       }}
-                      placeholder="Your full name"
+                      placeholder="e.g. John Smith"
                       value={name}
                       onChangeText={setName}
                     />

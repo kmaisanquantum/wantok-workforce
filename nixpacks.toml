@@ -1,11 +1,11 @@
 [phases.setup]
-nixPkgs = ["nodejs_22"]
+nixPkgs = ["nodejs_20"]
 
 [phases.install]
 cmds = ["npm ci", "cd backend && npm install"]
 
 [phases.build]
-cmds = ["NODE_ENV=production npm run build"]
+cmds = ["npm run build"]
 dependsOn = ["install"]
 
 [start]

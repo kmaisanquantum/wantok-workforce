@@ -7,7 +7,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "build": "NODE_OPTIONS='--max-old-space-size=4096' expo export --platform web",
+    "build": "expo export --platform web",
     "serve": "node backend/server.js",
     "start:prod": "node backend/server.js"
   },
