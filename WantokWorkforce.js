@@ -1302,7 +1302,7 @@ function CreateBookingScreen({ worker, onNavigate }) {
   );
 }
 
-function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout, user }) {
+function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout, user, onUpdateUser }) {
   const isProvider = currentUser === "provider";
 
   return (
@@ -1387,6 +1387,75 @@ function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout, user }
               </Text>
             </TouchableOpacity>
           </View>
+
+          {isProvider && (
+            <View
+              style={{
+                backgroundColor: "#fff",
+                borderRadius: 16,
+                padding: 16,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                elevation: 2,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.06,
+                shadowRadius: 8,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: user?.is_available ? "#10B981" : "#9CA3AF" }} />
+                <View>
+                  <Text style={{ fontWeight: "700", fontSize: 14, color: COLORS.text }}>
+                    {user?.is_available ? "Available for Work" : "Busy / Offline"}
+                  </Text>
+                  <Text style={{ marginTop: 2, fontSize: 12, color: COLORS.textMuted }}>
+                    Toggle your status
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={async () => {
+                  const newStatus = !user?.is_available;
+                  onUpdateUser({ ...user, is_available: newStatus });
+
+                  try {
+                    const response = await fetch(`${API_BASE}/api/auth/availability`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${user?.token}`
+                      },
+                      body: JSON.stringify({ is_available: newStatus })
+                    });
+                    if (!response.ok) throw new Error('Failed to update status');
+                  } catch (err) {
+                    console.error('Availability update failed:', err);
+                    onUpdateUser({ ...user, is_available: !newStatus });
+                    alert("Could not update status.");
+                  }
+                }}
+                style={{
+                  width: 50,
+                  height: 28,
+                  borderRadius: 14,
+                  backgroundColor: user?.is_available ? COLORS.primary : "#E5E7EB",
+                  padding: 2,
+                  justifyContent: "center"
+                }}
+              >
+                <View style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: "#fff",
+                  transform: [{ translateX: user?.is_available ? 22 : 0 }],
+                  elevation: 2,
+                }} />
+              </TouchableOpacity>
+            </View>
+          )}
 
           {isProvider && (
             <View
@@ -2375,6 +2444,7 @@ export default function App() {
             }}
             onLogout={handleLogout}
             user={user}
+            onUpdateUser={(updated) => setUser(updated)}
           />
         );
       default:
