@@ -86,6 +86,8 @@ class AuthController {
           id: user.id,
           name: user.name,
           email: user.email,
+          phone: user.phone_number,
+          role: user.role,
           active_persona: user.active_persona,
           roles: user.roles,
           is_available: user.is_available
@@ -93,7 +95,7 @@ class AuthController {
       });
     } catch (error) {
       console.error('❌ Login Error:', error);
-      return res.status(500).json({ error: 'Internal server error during login', details: error.message });
+      return res.status(500).json({ error: 'Internal server error during login' });
     }
   }
 
@@ -103,20 +105,16 @@ class AuthController {
       const userId = req.user.id;
 
       if (!['customer', 'provider'].includes(role)) {
-        return res.status(400).json({ error: 'Invalid role' });
+        return res.status(400).json({ error: 'Invalid role selection' });
       }
 
-      console.log(`👤 User ${userId} selecting initial role: ${role}`);
       await UserModel.addRole(userId, role);
-      const updated = await UserModel.updateActivePersona(userId, role);
+      await UserModel.updateActivePersona(userId, role);
 
-      return res.status(200).json({
-        message: 'Role selected successfully',
-        active_persona: updated.active_persona
-      });
+      return res.status(200).json({ message: 'Role selected successfully', active_persona: role });
     } catch (error) {
-      console.error('❌ selectRole Error:', error);
-      return res.status(500).json({ error: 'Failed to select role' });
+      console.error('❌ Select Role Error:', error);
+      return res.status(500).json({ error: 'Internal server error during role selection' });
     }
   }
 
@@ -125,50 +123,42 @@ class AuthController {
       const { role } = req.body;
       const userId = req.user.id;
 
-      if (!['customer', 'provider', 'admin'].includes(role)) {
-        return res.status(400).json({ error: 'Invalid role' });
+      if (!['customer', 'provider'].includes(role)) {
+        return res.status(400).json({ error: 'Invalid role selection' });
       }
 
-      console.log(`🔄 User ${userId} switching active persona to: ${role}`);
-      const user = await UserModel.findById(userId);
-      if (!user.roles.includes(role)) {
-        console.log(`➕ Adding missing role ${role} to user ${userId}`);
-        await UserModel.addRole(userId, role);
+      // Verify user actually has this role
+      if (!req.user.roles.includes(role)) {
+        return res.status(403).json({ error: 'User does not have this role' });
       }
 
-      const updated = await UserModel.updateActivePersona(userId, role);
-      return res.status(200).json({
-        message: 'Persona switched successfully',
-        active_persona: updated.active_persona
-      });
+      await UserModel.updateActivePersona(userId, role);
+
+      return res.status(200).json({ message: 'Persona switched successfully', active_persona: role });
     } catch (error) {
-      console.error('❌ switchPersona Error:', error);
-      return res.status(500).json({ error: 'Failed to switch persona' });
+      console.error('❌ Switch Persona Error:', error);
+      return res.status(500).json({ error: 'Internal server error during persona switch' });
     }
   }
 
   static async toggleAvailability(req, res) {
     try {
       const { is_available } = req.body;
-      if (!req.user || !req.user.id) return res.status(401).json({ error: 'Unauthorized' });
       const userId = req.user.id;
 
       if (typeof is_available !== 'boolean') {
         return res.status(400).json({ error: 'is_available must be a boolean' });
       }
 
-      console.log(`📡 Updating availability for user ${userId} to: ${is_available}`);
-      const updated = await UserModel.updateAvailability(userId, is_available);
-
-      if (!updated) return res.status(404).json({ error: 'User not found' });
+      const result = await UserModel.updateAvailability(userId, is_available);
 
       return res.status(200).json({
-        message: 'Availability updated',
-        is_available: updated.is_available
+        message: 'Availability updated successfully',
+        is_available: result.is_available
       });
     } catch (error) {
-      console.error('❌ toggleAvailability Error:', error);
-      return res.status(500).json({ error: 'Failed to update availability' });
+      console.error('❌ Toggle Availability Error:', error);
+      return res.status(500).json({ error: 'Internal server error during availability update' });
     }
   }
 }
