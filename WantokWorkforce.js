@@ -2492,7 +2492,7 @@ export default function App() {
           WANTOK WORKFORCE
         </Text>
         <View style={{ marginLeft: "auto", flexDirection: "row", backgroundColor: "rgba(0,0,0,0.1)", borderRadius: 8, padding: 2 }}>
-          {['customer', 'provider', 'admin'].map((role) => (
+          {['customer', 'provider'].map((role) => (
             <TouchableOpacity
               key={role}
               onPress={() => {
