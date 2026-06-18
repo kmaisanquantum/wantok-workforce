@@ -9,6 +9,12 @@ const getPoolConfig = () => {
 
   // Detect internal-like hosts or specific Coolify shorthand
   const hostStr = String(config.host);
+
+  // A robust check for internal/container networking:
+  // 1. Common local/private IP ranges
+  // 2. Localhost aliases
+  // 3. Known Coolify prefixes
+  // 4. Shorthand container IDs (usually alphanumeric, no dots)
   const isInternal =
     hostStr.startsWith('172.') ||
     hostStr.startsWith('192.168.') ||
@@ -16,12 +22,13 @@ const getPoolConfig = () => {
     hostStr === '127.0.0.1' ||
     hostStr === 'host.docker.internal' ||
     hostStr.includes('postgresql-database-') ||
-    hostStr === 'm3j8li3n4e9d2kk2h4c019po';
+    !hostStr.includes('.'); // Generic check for container aliases without FQDN
 
   if (isInternal) {
     console.log(`🔌 [DB] Internal/Local network detected (${config.host}). Disabling SSL for clean handshake.`);
     delete config.ssl;
   } else {
+    // For external databases, we still default to lenient SSL
     config.ssl = { rejectUnauthorized: false };
   }
 
