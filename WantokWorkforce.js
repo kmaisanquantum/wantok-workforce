@@ -1443,7 +1443,7 @@ function RoleSelectionScreen({ onSelectRole }) {
             Become a Customer
           </Text>
           <Text style={{ fontSize: 12, color: COLORS.textMuted, textAlign: "center", lineHeight: 16 }}>
-            I want to find and hire trusted local professionals.
+            I want to find and hire trusted local professionals in Port Moresby.
           </Text>
         </TouchableOpacity>
 
@@ -1468,10 +1468,10 @@ function RoleSelectionScreen({ onSelectRole }) {
             <Text style={{ fontSize: 36 }}>🔧</Text>
           </View>
           <Text style={{ fontSize: 16, fontWeight: "800", color: COLORS.text, textAlign: "center", marginBottom: 8 }}>
-            Become a Provider
+            Become a Service Provider
           </Text>
           <Text style={{ fontSize: 12, color: COLORS.textMuted, textAlign: "center", lineHeight: 16 }}>
-            I want to list my trade and find local jobs.
+            I want to list my trade, grow my business, and find local jobs.
           </Text>
         </TouchableOpacity>
       </View>
@@ -2318,36 +2318,7 @@ export default function App() {
         >
           WANTOK WORKFORCE
         </Text>
-        <View style={{ marginLeft: "auto", flexDirection: "row", backgroundColor: "rgba(0,0,0,0.1)", borderRadius: 8, padding: 2 }}>
-          {['customer', 'provider'].map((role) => (
-            <TouchableOpacity
-              key={role}
-              onPress={() => {
-                setCurrentUser(role);
-                if (role === "customer" || role === "admin") {
-                  setOnboardingComplete(true);
-                  if (role === "admin") navigate("admin");
-                  else navigate("home");
-                } else {
-                  // provider
-                  if (user?.role && user?.location) setOnboardingComplete(true);
-                  else setOnboardingComplete(false);
-                  navigate("home");
-                }
-              }}
-              style={{
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                borderRadius: 6,
-                backgroundColor: currentUser === role ? (role === "admin" ? "#C47F0A" : COLORS.primary) : "transparent",
-              }}
-            >
-              <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700", textTransform: "capitalize" }}>
-                {role.substring(0, 4)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+
       </View>
 
       {/* Screen Content */}
