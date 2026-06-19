@@ -2015,25 +2015,119 @@ function AdminAuthScreen({ onAuth }) {
 }
 
 function AdminScreen({ onNavigate }) {
+  const [stats, setStats] = useState({ totalCustomers: 0, totalProviders: 0, totalMatches: 0 });
+  const [pendingProviders, setPendingProviders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchAdminData = async () => {
+    try {
+      const token = user?.token;
+      const [statsRes, providersRes] = await Promise.all([
+        fetch(`${API_BASE}/api/admin/stats`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        }),
+        fetch(`${API_BASE}/api/admin/pending-providers`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        })
+      ]);
+
+      if (statsRes.ok) setStats(await statsRes.json());
+      if (providersRes.ok) setPendingProviders(await providersRes.json());
+    } catch (error) {
+      console.error("Admin data fetch error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAdminData();
+  }, []);
+
+  const handleAction = async (providerId, action) => {
+    try {
+      const token = user?.token;
+      const endpoint = action === 'approve' ? `/api/admin/approve/${providerId}` : `/api/admin/flag/${providerId}`;
+      const res = await fetch(`${API_BASE}${endpoint}`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchAdminData();
+      } else {
+        alert("Action failed.");
+      }
+    } catch (error) {
+      alert("Error performing action.");
+    }
+  };
+
   return (
-    <View style={{ flex: 1, backgroundColor: COLORS.bg, padding: 16 }}>
-      <Text style={{ fontSize: 20, fontWeight: "800", color: COLORS.text, marginBottom: 16 }}>
-        Admin Control Panel
-      </Text>
-      <View style={{ gap: 12 }}>
-        <View style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, elevation: 2 }}>
-          <Text style={{ fontSize: 14, color: COLORS.textMuted }}>Total Workers</Text>
-          <Text style={{ fontSize: 24, fontWeight: "800", color: COLORS.primary }}>1,248</Text>
-        </View>
-        <View style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, elevation: 2 }}>
-          <Text style={{ fontSize: 14, color: COLORS.textMuted }}>Pending Verifications</Text>
-          <Text style={{ fontSize: 24, fontWeight: "800", color: "#F5A623" }}>42</Text>
-        </View>
-        <View style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, elevation: 2 }}>
-          <Text style={{ fontSize: 14, color: COLORS.textMuted }}>Active Disputes</Text>
-          <Text style={{ fontSize: 24, fontWeight: "800", color: COLORS.danger }}>7</Text>
-        </View>
+    <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
+      <View style={{ backgroundColor: COLORS.primary, padding: 20, paddingTop: 60, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}>
+        <Text style={{ fontSize: 24, fontWeight: "900", color: "#fff", marginBottom: 4 }}>Back-Office</Text>
+        <Text style={{ fontSize: 14, color: "rgba(255,255,255,0.8)" }}>Command Module • Port Moresby HQ</Text>
       </View>
+
+      <ScrollView style={{ flex: 1, padding: 16 }}>
+        {/* Statistics Grid */}
+        <View style={{ flexDirection: "row", gap: 12, marginBottom: 24 }}>
+          <View style={{ flex: 1, backgroundColor: "#fff", padding: 16, borderRadius: 16, elevation: 3, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
+            <Text style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 4 }}>Customers</Text>
+            <Text style={{ fontSize: 20, fontWeight: "800", color: COLORS.primary }}>{loading ? "..." : stats.totalCustomers}</Text>
+          </View>
+          <View style={{ flex: 1, backgroundColor: "#fff", padding: 16, borderRadius: 16, elevation: 3, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
+            <Text style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 4 }}>Providers</Text>
+            <Text style={{ fontSize: 20, fontWeight: "800", color: "#F5A623" }}>{loading ? "..." : stats.totalProviders}</Text>
+          </View>
+          <View style={{ flex: 1, backgroundColor: "#fff", padding: 16, borderRadius: 16, elevation: 3, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
+            <Text style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 4 }}>Matches</Text>
+            <Text style={{ fontSize: 20, fontWeight: "800", color: COLORS.secondary }}>{loading ? "..." : stats.totalMatches}</Text>
+          </View>
+        </View>
+
+        <Text style={{ fontSize: 18, fontWeight: "800", color: COLORS.text, marginBottom: 12 }}>Provider Verification Queue</Text>
+
+        {pendingProviders.length === 0 && !loading ? (
+          <View style={{ padding: 40, alignItems: "center" }}>
+            <Text style={{ color: COLORS.textMuted }}>No pending verifications.</Text>
+          </View>
+        ) : (
+          pendingProviders.map((prov) => (
+            <View key={prov.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 16, marginBottom: 12, elevation: 2 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                <View>
+                  <Text style={{ fontSize: 16, fontWeight: "800", color: COLORS.text }}>{prov.name}</Text>
+                  <Text style={{ fontSize: 13, color: COLORS.textMuted }}>{prov.primary_skill || "General Trade"}</Text>
+                </View>
+                <View style={{ backgroundColor: "#FEF3C7", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                  <Text style={{ fontSize: 10, fontWeight: "700", color: "#92400E" }}>PENDING</Text>
+                </View>
+              </View>
+
+              <Text style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 12 }}>
+                {prov.email} • {prov.phone_number}
+              </Text>
+
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => handleAction(prov.id, 'approve')}
+                  style={{ flex: 1, backgroundColor: COLORS.primary, padding: 10, borderRadius: 8, alignItems: "center" }}
+                >
+                  <Text style={{ color: "#fff", fontSize: 13, fontWeight: "700" }}>Approve Profile</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleAction(prov.id, 'flag')}
+                  style={{ flex: 1, backgroundColor: "#fff", padding: 10, borderRadius: 8, alignItems: "center", borderWidth: 1, borderColor: COLORS.danger }}
+                >
+                  <Text style={{ color: COLORS.danger, fontSize: 13, fontWeight: "700" }}>Flag Account</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))
+        )}
+        <View style={{ height: 40 }} />
+      </ScrollView>
     </View>
   );
 }

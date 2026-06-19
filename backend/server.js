@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const authRoutes = require('./src/auth/routes/auth_routes');
 const matchRoutes = require('./src/match/routes/match_routes');
+const adminRoutes = require('./src/admin/routes/admin_routes');
 const UserModel = require('./src/auth/models/user_model');
 const { initializeDatabase } = require('./db/db_init');
 
@@ -16,6 +17,7 @@ app.use(express.json());
 // Domain API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/match', matchRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health Checks
 app.get('/api/health', (req, res) => {
