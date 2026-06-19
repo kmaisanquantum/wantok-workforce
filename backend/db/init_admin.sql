@@ -1,7 +1,9 @@
+-- Seed Master Administrator Credentials
 INSERT INTO users (name, phone_number, email, password_hash, role, active_persona, is_available)
-VALUES ('System Admin', '000', 'admin@wantok.com', '$2b$12$qPS/mPst7d9j.yNf0Ho.9.P.9JxBj9DUB45HoHxtIcCJjC2WjK.mS', 'admin', 'admin', true)
+VALUES ('Master Admin', '0000000000', 'admin@dspng.tech', '$2b$12$5uLOpMJEX0ee4jPCfoxGEuLGEZE1SovR.MiBPZ6PUUyRzHYdusJn.', 'admin', 'admin', true)
 ON CONFLICT (email) DO NOTHING;
 
+-- Map the admin role to the master user
 INSERT INTO user_roles (user_id, role_name)
-SELECT id, 'admin' FROM users WHERE email = 'admin@wantok.com'
+SELECT id, 'admin' FROM users WHERE email = 'admin@dspng.tech'
 ON CONFLICT DO NOTHING;
