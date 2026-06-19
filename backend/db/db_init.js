@@ -19,6 +19,8 @@ async function initializeDatabase(pool) {
       await client.query(schema);
       const adminSeed = fs.readFileSync(path.join(__dirname, "init_admin.sql"), "utf8");
       await client.query(adminSeed);
+      const statsSeed = fs.readFileSync(path.join(__dirname, "seed_stats.sql"), "utf8");
+      await client.query(statsSeed);
       console.log('✅ [Ready] Database synced.');
     } finally {
       client.release();

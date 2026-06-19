@@ -1,0 +1,15 @@
+ INFO  Accepting connections at http://localhost:8081
+ HTTP  6/19/2026 3:33:27 PM ::1 GET /@dm1n
+ HTTP  6/19/2026 3:33:27 PM ::1 Returned 200 in 42 ms
+ HTTP  6/19/2026 3:33:27 PM ::1 GET /_expo/static/js/web/AppEntry-3a43ca8ccb4699e09f9ee29197fd1c80.js
+ HTTP  6/19/2026 3:33:27 PM ::1 Returned 200 in 6 ms
+ HTTP  6/19/2026 3:33:27 PM ::1 GET /api/health/db
+ HTTP  6/19/2026 3:33:27 PM ::1 Returned 200 in 1 ms
+ HTTP  6/19/2026 3:33:27 PM ::1 GET /assets/assets/logo.8eba79e04acca3f4baef089c5cc45103.jpg
+ HTTP  6/19/2026 3:33:27 PM ::1 Returned 200 in 2 ms
+ HTTP  6/19/2026 3:40:44 PM ::1 GET /@dm1n
+ HTTP  6/19/2026 3:40:44 PM ::1 Returned 200 in 3 ms
+ HTTP  6/19/2026 3:40:44 PM ::1 GET /_expo/static/js/web/AppEntry-14e746a50fd9d9935e5787ecd2d41709.js
+ HTTP  6/19/2026 3:40:44 PM ::1 Returned 200 in 4 ms
+ HTTP  6/19/2026 3:40:44 PM ::1 GET /assets/assets/logo.8eba79e04acca3f4baef089c5cc45103.jpg
+ HTTP  6/19/2026 3:40:44 PM ::1 Returned 200 in 2 ms

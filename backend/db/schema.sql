@@ -71,3 +71,27 @@ CREATE TABLE IF NOT EXISTS user_roles (
 CREATE INDEX IF NOT EXISTS idx_users_location ON users USING GIST (location_coords);
 
 COMMIT;
+
+-- Create bookings table for matching metrics
+CREATE TABLE IF NOT EXISTS bookings (
+    id SERIAL PRIMARY KEY,
+    customer_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    provider_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    service_type TEXT NOT NULL,
+    status TEXT DEFAULT 'pending', -- 'pending', 'confirmed', 'completed', 'cancelled'
+    price DECIMAL(10, 2),
+    scheduled_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Seed some mock data for stats if needed (optional, but good for testing)
+-- INSERT INTO bookings (customer_id, provider_id, service_type, status) VALUES (1, 2, 'Electrical', 'completed');
+
+-- Migration: add is_flagged column to users
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='is_flagged') THEN
+        ALTER TABLE users ADD COLUMN is_flagged BOOLEAN DEFAULT FALSE;
+    END IF;
+END$$;
