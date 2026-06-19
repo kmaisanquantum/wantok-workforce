@@ -73,162 +73,87 @@ function HomeScreen({ onNavigate, currentUser, onSwitchPersona, user, onUpdateUs
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [filtered, setFiltered] = useState([]);
+  const [nearbyWorkers, setNearbyWorkers] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const fetchNearbyProviders = async () => {
+    setIsSearching(true);
+    const lat = -9.4438;
+    const lon = 147.1803;
+
+    try {
+      const url = `${API_BASE}/api/match/nearby?latitude=${lat}&longitude=${lon}${selectedCategory ? '&trade_category=' + selectedCategory : ''}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (response.ok) {
+        setNearbyWorkers(data.workers);
+      } else {
+        alert(data.error || "Matching engine failed.");
+      }
+    } catch (error) {
+      console.error("Match fetch failed:", error);
+      alert("Network error while searching.");
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   useEffect(() => {
-    let result = [];
-    if (selectedCategory) {
-      const category = categories.find(c => c.label === selectedCategory);
-      if (category) {
-        result = result.filter(w =>
-          w.tags.some(tag => category.subcategories.some(sub => tag.toLowerCase().includes(sub.name.toLowerCase()))) ||
-          w.role.toLowerCase().includes(selectedCategory.toLowerCase())
-        );
-      }
+    if (!searchText && !selectedCategory) {
+      setFiltered([]);
+      setNearbyWorkers([]);
+      return;
     }
-    if (searchText) {
-      result = result.filter(w =>
-        w.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        w.role.toLowerCase().includes(searchText.toLowerCase()) ||
-        w.tags.some(t => t.toLowerCase().includes(searchText.toLowerCase()))
-      );
-    }
-    setFiltered(result);
   }, [searchText, selectedCategory]);
 
   if (currentUser === "provider") {
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
         <ScrollView showsVerticalScrollIndicator={false}>
-          <LinearGradient
-            colors={[COLORS.primaryDark, COLORS.primary]}
-            style={{ padding: 24, paddingBottom: 40 }}
-          >
+          <LinearGradient colors={[COLORS.primaryDark, COLORS.primary]} style={{ padding: 24, paddingBottom: 40 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
               <View>
-                <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>
-                  Welcome Back, Provider
-                </Text>
-                <Text style={{ color: "#fff", fontSize: 24, fontWeight: "900", marginTop: 4 }}>
-                  Your Dashboard
-                </Text>
+                <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>Welcome Back, Provider</Text>
+                <Text style={{ color: "#fff", fontSize: 24, fontWeight: "900", marginTop: 4 }}>Your Dashboard</Text>
               </View>
-              <TouchableOpacity
-                onPress={() => onNavigate("profile")}
-                style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.3)" }}
-              >
+              <TouchableOpacity onPress={() => onNavigate("profile")} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.3)" }}>
                 <Text style={{ fontSize: 24 }}>🔧</Text>
               </TouchableOpacity>
             </View>
           </LinearGradient>
-
           <View style={{ padding: 16, marginTop: -20, gap: 16 }}>
-            {/* Availability & Trust Score */}
-            <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 20, elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 }}>
+            <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 20, elevation: 4 }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <View>
                   <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.text }}>Work Status</Text>
                   <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
                     <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: user?.is_available ? "#10B981" : "#9CA3AF", marginRight: 6 }} />
-                    <Text style={{ fontSize: 13, fontWeight: "600", color: user?.is_available ? "#10B981" : "#6B7280" }}>
-                      {user?.is_available ? "Available for Jobs" : "Busy / Offline"}
-                    </Text>
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: user?.is_available ? "#10B981" : "#6B7280" }}>{user?.is_available ? "Available for Jobs" : "Busy / Offline"}</Text>
                   </View>
                 </View>
-                <TouchableOpacity
-                  onPress={async () => {
-                    const newStatus = !user?.is_available;
-                    // Optimistic update
-                    onUpdateUser({ ...user, is_available: newStatus });
-
-                    try {
-                      const response = await fetch(`${API_BASE}/api/auth/availability`, {
-                        method: 'PATCH',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'Authorization': `Bearer ${user?.token}`
-                        },
-                        body: JSON.stringify({ is_available: newStatus })
-                      });
-                      if (!response.ok) throw new Error('Failed to update status');
-                    } catch (err) {
-                      console.error('Availability update failed:', err);
-                      // Rollback on error
-                      onUpdateUser({ ...user, is_available: !newStatus });
-                      alert("Could not update status. Please check your connection.");
-                    }
-                  }}
-                  style={{
-                    width: 50,
-                    height: 28,
-                    borderRadius: 14,
-                    backgroundColor: user?.is_available ? COLORS.primary : "#E5E7EB",
-                    padding: 2,
-                    justifyContent: "center"
-                  }}
-                >
-                  <View style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 12,
-                    backgroundColor: "#fff",
-                    transform: [{ translateX: user?.is_available ? 22 : 0 }],
-                    elevation: 2,
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.2,
-                    shadowRadius: 2
-                  }} />
+                <TouchableOpacity onPress={async () => {
+                  const newStatus = !user?.is_available;
+                  onUpdateUser({ ...user, is_available: newStatus });
+                  try {
+                    await fetch(`${API_BASE}/api/auth/availability`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` }, body: JSON.stringify({ is_available: newStatus }) });
+                  } catch (err) {
+                    onUpdateUser({ ...user, is_available: !newStatus });
+                    alert("Could not update status.");
+                  }
+                }} style={{ width: 50, height: 28, borderRadius: 14, backgroundColor: user?.is_available ? COLORS.primary : "#E5E7EB", padding: 2, justifyContent: "center" }}>
+                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: "#fff", transform: [{ translateX: user?.is_available ? 22 : 0 }], elevation: 2 }} />
                 </TouchableOpacity>
               </View>
-
               <View style={{ height: 1, backgroundColor: COLORS.border, marginBottom: 16 }} />
-
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <Text style={{ fontSize: 14, fontWeight: "700", color: COLORS.text }}>Trust Score</Text>
                 <Text style={{ fontSize: 16, fontWeight: "900", color: COLORS.primary }}>92%</Text>
               </View>
-              <View style={{ height: 6, backgroundColor: "#E5E7EB", borderRadius: 3, overflow: "hidden" }}>
-                <View style={{ width: "92%", height: "100%", backgroundColor: COLORS.primary }} />
-              </View>
-              <Text style={{ marginTop: 8, fontSize: 11, color: COLORS.textMuted }}>
-                Maintain high ratings to keep your top-tier status!
-              </Text>
+              <View style={{ height: 6, backgroundColor: "#E5E7EB", borderRadius: 3, overflow: "hidden" }}><View style={{ width: "92%", height: "100%", backgroundColor: COLORS.primary }} /></View>
             </View>
-
-            {/* Quick Actions */}
-            <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 16, elevation: 2 }}>
-              <Text style={{ fontSize: 15, fontWeight: "700", color: COLORS.text, marginBottom: 12 }}>Quick Actions</Text>
-              <View style={{ flexDirection: "row", gap: 12 }}>
-                <TouchableOpacity style={{ flex: 1, backgroundColor: "#F0FDF4", padding: 12, borderRadius: 12, alignItems: "center" }}>
-                  <Text style={{ fontSize: 20, marginBottom: 4 }}>📅</Text>
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: COLORS.primary }}>Schedule</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={{ flex: 1, backgroundColor: "#EFF6FF", padding: 12, borderRadius: 12, alignItems: "center" }}>
-                  <Text style={{ fontSize: 20, marginBottom: 4 }}>📈</Text>
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#1D4ED8" }}>Earnings</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={{ flex: 1, backgroundColor: "#FFFBEB", padding: 12, borderRadius: 12, alignItems: "center" }}>
-                  <Text style={{ fontSize: 20, marginBottom: 4 }}>⭐</Text>
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#C2410C" }}>Reviews</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Switch Mode Button */}
-            <TouchableOpacity
-              onPress={() => onSwitchPersona("customer")}
-              style={{
-                backgroundColor: "#ECFDF5",
-                borderRadius: 16,
-                padding: 16,
-                alignItems: "center",
-                borderWidth: 1.5,
-                borderColor: "#A7F3D0",
-              }}
-            >
-              <Text style={{ color: "#047857", fontWeight: "800", fontSize: 15 }}>
-                Switch to Customer Mode
-              </Text>
+            <TouchableOpacity onPress={() => onSwitchPersona("customer")} style={{ backgroundColor: "#ECFDF5", borderRadius: 16, padding: 16, alignItems: "center", borderWidth: 1.5, borderColor: "#A7F3D0" }}>
+              <Text style={{ color: "#047857", fontWeight: "800", fontSize: 15 }}>Switch to Customer Mode</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -239,243 +164,55 @@ function HomeScreen({ onNavigate, currentUser, onSwitchPersona, user, onUpdateUs
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header Section */}
-        <LinearGradient
-          colors={[COLORS.primaryDark, COLORS.primary]}
-          style={{
-            paddingTop: 10,
-            paddingHorizontal: 16,
-            paddingBottom: 25,
-            borderBottomLeftRadius: 30,
-            borderBottomRightRadius: 30,
-          }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 16,
-            }}
-          >
+        <LinearGradient colors={[COLORS.primaryDark, COLORS.primary]} style={{ paddingTop: 10, paddingHorizontal: 16, paddingBottom: 25, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <View>
-              <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>
-                Good morning 👋
-              </Text>
-              <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800", marginTop: 2 }}>
-                Find a Wantok
-              </Text>
+              <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>Good morning 👋</Text>
+              <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800", marginTop: 2 }}>Find a Wantok</Text>
             </View>
-            <TouchableOpacity
-              style={{
-                width: 42,
-                height: 42,
-                borderRadius: 21,
-                backgroundColor: "rgba(255,255,255,0.2)",
-                alignItems: "center",
-                justifyContent: "center",
-                borderWidth: 2,
-                borderColor: "rgba(255,255,255,0.3)",
-              }}
-              onPress={() => onNavigate("profile")}
-            >
+            <TouchableOpacity style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.3)" }} onPress={() => onNavigate("profile")}>
               <Text style={{ fontSize: 18 }}>👤</Text>
             </TouchableOpacity>
           </View>
-
-          {/* Search */}
-          <View
-            style={{
-              backgroundColor: "#fff",
-              borderRadius: 14,
-              paddingVertical: Platform.OS === "ios" ? 12 : 8,
-              paddingHorizontal: 14,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 10,
-              elevation: 4,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.15,
-              shadowRadius: 10,
-            }}
-          >
+          <View style={{ backgroundColor: "#fff", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10, elevation: 4 }}>
             <Text style={{ fontSize: 18 }}>🔍</Text>
-            <TextInput
-              value={searchText}
-              onChangeText={(text) => {
-                setSearchText(text);
-                if (text) setSelectedCategory(null);
-              }}
-              placeholder="Search skills (e.g. Solar, Tuffa, PMV)..."
-              placeholderTextColor={COLORS.textLight}
-              style={{
-                flex: 1,
-                fontSize: 14,
-                color: COLORS.text,
-                padding: 0,
-              }}
-            />
-            <View
-              style={{
-                backgroundColor: COLORS.primary,
-                borderRadius: 8,
-                paddingVertical: 4,
-                paddingHorizontal: 10,
-              }}
-            >
-              <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>
-                📍 PNG
-              </Text>
-            </View>
+            <TextInput value={searchText} onChangeText={setSearchText} placeholder="Search trade or category..." placeholderTextColor={COLORS.textLight} style={{ flex: 1, fontSize: 14, color: COLORS.text, padding: 0 }} />
+            <View style={{ backgroundColor: COLORS.primary, borderRadius: 8, paddingVertical: 4, paddingHorizontal: 10 }}><Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>📍 PNG</Text></View>
           </View>
         </LinearGradient>
 
-        {/* Categories */}
+        <View style={{ paddingHorizontal: 16, marginTop: 15 }}>
+          <TouchableOpacity onPress={fetchNearbyProviders} disabled={isSearching} style={{ backgroundColor: COLORS.primary, borderRadius: 14, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, elevation: 4 }}>
+            <Text style={{ fontSize: 18 }}>🛰️</Text>
+            <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>{isSearching ? "SEARCHING NEARBY..." : "FIND NEARBY PROVIDERS"}</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={{ paddingVertical: 20, paddingHorizontal: 16 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 12,
-            }}
-          >
-            <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.text }}>
-              Categories
-            </Text>
-            <TouchableOpacity onPress={() => {
-              setSelectedCategory(null);
-              setSearchText("");
-            }}>
-              <Text style={{ fontSize: 12, color: COLORS.primary, fontWeight: "600" }}>
-                Clear All
-              </Text>
-            </TouchableOpacity>
-          </View>
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              marginHorizontal: -5,
-            }}
-          >
+          <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.text, marginBottom: 12 }}>Categories</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", marginHorizontal: -5 }}>
             {categories.map((cat, i) => (
-              <TouchableOpacity
-                key={i}
-                onPress={() => {
-                  setSelectedCategory(cat.label);
-                  setSearchText("");
-                }}
-                style={{
-                  width: (width - 32) / 4 - 10,
-                  margin: 5,
-                  backgroundColor: selectedCategory === cat.label ? cat.color + "22" : "#fff",
-                  borderRadius: 14,
-                  paddingVertical: 12,
-                  paddingHorizontal: 8,
-                  alignItems: "center",
-                  gap: 6,
-                  elevation: 2,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.06,
-                  shadowRadius: 8,
-                  borderWidth: selectedCategory === cat.label ? 1 : 0,
-                  borderColor: cat.color,
-                }}
-              >
-                <View
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 12,
-                    backgroundColor: cat.color + "18",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text style={{ fontSize: 22 }}>{cat.icon}</Text>
-                </View>
-                <Text
-                  numberOfLines={1}
-                  style={{
-                    fontSize: 11,
-                    fontWeight: "600",
-                    color: selectedCategory === cat.label ? cat.color : COLORS.textMuted
-                  }}
-                >
-                  {cat.label}
-                </Text>
+              <TouchableOpacity key={i} onPress={() => { setSelectedCategory(cat.label); setSearchText(""); }} style={{ width: (width - 32) / 4 - 10, margin: 5, backgroundColor: selectedCategory === cat.label ? cat.color + "22" : "#fff", borderRadius: 14, paddingVertical: 12, alignItems: "center", gap: 6, elevation: 2, borderWidth: selectedCategory === cat.label ? 1 : 0, borderColor: cat.color }}>
+                <Text style={{ fontSize: 22 }}>{cat.icon}</Text>
+                <Text numberOfLines={1} style={{ fontSize: 10, fontWeight: "600", color: selectedCategory === cat.label ? cat.color : COLORS.textMuted }}>{cat.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Sub-categories Horizontal Scroll (Only when a category is selected) */}
-        {selectedCategory && (
-          <View style={{ marginBottom: 20 }}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
-            >
-              {categories.find(c => c.label === selectedCategory)?.subcategories.map((sub, i) => (
-                <TouchableOpacity
-                  key={i}
-                  onPress={() => setSearchText(searchText === sub.name ? "" : sub.name)}
-                  style={{
-                    backgroundColor: searchText === sub.name ? COLORS.primary : "#fff",
-                    paddingVertical: 8,
-                    paddingHorizontal: 16,
-                    borderRadius: 20,
-                    borderWidth: 1,
-                    borderColor: COLORS.border,
-                  }}
-                >
-                  <Text style={{
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: searchText === sub.name ? "#fff" : COLORS.textMuted
-                  }}>
-                    {sub.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Worker Cards */}
         <View style={{ paddingHorizontal: 16, paddingBottom: 20 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 12,
-            }}
-          >
-            <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.text }}>
-              {searchText || selectedCategory ? `Results (${filtered.length})` : "Top Wantoks Near You"}
-            </Text>
-            <Text style={{ fontSize: 12, color: COLORS.primary, fontWeight: "600" }}>
-              Filter ⚙️
-            </Text>
-          </View>
-          {filtered.length > 0 ? (
+          <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.text, marginBottom: 12 }}>
+            {nearbyWorkers.length > 0 ? `Nearby Providers (${nearbyWorkers.length})` : "Top Wantoks Near You"}
+          </Text>
+          {nearbyWorkers.length > 0 ? (
             <View style={{ gap: 12 }}>
-              {filtered.map((worker) => (
-                <WorkerCard
-                  key={worker.id}
-                  worker={worker}
-                  onPress={() => onNavigate("workerDetail", worker)}
-                />
+              {nearbyWorkers.map((worker) => (
+                <WorkerCard key={worker.id} worker={worker} onPress={() => onNavigate("workerDetail", worker)} />
               ))}
             </View>
           ) : (
             <View style={{ padding: 40, alignItems: "center" }}>
-              <Text style={{ fontSize: 16, color: COLORS.textLight }}>No workers found for this selection.</Text>
+              <Text style={{ fontSize: 16, color: COLORS.textLight }}>{isSearching ? "Updating matches..." : "Select a category or click Find Nearby."}</Text>
             </View>
           )}
         </View>
@@ -483,151 +220,6 @@ function HomeScreen({ onNavigate, currentUser, onSwitchPersona, user, onUpdateUs
     </View>
   );
 }
-
-
-function WorkerCard({ worker, onPress }) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      style={{
-        backgroundColor: "#fff",
-        borderRadius: 18,
-        padding: 16,
-        elevation: 2,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.07,
-        shadowRadius: 12,
-        flexDirection: "row",
-        gap: 14,
-        borderWidth: 1,
-        borderColor: COLORS.border,
-      }}
-    >
-      {/* Avatar */}
-      <View style={{ position: "relative" }}>
-        <LinearGradient
-          colors={
-            worker.type === "blue" ? ["#3B82F6", "#1D4ED8"] : ["#8B5CF6", "#6D28D9"]
-          }
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: 16,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 18 }}>
-            {worker.avatar}
-          </Text>
-        </LinearGradient>
-        <View
-          style={{
-            position: "absolute",
-            bottom: -3,
-            right: -3,
-            width: 16,
-            height: 16,
-            borderRadius: 8,
-            backgroundColor: worker.available ? "#10B981" : "#9CA3AF",
-            borderWidth: 2,
-            borderColor: "#fff",
-          }}
-        />
-      </View>
-
-      {/* Info */}
-      <View style={{ flex: 1 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-          }}
-        >
-          <View>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={{ fontSize: 15, fontWeight: "700", color: COLORS.text }}>
-                {worker.name}
-              </Text>
-              {worker.verified && <Text style={{ fontSize: 14 }}>✅</Text>}
-            </View>
-            <Text
-              style={{
-                marginTop: 2,
-                fontSize: 13,
-                color: COLORS.primary,
-                fontWeight: "600",
-              }}
-            >
-              {worker.role}
-            </Text>
-          </View>
-          <View
-            style={{
-              backgroundColor: worker.available ? "#ECFDF5" : "#F3F4F6",
-              borderRadius: 8,
-              paddingVertical: 3,
-              paddingHorizontal: 8,
-            }}
-          >
-            <Text
-              style={{
-                color: worker.available ? "#059669" : "#6B7280",
-                fontSize: 11,
-                fontWeight: "700",
-              }}
-            >
-              {worker.available ? "Available" : "Busy"}
-            </Text>
-          </View>
-        </View>
-
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 8,
-            marginVertical: 6,
-          }}
-        >
-          <StarRating rating={worker.rating} />
-          <Text style={{ fontSize: 12, fontWeight: "600", color: COLORS.text }}>
-            {worker.rating}
-          </Text>
-          <Text style={{ fontSize: 12, color: COLORS.textMuted }}>
-            ({worker.reviews} reviews)
-          </Text>
-        </View>
-
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 8 }}>
-          <Text style={{ fontSize: 12 }}>📍</Text>
-          <Text style={{ fontSize: 12, color: COLORS.textMuted }}>{worker.location}</Text>
-        </View>
-
-        <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
-          {worker.tags.map((tag, i) => (
-            <View
-              key={i}
-              style={{
-                backgroundColor: "#F0FDF4",
-                borderRadius: 6,
-                paddingVertical: 2,
-                paddingHorizontal: 8,
-              }}
-            >
-              <Text style={{ color: COLORS.primary, fontSize: 11, fontWeight: "600" }}>
-                {tag}
-              </Text>
-            </View>
-          ))}
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
 function WorkerDetailScreen({ worker, onNavigate }) {
   const [booked, setBooked] = useState(false);
   const [tab, setTab] = useState("about");
@@ -2721,5 +2313,90 @@ export default function App() {
         </View>
       )}
     </SafeAreaView>
+  );
+}
+function WorkerCard({ worker, onPress }) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        backgroundColor: "#fff",
+        borderRadius: 18,
+        padding: 16,
+        elevation: 2,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.07,
+        shadowRadius: 12,
+        flexDirection: "row",
+        gap: 14,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+      }}
+    >
+      <View style={{ position: "relative" }}>
+        <LinearGradient
+          colors={["#3B82F6", "#1D4ED8"]}
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: 16,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 18 }}>
+            {worker.name ? worker.name.charAt(0) : "W"}
+          </Text>
+        </LinearGradient>
+        <View
+          style={{
+            position: "absolute",
+            bottom: -3,
+            right: -3,
+            width: 16,
+            height: 16,
+            borderRadius: 8,
+            backgroundColor: "#10B981",
+            borderWidth: 2,
+            borderColor: "#fff",
+          }}
+        />
+      </View>
+
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <View>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={{ fontSize: 15, fontWeight: "700", color: COLORS.text }}>{worker.name}</Text>
+              {worker.is_verified && <Text style={{ fontSize: 14 }}>✅</Text>}
+            </View>
+            <Text style={{ marginTop: 2, fontSize: 13, color: COLORS.primary, fontWeight: "600" }}>
+              {worker.primary_skill || "General Trade"}
+            </Text>
+          </View>
+        </View>
+
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginVertical: 6 }}>
+          <StarRating rating={4.8} />
+          <Text style={{ fontSize: 12, fontWeight: "600", color: COLORS.text }}>4.8</Text>
+        </View>
+
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 8 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Text style={{ fontSize: 12 }}>📍</Text>
+            <Text style={{ fontSize: 12, color: COLORS.textMuted }}>
+              {worker.distance_km ? `${parseFloat(worker.distance_km).toFixed(1)} km away` : worker.location_name || "Nearby"}
+            </Text>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Text style={{ fontSize: 12 }}>🛡️</Text>
+            <Text style={{ fontSize: 12, color: COLORS.primary, fontWeight: "700" }}>
+              {worker.is_verified ? "98% Trust" : "85% Trust"}
+            </Text>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
   );
 }
