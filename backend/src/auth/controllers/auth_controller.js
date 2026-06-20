@@ -88,7 +88,9 @@ class AuthController {
           email: user.email,
           active_persona: user.active_persona,
           roles: user.roles,
-          is_available: user.is_available
+          is_available: user.is_available,
+          primary_skill: user.primary_skill,
+          location_name: user.location_name
         }
       });
     } catch (error) {
@@ -144,6 +146,28 @@ class AuthController {
     } catch (error) {
       console.error('❌ switchPersona Error:', error);
       return res.status(500).json({ error: 'Failed to switch persona' });
+    }
+  }
+
+  static async updateProfile(req, res) {
+    try {
+      const userId = req.user.id;
+      const { primary_skill, location_name } = req.body;
+
+      if (!primary_skill || !location_name) {
+        return res.status(400).json({ error: 'Missing skill or location' });
+      }
+
+      console.log(`📝 Updating trade profile for user ${userId}`);
+      const updated = await UserModel.updateTradeProfile(userId, { primary_skill, location_name });
+
+      return res.status(200).json({
+        message: 'Profile updated successfully',
+        user: updated
+      });
+    } catch (error) {
+      console.error('❌ updateProfile Error:', error);
+      return res.status(500).json({ error: 'Failed to update profile' });
     }
   }
 

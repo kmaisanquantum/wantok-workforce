@@ -24,3 +24,4 @@ Hit CTRL-C to stop the server
 [2026-06-20T09:19:40.793Z]  "GET /api/health/db" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36"
 [2026-06-20T09:19:40.797Z]  "GET /api/health/db" Error (404): "Not found"
 [2026-06-20T09:19:40.798Z]  "GET /assets/assets/brand_logo.8eba79e04acca3f4baef089c5cc45103.jpg" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36"
+http-server stopped.

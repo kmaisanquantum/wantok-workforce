@@ -10,6 +10,9 @@ router.post('/login', AuthController.login);
 router.post('/select-role', authMiddleware, AuthController.selectRole);
 router.patch('/switch-persona', authMiddleware, AuthController.switchPersona);
 
+// Profile
+router.patch('/profile', authMiddleware, AuthController.updateProfile);
+
 // Availability
 router.patch('/availability', authMiddleware, AuthController.toggleAvailability);
 
