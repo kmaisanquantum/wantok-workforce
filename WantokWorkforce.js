@@ -931,54 +931,13 @@ function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout, user, 
                 {user?.name || (isProvider ? "Service Provider" : "Customer")}
               </Text>
               <Text style={{ color: "rgba(255,255,255,0.75)", marginTop: 4, fontSize: 13 }}>
-                {isProvider ? ((user?.role || "Electrician") + " · " + (user?.location || "Port Moresby")) : "Customer · Lae, PNG"}
+                {isProvider ? (user?.role || "Electrician") : "Customer"}
               </Text>
             </View>
           </View>
         </LinearGradient>
 
         <View style={{ paddingVertical: 20, paddingHorizontal: 16, gap: 12 }}>
-          {/* Toggle Role */}
-          <View
-            style={{
-              backgroundColor: "#fff",
-              borderRadius: 16,
-              padding: 16,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              elevation: 2,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.06,
-              shadowRadius: 8,
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <Text style={{ fontSize: 22 }}>{isProvider ? "🔧" : "🙋"}</Text>
-              <View>
-                <Text style={{ fontWeight: "700", fontSize: 14, color: COLORS.text }}>
-                  {isProvider ? "Provider Mode" : "Customer Mode"}
-                </Text>
-                <Text style={{ marginTop: 2, fontSize: 12, color: COLORS.textMuted }}>
-                  Switch app view
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              onPress={onToggleUser}
-              style={{
-                paddingVertical: 8,
-                paddingHorizontal: 16,
-                borderRadius: 10,
-                backgroundColor: COLORS.primary,
-              }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>
-                Switch to {isProvider ? "Customer" : "Provider"}
-              </Text>
-            </TouchableOpacity>
-          </View>
 
           {isProvider && (
             <View
@@ -2017,7 +1976,7 @@ function AdminAuthScreen({ onAuth }) {
 function AdminScreen({ onNavigate }) {
   const [stats, setStats] = useState({ totalCustomers: 0, totalProviders: 0, totalMatches: 0 });
   const [pendingProviders, setPendingProviders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const fetchAdminData = async () => {
     try {
@@ -2168,7 +2127,7 @@ export default function App() {
       if (persona === 'provider' && (!userData.role || !userData.location)) {
         setOnboardingComplete(false);
       } else {
-        setOnboardingComplete(true);
+        setOnboardingComplete(false);
       }
     }
   };
@@ -2188,7 +2147,7 @@ export default function App() {
         if (user?.roles?.includes('admin')) {
           setCurrentUser('admin');
           setScreen('admin');
-          setOnboardingComplete(true);
+          setOnboardingComplete(false);
         } else {
           handleLogout();
           alert("Unauthorized access attempt.");
@@ -2211,7 +2170,7 @@ export default function App() {
       return <RoleSelectionScreen onSelectRole={async (role) => {
         // Optimistic UI update
         setCurrentUser(role);
-        if (role === "customer") setOnboardingComplete(true);
+        if (role === "customer") setOnboardingComplete(false);
         else setOnboardingComplete(false);
 
         // In a real app, we'd call the API here:
@@ -2222,7 +2181,7 @@ export default function App() {
     if (currentUser === "provider" && !onboardingComplete) {
       return <ProviderOnboardingScreen onComplete={(details) => {
         setUser({ ...user, ...details });
-        setOnboardingComplete(true);
+        setOnboardingComplete(false);
       }} />;
     }
 
@@ -2258,12 +2217,12 @@ export default function App() {
 
               if (targetRole === 'provider') {
                 if (user?.role && user?.location) {
-                  setOnboardingComplete(true);
+                  setOnboardingComplete(false);
                 } else {
                   setOnboardingComplete(false);
                 }
               } else {
-                setOnboardingComplete(true);
+                setOnboardingComplete(false);
               }
 
               // We would ideally call API here to update active_persona
