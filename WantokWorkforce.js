@@ -1675,7 +1675,7 @@ function AuthScreen({ onAuth }) {
         style={{ height: 200, justifyContent: "center", alignItems: "center" }}
       >
         <Image
-          source={require("./assets/logo.jpg")}
+          source={require("./assets/brand_logo.jpg")}
           style={{ width: 80, height: 80, borderRadius: 40, marginBottom: 10 }}
         />
         <Text style={{ color: "#fff", fontSize: 24, fontWeight: "900" }}>
@@ -2305,7 +2305,7 @@ export default function App() {
         }}
       >
         <Image
-          source={require("./assets/logo.jpg")}
+          source={require("./assets/brand_logo.jpg")}
           style={{ width: 32, height: 32, borderRadius: 16, resizeMode: "contain" }}
         />
         <Text
