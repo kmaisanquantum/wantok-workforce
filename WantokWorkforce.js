@@ -1507,7 +1507,7 @@ function AuthScreen({ onAuth }) {
     setLoading(true);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000);
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     try {
       const response = await fetch(`${API_BASE}/api/auth/login`, {
@@ -1526,7 +1526,7 @@ function AuthScreen({ onAuth }) {
       }
     } catch (error) {
       if (error.name === 'AbortError') {
-        alert('Request timed out. Please try again.');
+        alert('Server connection timeout. Please check backend logs.');
       } else {
         console.error('SignIn Error:', error);
         alert('Network error. Is the server running?');
@@ -1576,7 +1576,7 @@ function AuthScreen({ onAuth }) {
         }
       } catch (error) {
         if (error.name === 'AbortError') {
-          alert('Request timed out. Please try again.');
+          alert('Server connection timeout. Please check backend logs.');
         } else {
           console.error('SignUp Error:', error);
           alert('Network error. Is the server running?');
