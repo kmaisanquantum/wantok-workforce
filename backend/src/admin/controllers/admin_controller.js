@@ -1,6 +1,6 @@
 const UserModel = require('../../auth/models/user_model');
 const { pool } = require('../../auth/models/user_model');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 
 class AdminController {
   static async getStats(req, res) {
