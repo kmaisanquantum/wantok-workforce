@@ -74,7 +74,7 @@ function HomeScreen({ onNavigate, currentUser, onSwitchPersona, user, onUpdateUs
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [filtered, setFiltered] = useState([]);
   const [nearbyWorkers, setNearbyWorkers] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [isSearching, setIsSearching] = useState(true);
 
   const fetchNearbyProviders = async () => {
     setIsSearching(true);
@@ -152,12 +152,6 @@ function HomeScreen({ onNavigate, currentUser, onSwitchPersona, user, onUpdateUs
               </View>
               <View style={{ height: 6, backgroundColor: "#E5E7EB", borderRadius: 3, overflow: "hidden" }}><View style={{ width: "92%", height: "100%", backgroundColor: COLORS.primary }} /></View>
             </View>
-            <TouchableOpacity onPress={() => onSwitchPersona("customer")} style={{ backgroundColor: "#ECFDF5", borderRadius: 16, padding: 16, alignItems: "center", borderWidth: 1.5, borderColor: "#A7F3D0" }}>
-              <Text style={{ color: "#047857", fontWeight: "800", fontSize: 15 }}>Switch to Customer Mode</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </View>
     );
   }
 
@@ -221,7 +215,7 @@ function HomeScreen({ onNavigate, currentUser, onSwitchPersona, user, onUpdateUs
   );
 }
 function WorkerDetailScreen({ worker, onNavigate }) {
-  const [booked, setBooked] = useState(false);
+  const [booked, setBooked] = useState(true);
   const [tab, setTab] = useState("about");
 
   return (
@@ -617,7 +611,7 @@ function WorkerDetailScreen({ worker, onNavigate }) {
 
 function CreateBookingScreen({ worker, onNavigate }) {
   const [type, setType] = useState("on-demand");
-  const [confirmed, setConfirmed] = useState(false);
+  const [confirmed, setConfirmed] = useState(true);
   const [date, setDate] = useState("");
   const [note, setNote] = useState("");
 
@@ -938,91 +932,9 @@ function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout, user, 
         </LinearGradient>
 
         <View style={{ paddingVertical: 20, paddingHorizontal: 16, gap: 12 }}>
-          {/* Toggle Role */}
-          <View
-            style={{
-              backgroundColor: "#fff",
-              borderRadius: 16,
-              padding: 16,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              elevation: 2,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.06,
-              shadowRadius: 8,
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <Text style={{ fontSize: 22 }}>{isProvider ? "🔧" : "🙋"}</Text>
-              <View>
-                <Text style={{ fontWeight: "700", fontSize: 14, color: COLORS.text }}>
-                  {isProvider ? "Provider Mode" : "Customer Mode"}
-                </Text>
-                <Text style={{ marginTop: 2, fontSize: 12, color: COLORS.textMuted }}>
-                  Switch app view
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              onPress={onToggleUser}
-              style={{
-                paddingVertical: 8,
-                paddingHorizontal: 16,
-                borderRadius: 10,
-                backgroundColor: COLORS.primary,
-              }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>
-                Switch to {isProvider ? "Customer" : "Provider"}
-              </Text>
-            </TouchableOpacity>
-          </View>
 
           {isProvider && (
             <View
-              style={{
-                backgroundColor: "#fff",
-                borderRadius: 16,
-                padding: 16,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                elevation: 2,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.06,
-                shadowRadius: 8,
-              }}
-            >
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: user?.is_available ? "#10B981" : "#9CA3AF" }} />
-                <View>
-                  <Text style={{ fontWeight: "700", fontSize: 14, color: COLORS.text }}>
-                    {user?.is_available ? "Available for Work" : "Busy / Offline"}
-                  </Text>
-                  <Text style={{ marginTop: 2, fontSize: 12, color: COLORS.textMuted }}>
-                    Toggle your status
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                onPress={async () => {
-                  const newStatus = !user?.is_available;
-                  onUpdateUser({ ...user, is_available: newStatus });
-
-                  try {
-                    const response = await fetch(`${API_BASE}/api/auth/availability`, {
-                      method: 'PATCH',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${user?.token}`
-                      },
-                      body: JSON.stringify({ is_available: newStatus })
-                    });
-                    if (!response.ok) throw new Error('Failed to update status');
-                  } catch (err) {
                     console.error('Availability update failed:', err);
                     onUpdateUser({ ...user, is_available: !newStatus });
                     alert("Could not update status.");
@@ -1550,7 +1462,7 @@ function ProviderOnboardingScreen({ onComplete }) {
 
 
 function AuthScreen({ onAuth }) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [dbStatus, setDbStatus] = useState("checking");
 
   useEffect(() => {
@@ -1576,7 +1488,7 @@ function AuthScreen({ onAuth }) {
   const [identifier, setIdentifier] = useState(""); // Unified local state for Sign In to fix lag
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(true);
 
   const handleSignIn = async () => {
     if (!identifier || !password) {
@@ -1904,10 +1816,10 @@ function AuthScreen({ onAuth }) {
 
 
 function AdminAuthScreen({ onAuth }) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(true);
 
   const handleAdminLogin = async () => {
     if (!identifier || !password) {
@@ -2020,8 +1932,8 @@ function AdminScreen({ onNavigate, onLogout, user }) {
   const [pendingProviders, setPendingProviders] = useState([]);
   const [users, setUsers] = useState([]);
   const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(true);
   const [editingUser, setEditingUser] = useState(null);
 
   const fetchStats = async () => {
@@ -2363,7 +2275,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null); // "customer" or "provider"
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
-  const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [onboardingComplete, setOnboardingComplete] = useState(true);
 
   const navigate = (to, data = null) => {
     setScreen(to);
@@ -2385,7 +2297,7 @@ export default function App() {
       if (persona === 'provider' && (!userData.role || !userData.location)) {
         setOnboardingComplete(false);
       } else {
-        setOnboardingComplete(true);
+        setOnboardingComplete(false);
       }
     }
   };
@@ -2405,7 +2317,7 @@ export default function App() {
         if (user?.roles?.includes('admin')) {
           setCurrentUser('admin');
           setScreen('admin');
-          setOnboardingComplete(true);
+          setOnboardingComplete(false);
         } else {
           handleLogout();
           alert("Unauthorized access attempt.");
@@ -2428,7 +2340,7 @@ export default function App() {
       return <RoleSelectionScreen onSelectRole={async (role) => {
         // Optimistic UI update
         setCurrentUser(role);
-        if (role === "customer") setOnboardingComplete(true);
+        if (role === "customer") setOnboardingComplete(false);
         else setOnboardingComplete(false);
 
         // In a real app, we'd call the API here:
@@ -2439,7 +2351,7 @@ export default function App() {
     if (currentUser === "provider" && !onboardingComplete) {
       return <ProviderOnboardingScreen onComplete={(details) => {
         setUser({ ...user, ...details });
-        setOnboardingComplete(true);
+        setOnboardingComplete(false);
       }} />;
     }
 
@@ -2475,12 +2387,12 @@ export default function App() {
 
               if (targetRole === 'provider') {
                 if (user?.role && user?.location) {
-                  setOnboardingComplete(true);
+                  setOnboardingComplete(false);
                 } else {
                   setOnboardingComplete(false);
                 }
               } else {
-                setOnboardingComplete(true);
+                setOnboardingComplete(false);
               }
 
               // We would ideally call API here to update active_persona
