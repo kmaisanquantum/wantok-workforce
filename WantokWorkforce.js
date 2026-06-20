@@ -152,6 +152,9 @@ function HomeScreen({ onNavigate, currentUser, onSwitchPersona, user, onUpdateUs
               </View>
               <View style={{ height: 6, backgroundColor: "#E5E7EB", borderRadius: 3, overflow: "hidden" }}><View style={{ width: "92%", height: "100%", backgroundColor: COLORS.primary }} /></View>
             </View>
+          </View>
+        </ScrollView>
+      </View>
     );
   }
 
@@ -932,34 +935,6 @@ function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout, user, 
         </LinearGradient>
 
         <View style={{ paddingVertical: 20, paddingHorizontal: 16, gap: 12 }}>
-
-          {isProvider && (
-            <View
-                    console.error('Availability update failed:', err);
-                    onUpdateUser({ ...user, is_available: !newStatus });
-                    alert("Could not update status.");
-                  }
-                }}
-                style={{
-                  width: 50,
-                  height: 28,
-                  borderRadius: 14,
-                  backgroundColor: user?.is_available ? COLORS.primary : "#E5E7EB",
-                  padding: 2,
-                  justifyContent: "center"
-                }}
-              >
-                <View style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 12,
-                  backgroundColor: "#fff",
-                  transform: [{ translateX: user?.is_available ? 22 : 0 }],
-                  elevation: 2,
-                }} />
-              </TouchableOpacity>
-            </View>
-          )}
 
           {isProvider && (
             <View
