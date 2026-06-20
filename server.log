@@ -1,3 +1,7 @@
+
+> wantok-workforce@1.0.1 start:prod
+> node backend/server.js
+
 🔍 [DB] Initializing pool from DATABASE_URL
 🔌 [DB] Internal/Local network detected (localhost). Disabling SSL for clean handshake.
 Wantok Unified Server running on port 3000
