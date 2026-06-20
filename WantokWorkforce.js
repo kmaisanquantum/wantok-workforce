@@ -1437,7 +1437,7 @@ function ProviderOnboardingScreen({ onComplete }) {
 
 
 function AuthScreen({ onAuth }) {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [dbStatus, setDbStatus] = useState("checking");
 
   useEffect(() => {
@@ -1791,7 +1791,7 @@ function AuthScreen({ onAuth }) {
 
 
 function AdminAuthScreen({ onAuth }) {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(true);
