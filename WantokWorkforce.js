@@ -2229,10 +2229,10 @@ export default function App() {
   }, []);
   const [screen, setScreen] = useState("home");
   const [screenData, setScreenData] = useState(null);
-  const [currentUser, setCurrentUser] = useState("provider"); // "customer" or "provider"
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
-  const [onboardingComplete, setOnboardingComplete] = useState(true);
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
 
   const navigate = (to, data = null) => {
     setScreen(to);
@@ -2270,27 +2270,22 @@ export default function App() {
   const renderScreen = () => {
     // Hidden Admin Route Handling
     if (screen === "admin-auth") {
-      if (isAuthenticated) {
-        if (user?.roles?.includes('admin')) {
-          setCurrentUser('admin');
-          setScreen('admin');
-          setOnboardingComplete(true);
-        } else {
-          handleLogout();
-          alert("Unauthorized access attempt.");
-          return <AuthScreen onAuth={handleAuth} />;
-        }
+      if (isAuthenticated && user?.roles?.includes('admin')) {
+        setCurrentUser('admin');
+        setScreen('admin');
+        setOnboardingComplete(true);
       }
       return <AdminAuthScreen onAuth={handleAuth} />;
     }
 
-    if (!isAuthenticated) {
+    // Role-based Access Guard for Admin Screen
+    if (screen === "admin" && (!user?.roles?.includes('admin') || currentUser !== 'admin')) {
+      alert("Unauthorized access attempt.");
+      handleLogout();
       return <AuthScreen onAuth={handleAuth} />;
     }
 
-    // Role-based Access Guard for Admin Screen
-    if (screen === "admin" && (!user?.roles?.includes('admin') || currentUser !== 'admin')) {
-      handleLogout();
+    if (!isAuthenticated) {
       return <AuthScreen onAuth={handleAuth} />;
     }
     if (!currentUser) {
