@@ -69,7 +69,7 @@ const TrustBadge = () => (
 // ─── SCREENS ───────────────────────────────────────────────────────────────
 
 
-function HomeScreen({ onNavigate, currentUser, onSwitchPersona, user, onUpdateUser }) {
+function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [filtered, setFiltered] = useState([]);
@@ -891,7 +891,7 @@ function CreateBookingScreen({ worker, onNavigate }) {
   );
 }
 
-function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout, user, onUpdateUser }) {
+function ProfileScreen({ onNavigate, currentUser, onLogout, user, onUpdateUser }) {
   const isProvider = currentUser === "provider";
 
   return (
@@ -928,7 +928,7 @@ function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout, user, 
                 {user?.name || (isProvider ? "Service Provider" : "Customer")}
               </Text>
               <Text style={{ color: "rgba(255,255,255,0.75)", marginTop: 4, fontSize: 13 }}>
-                {isProvider ? ((user?.primary_skill || "Electrician") + " · " + (user?.location_name || "Port Moresby")) : "Customer"}
+                {isProvider ? (user?.primary_skill || "Service Provider") : "Customer"}
               </Text>
             </View>
           </View>
@@ -936,63 +936,12 @@ function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout, user, 
 
         <View style={{ paddingVertical: 20, paddingHorizontal: 16, gap: 12 }}>
 
-          {isProvider && (
-            <View
-              style={{
-                backgroundColor: "#fff",
-                borderRadius: 16,
-                padding: 16,
-                elevation: 2,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.06,
-                shadowRadius: 8,
-              }}
-            >
-              <Text style={{ marginBottom: 14, fontSize: 14, fontWeight: "700", color: COLORS.text }}>
-                Trust Score
-              </Text>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                <View style={{ flex: 1 }}>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      marginBottom: 6,
-                    }}
-                  >
-                    <Text style={{ fontSize: 12, color: COLORS.textMuted }}>
-                      Verification Score
-                    </Text>
-                    <Text
-                      style={{ fontSize: 12, fontWeight: "700", color: COLORS.primary }}
-                    >
-                      92%
-                    </Text>
-                  </View>
-                  <View
-                    style={{ height: 8, backgroundColor: "#E5E7EB", borderRadius: 4 }}
-                  >
-                    <View
-                      style={{
-                        width: "92%",
-                        height: "100%",
-                        backgroundColor: COLORS.primary,
-                        borderRadius: 4,
-                      }}
-                    />
-                  </View>
-                </View>
-              </View>
-            </View>
-          )}
+
 
           {[
             { icon: "🔔", label: "SMS Notifications", sub: "Offline mode enabled" },
             { icon: "🌐", label: "Language", sub: "Tok Pisin / English" },
             { icon: "📶", label: "Low-Bandwidth Mode", sub: "On — saves data" },
-            { icon: "🔒", label: "Privacy & Security", sub: "Auth secured" },
-            { icon: "❓", label: "Help & Support", sub: "WhatsApp / Direct dial" },
           ].map((item, i) => (
             <TouchableOpacity
               key={i}
@@ -2368,7 +2317,7 @@ export default function App() {
         return <HomeScreen
           onNavigate={navigate}
           currentUser={currentUser}
-          onSwitchPersona={(role) => setCurrentUser(role)}
+
           user={user}
           onUpdateUser={(updated) => setUser(updated)}
         />;
@@ -2387,25 +2336,7 @@ export default function App() {
           <ProfileScreen
             onNavigate={navigate}
             currentUser={currentUser}
-            onToggleUser={async () => {
-              const targetRole = currentUser === 'customer' ? 'provider' : 'customer';
 
-              // Optimistic switch
-              setCurrentUser(targetRole);
-
-              if (targetRole === 'provider') {
-                if (user?.role && user?.location) {
-                  setOnboardingComplete(false);
-                } else {
-                  setOnboardingComplete(false);
-                }
-              } else {
-                setOnboardingComplete(false);
-              }
-
-              // We would ideally call API here to update active_persona
-              try { await fetch(`${API_BASE}/api/auth/switch-persona`, { method: "PATCH", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${user?.token}` }, body: JSON.stringify({ role: targetRole }) }); } catch (e) { console.error("Persona switch persistence failed", e); }
-            }}
             onLogout={handleLogout}
             user={user}
             onUpdateUser={(updated) => setUser(updated)}
@@ -2415,7 +2346,7 @@ export default function App() {
         return <HomeScreen
           onNavigate={navigate}
           currentUser={currentUser}
-          onSwitchPersona={(role) => setCurrentUser(role)}
+
           user={user}
           onUpdateUser={(updated) => setUser(updated)}
         />;
