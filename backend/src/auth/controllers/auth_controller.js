@@ -76,7 +76,8 @@ class AuthController {
       const isMatch = await bcrypt.compare(password, user.password_hash);
       if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
 
-      const token = jwt.sign({ id: user.id, role: user.active_persona }, JWT_SECRET, { expiresIn: '7d' });
+      const userPersona = user.active_persona || 'customer';
+      const token = jwt.sign({ id: user.id, role: userPersona }, JWT_SECRET, { expiresIn: '7d' });
 
       console.log('✅ Login successful:', user.email);
       return res.status(200).json({
@@ -86,8 +87,8 @@ class AuthController {
           id: user.id,
           name: user.name,
           email: user.email,
-          active_persona: user.active_persona,
-          roles: user.roles,
+          active_persona: userPersona,
+          roles: user.roles || [userPersona],
           is_available: user.is_available,
           primary_skill: user.primary_skill,
           location_name: user.location_name
