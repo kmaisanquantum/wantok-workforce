@@ -1889,8 +1889,9 @@ function AdminScreen({ onNavigate, onLogout, user }) {
   const [pendingProviders, setPendingProviders] = useState([]);
   const [users, setUsers] = useState([]);
   const [logs, setLogs] = useState([]);
+  const [roleFilter, setRoleFilter] = useState("All Roles");
   const [loading, setLoading] = useState(true);
-  const [modalVisible, setModalVisible] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
   const fetchStats = async () => {
@@ -2043,7 +2044,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
         {activeTab === "users" && (
           <View style={{ padding: 16 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B" }}>User Management</Text>
+              <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B" }}>User Registrations</Text>
               <TouchableOpacity
                 onPress={() => { setEditingUser({ roles: ['customer'] }); setModalVisible(true); }}
                 style={{ backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }}
@@ -2051,25 +2052,72 @@ function AdminScreen({ onNavigate, onLogout, user }) {
                 <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>+ New User</Text>
               </TouchableOpacity>
             </View>
-            {users.map(u => (
-              <View key={u.id} style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: "#F1F5F9" }}>
+
+            {/* Quick Filter */}
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
+              {["All Roles", "Service Providers", "Customers"].map(f => (
+                <TouchableOpacity
+                  key={f}
+                  onPress={() => setRoleFilter(f)}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 20,
+                    backgroundColor: roleFilter === f ? COLORS.primary : "#E2E8F0",
+                    borderWidth: 1,
+                    borderColor: roleFilter === f ? COLORS.primary : "#CBD5E1"
+                  }}
+                >
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: roleFilter === f ? "#fff" : "#475569" }}>
+                    {f.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {users.filter(u => {
+              if (roleFilter === "All Roles") return true;
+              if (roleFilter === "Service Providers") return u.roles?.includes('provider');
+              if (roleFilter === "Customers") return u.roles?.includes('customer');
+              return true;
+            }).map(u => (
+              <View key={u.id} style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, marginBottom: 12, elevation: 1, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 5 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <View>
-                    <Text style={{ fontSize: 15, fontWeight: "700", color: "#1E293B" }}>{u.name}</Text>
-                    <Text style={{ fontSize: 12, color: "#64748B" }}>{u.email} • {u.phone_number}</Text>
-                    <View style={{ flexDirection: "row", gap: 4, marginTop: 6 }}>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                      <Text style={{ fontSize: 15, fontWeight: "700", color: "#1E293B" }}>{u.name}</Text>
+                      <Text style={{ fontSize: 11, color: "#94A3B8" }}>{new Date(u.created_at).toLocaleDateString()}</Text>
+                    </View>
+                    <Text style={{ fontSize: 12, color: "#64748B", marginBottom: 6 }}>{u.email} • {u.phone_number}</Text>
+
+                    {u.roles?.includes('provider') && u.trade_type && (
+                      <Text style={{ fontSize: 12, color: COLORS.primary, fontWeight: "600", marginBottom: 6 }}>
+                        📍 {u.city_location || 'PNG'} • {u.trade_type}
+                      </Text>
+                    )}
+
+                    <View style={{ flexDirection: "row", gap: 4, marginTop: 4 }}>
                       {u.roles?.map(r => (
-                        <View key={r} style={{ backgroundColor: "#E2E8F0", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                          <Text style={{ fontSize: 10, fontWeight: "700", color: "#475569" }}>{r.toUpperCase()}</Text>
+                        <View key={r} style={{
+                          backgroundColor: r === 'provider' ? "#DCFCE7" : (r === 'customer' ? "#DBEAFE" : "#E2E8F0"),
+                          paddingHorizontal: 8,
+                          paddingVertical: 3,
+                          borderRadius: 6
+                        }}>
+                          <Text style={{
+                            fontSize: 10,
+                            fontWeight: "800",
+                            color: r === 'provider' ? "#166534" : (r === 'customer' ? "#1E40AF" : "#475569")
+                          }}>{r.toUpperCase()}</Text>
                         </View>
                       ))}
-                      {u.is_verified && <View style={{ backgroundColor: "#DCFCE7", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}><Text style={{ fontSize: 10, fontWeight: "700", color: "#166534" }}>VERIFIED</Text></View>}
-                      {u.is_flagged && <View style={{ backgroundColor: "#FEE2E2", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}><Text style={{ fontSize: 10, fontWeight: "700", color: "#991B1B" }}>FLAGGED</Text></View>}
+                      {u.is_verified && <View style={{ backgroundColor: "#F0FDF4", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: "#BBF7D0" }}><Text style={{ fontSize: 10, fontWeight: "800", color: "#15803D" }}>✅ VERIFIED</Text></View>}
+                      {u.is_flagged && <View style={{ backgroundColor: "#FEF2F2", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: "#FECDD3" }}><Text style={{ fontSize: 10, fontWeight: "800", color: "#B91C1C" }}>🚩 FLAGGED</Text></View>}
                     </View>
                   </View>
-                  <View style={{ flexDirection: "row", gap: 8 }}>
-                    <TouchableOpacity onPress={() => { setEditingUser(u); setModalVisible(true); }} style={{ padding: 8 }}><Text>✏️</Text></TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleUserAction(u.id, 'delete')} style={{ padding: 8 }}><Text>🗑️</Text></TouchableOpacity>
+                  <View style={{ flexDirection: "row", gap: 4 }}>
+                    <TouchableOpacity onPress={() => { setEditingUser(u); setModalVisible(true); }} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 14 }}>✏️</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleUserAction(u.id, 'delete')} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#FEF2F2", alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 14 }}>🗑️</Text></TouchableOpacity>
                   </View>
                 </View>
               </View>

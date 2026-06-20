@@ -78,6 +78,7 @@ class AdminController {
     try {
       const query = `
         SELECT u.id, u.name, u.email, u.phone_number, u.is_verified, u.is_flagged, u.created_at,
+               u.primary_skill as trade_type, u.location_name as city_location,
                array_agg(ur.role_name) as roles
         FROM users u
         LEFT JOIN user_roles ur ON u.id = ur.user_id
