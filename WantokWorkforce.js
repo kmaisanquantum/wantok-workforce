@@ -1529,7 +1529,7 @@ function AuthScreen({ onAuth }) {
         alert('Server connection timeout. Please check backend logs.');
       } else {
         console.error('SignIn Error:', error);
-        alert('Network error. Is the server running?');
+        alert('Sign-in failed. Please verify your credentials or check connection.');
       }
     } finally {
       clearTimeout(timeoutId);
@@ -1579,7 +1579,7 @@ function AuthScreen({ onAuth }) {
           alert('Server connection timeout. Please check backend logs.');
         } else {
           console.error('SignUp Error:', error);
-          alert('Network error. Is the server running?');
+          alert('Sign-up failed. Please verify your credentials or check connection.');
         }
       } finally {
         clearTimeout(timeoutId);
