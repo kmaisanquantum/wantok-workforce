@@ -12,4 +12,13 @@ router.get('/pending-providers', AdminController.getPendingProviders);
 router.post('/approve/:providerId', AdminController.approveProvider);
 router.post('/flag/:userId', AdminController.flagUser);
 
+// User Management CRUD
+router.get('/users', AdminController.getAllUsers);
+router.post('/users', AdminController.createUser);
+router.put('/users/:userId', AdminController.updateUser);
+router.delete('/users/:userId', AdminController.deleteUser);
+
+// System Logs
+router.get('/logs', AdminController.getSystemLogs);
+
 module.exports = router;

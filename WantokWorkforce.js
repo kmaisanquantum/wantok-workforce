@@ -931,13 +931,54 @@ function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout, user, 
                 {user?.name || (isProvider ? "Service Provider" : "Customer")}
               </Text>
               <Text style={{ color: "rgba(255,255,255,0.75)", marginTop: 4, fontSize: 13 }}>
-                {isProvider ? (user?.role || "Electrician") : "Customer"}
+                {isProvider ? ((user?.role || "Electrician") + " · " + (user?.location || "Port Moresby")) : "Customer · Lae, PNG"}
               </Text>
             </View>
           </View>
         </LinearGradient>
 
         <View style={{ paddingVertical: 20, paddingHorizontal: 16, gap: 12 }}>
+          {/* Toggle Role */}
+          <View
+            style={{
+              backgroundColor: "#fff",
+              borderRadius: 16,
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              elevation: 2,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.06,
+              shadowRadius: 8,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <Text style={{ fontSize: 22 }}>{isProvider ? "🔧" : "🙋"}</Text>
+              <View>
+                <Text style={{ fontWeight: "700", fontSize: 14, color: COLORS.text }}>
+                  {isProvider ? "Provider Mode" : "Customer Mode"}
+                </Text>
+                <Text style={{ marginTop: 2, fontSize: 12, color: COLORS.textMuted }}>
+                  Switch app view
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              onPress={onToggleUser}
+              style={{
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+                borderRadius: 10,
+                backgroundColor: COLORS.primary,
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>
+                Switch to {isProvider ? "Customer" : "Provider"}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {isProvider && (
             <View
@@ -1973,120 +2014,337 @@ function AdminAuthScreen({ onAuth }) {
   );
 }
 
-function AdminScreen({ onNavigate }) {
+function AdminScreen({ onNavigate, onLogout, user }) {
+  const [activeTab, setActiveTab] = useState("dashboard"); // dashboard, users, verification, logs
   const [stats, setStats] = useState({ totalCustomers: 0, totalProviders: 0, totalMatches: 0 });
   const [pendingProviders, setPendingProviders] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
 
-  const fetchAdminData = async () => {
+  const fetchStats = async () => {
     try {
-      const token = user?.token;
-      const [statsRes, providersRes] = await Promise.all([
-        fetch(`${API_BASE}/api/admin/stats`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        }),
-        fetch(`${API_BASE}/api/admin/pending-providers`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        })
-      ]);
+      const res = await fetch(`${API_BASE}/api/admin/stats`, {
+        headers: { "Authorization": `Bearer ${user?.token}` }
+      });
+      if (res.ok) setStats(await res.json());
+    } catch (e) { console.error(e); }
+  };
 
-      if (statsRes.ok) setStats(await statsRes.json());
-      if (providersRes.ok) setPendingProviders(await providersRes.json());
-    } catch (error) {
-      console.error("Admin data fetch error:", error);
-    } finally {
-      setLoading(false);
-    }
+  const fetchPending = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/pending-providers`, {
+        headers: { "Authorization": `Bearer ${user?.token}` }
+      });
+      if (res.ok) setPendingProviders(await res.json());
+    } catch (e) { console.error(e); }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/users`, {
+        headers: { "Authorization": `Bearer ${user?.token}` }
+      });
+      if (res.ok) setUsers(await res.json());
+    } catch (e) { console.error(e); }
+  };
+
+  const fetchLogs = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/logs`, {
+        headers: { "Authorization": `Bearer ${user?.token}` }
+      });
+      if (res.ok) setLogs(await res.json());
+    } catch (e) { console.error(e); }
   };
 
   useEffect(() => {
-    fetchAdminData();
-  }, []);
+    if (activeTab === "dashboard") fetchStats();
+    if (activeTab === "verification") fetchPending();
+    if (activeTab === "users") fetchUsers();
+    if (activeTab === "logs") fetchLogs();
+  }, [activeTab]);
 
-  const handleAction = async (providerId, action) => {
+  const handleUserAction = async (userId, action, data = {}) => {
     try {
       const token = user?.token;
-      const endpoint = action === 'approve' ? `/api/admin/approve/${providerId}` : `/api/admin/flag/${providerId}`;
-      const res = await fetch(`${API_BASE}${endpoint}`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) {
-        fetchAdminData();
-      } else {
-        alert("Action failed.");
+      let res;
+      if (action === 'delete') {
+        res = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
+          method: "DELETE",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+      } else if (action === 'update') {
+        res = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify(data)
+        });
+      } else if (action === 'create') {
+        res = await fetch(`${API_BASE}/api/admin/users`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify(data)
+        });
+      } else if (action === 'approve') {
+        res = await fetch(`${API_BASE}/api/admin/approve/${userId}`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+      } else if (action === 'flag') {
+        res = await fetch(`${API_BASE}/api/admin/flag/${userId}`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
       }
-    } catch (error) {
-      alert("Error performing action.");
-    }
+
+      if (res && res.ok) {
+        if (activeTab === "users") fetchUsers();
+        if (activeTab === "verification") fetchPending();
+        if (activeTab === "dashboard") fetchStats();
+        setModalVisible(false);
+      } else {
+        alert("Action failed");
+      }
+    } catch (e) { alert("Error connecting to server"); }
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
-      <View style={{ backgroundColor: COLORS.primary, padding: 20, paddingTop: 60, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}>
-        <Text style={{ fontSize: 24, fontWeight: "900", color: "#fff", marginBottom: 4 }}>Back-Office</Text>
-        <Text style={{ fontSize: 14, color: "rgba(255,255,255,0.8)" }}>Command Module • Port Moresby HQ</Text>
+    <View style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
+      {/* Header */}
+      <View style={{ backgroundColor: "#1E293B", padding: 20, paddingTop: 50, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+        <View>
+          <Text style={{ fontSize: 20, fontWeight: "900", color: "#fff" }}>Wantok Admin</Text>
+          <Text style={{ fontSize: 12, color: "#94A3B8" }}>SaaS Control Portal</Text>
+        </View>
+        <TouchableOpacity onPress={onLogout} style={{ backgroundColor: "#334155", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 }}>
+          <Text style={{ color: "#F1F5F9", fontWeight: "700", fontSize: 12 }}>Sign Out</Text>
+        </TouchableOpacity>
       </View>
 
-      <ScrollView style={{ flex: 1, padding: 16 }}>
-        {/* Statistics Grid */}
-        <View style={{ flexDirection: "row", gap: 12, marginBottom: 24 }}>
-          <View style={{ flex: 1, backgroundColor: "#fff", padding: 16, borderRadius: 16, elevation: 3, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
-            <Text style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 4 }}>Customers</Text>
-            <Text style={{ fontSize: 20, fontWeight: "800", color: COLORS.primary }}>{loading ? "..." : stats.totalCustomers}</Text>
-          </View>
-          <View style={{ flex: 1, backgroundColor: "#fff", padding: 16, borderRadius: 16, elevation: 3, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
-            <Text style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 4 }}>Providers</Text>
-            <Text style={{ fontSize: 20, fontWeight: "800", color: "#F5A623" }}>{loading ? "..." : stats.totalProviders}</Text>
-          </View>
-          <View style={{ flex: 1, backgroundColor: "#fff", padding: 16, borderRadius: 16, elevation: 3, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
-            <Text style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 4 }}>Matches</Text>
-            <Text style={{ fontSize: 20, fontWeight: "800", color: COLORS.secondary }}>{loading ? "..." : stats.totalMatches}</Text>
-          </View>
-        </View>
+      {/* Top Nav */}
+      <View style={{ flexDirection: "row", backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#E2E8F0" }}>
+        {[
+          { id: "dashboard", label: "Dashboard", icon: "📊" },
+          { id: "users", label: "Users", icon: "👥" },
+          { id: "verification", label: "Queue", icon: "⏳" },
+          { id: "logs", label: "Logs", icon: "📜" },
+        ].map((tab) => (
+          <TouchableOpacity
+            key={tab.id}
+            onPress={() => setActiveTab(tab.id)}
+            style={{
+              flex: 1,
+              paddingVertical: 14,
+              alignItems: "center",
+              borderBottomWidth: 3,
+              borderBottomColor: activeTab === tab.id ? COLORS.primary : "transparent"
+            }}
+          >
+            <Text style={{ fontSize: 16, marginBottom: 2 }}>{tab.icon}</Text>
+            <Text style={{ fontSize: 11, fontWeight: "700", color: activeTab === tab.id ? COLORS.primary : "#64748B" }}>
+              {tab.label.toUpperCase()}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-        <Text style={{ fontSize: 18, fontWeight: "800", color: COLORS.text, marginBottom: 12 }}>Provider Verification Queue</Text>
-
-        {pendingProviders.length === 0 && !loading ? (
-          <View style={{ padding: 40, alignItems: "center" }}>
-            <Text style={{ color: COLORS.textMuted }}>No pending verifications.</Text>
-          </View>
-        ) : (
-          pendingProviders.map((prov) => (
-            <View key={prov.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 16, marginBottom: 12, elevation: 2 }}>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                <View>
-                  <Text style={{ fontSize: 16, fontWeight: "800", color: COLORS.text }}>{prov.name}</Text>
-                  <Text style={{ fontSize: 13, color: COLORS.textMuted }}>{prov.primary_skill || "General Trade"}</Text>
-                </View>
-                <View style={{ backgroundColor: "#FEF3C7", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                  <Text style={{ fontSize: 10, fontWeight: "700", color: "#92400E" }}>PENDING</Text>
-                </View>
+      <ScrollView style={{ flex: 1 }}>
+        {activeTab === "dashboard" && (
+          <View style={{ padding: 16 }}>
+            <View style={{ flexDirection: "row", gap: 12, marginBottom: 20 }}>
+              <View style={{ flex: 1, backgroundColor: "#fff", padding: 20, borderRadius: 12, borderLeftWidth: 4, borderLeftColor: "#3B82F6", elevation: 2 }}>
+                <Text style={{ fontSize: 12, color: "#64748B", fontWeight: "600" }}>TOTAL CUSTOMERS</Text>
+                <Text style={{ fontSize: 24, fontWeight: "800", color: "#1E293B", marginTop: 4 }}>{stats.totalCustomers}</Text>
               </View>
-
-              <Text style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 12 }}>
-                {prov.email} • {prov.phone_number}
-              </Text>
-
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                <TouchableOpacity
-                  onPress={() => handleAction(prov.id, 'approve')}
-                  style={{ flex: 1, backgroundColor: COLORS.primary, padding: 10, borderRadius: 8, alignItems: "center" }}
-                >
-                  <Text style={{ color: "#fff", fontSize: 13, fontWeight: "700" }}>Approve Profile</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleAction(prov.id, 'flag')}
-                  style={{ flex: 1, backgroundColor: "#fff", padding: 10, borderRadius: 8, alignItems: "center", borderWidth: 1, borderColor: COLORS.danger }}
-                >
-                  <Text style={{ color: COLORS.danger, fontSize: 13, fontWeight: "700" }}>Flag Account</Text>
-                </TouchableOpacity>
+              <View style={{ flex: 1, backgroundColor: "#fff", padding: 20, borderRadius: 12, borderLeftWidth: 4, borderLeftColor: "#F59E0B", elevation: 2 }}>
+                <Text style={{ fontSize: 12, color: "#64748B", fontWeight: "600" }}>TOTAL PROVIDERS</Text>
+                <Text style={{ fontSize: 24, fontWeight: "800", color: "#1E293B", marginTop: 4 }}>{stats.totalProviders}</Text>
               </View>
             </View>
-          ))
+            <View style={{ backgroundColor: "#fff", padding: 20, borderRadius: 12, borderLeftWidth: 4, borderLeftColor: "#10B981", elevation: 2 }}>
+              <Text style={{ fontSize: 12, color: "#64748B", fontWeight: "600" }}>COMPLETED MATCHES</Text>
+              <Text style={{ fontSize: 24, fontWeight: "800", color: "#1E293B", marginTop: 4 }}>{stats.totalMatches}</Text>
+            </View>
+          </View>
         )}
-        <View style={{ height: 40 }} />
+
+        {activeTab === "users" && (
+          <View style={{ padding: 16 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B" }}>User Management</Text>
+              <TouchableOpacity
+                onPress={() => { setEditingUser({ roles: ['customer'] }); setModalVisible(true); }}
+                style={{ backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>+ New User</Text>
+              </TouchableOpacity>
+            </View>
+            {users.map(u => (
+              <View key={u.id} style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: "#F1F5F9" }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <View>
+                    <Text style={{ fontSize: 15, fontWeight: "700", color: "#1E293B" }}>{u.name}</Text>
+                    <Text style={{ fontSize: 12, color: "#64748B" }}>{u.email} • {u.phone_number}</Text>
+                    <View style={{ flexDirection: "row", gap: 4, marginTop: 6 }}>
+                      {u.roles?.map(r => (
+                        <View key={r} style={{ backgroundColor: "#E2E8F0", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                          <Text style={{ fontSize: 10, fontWeight: "700", color: "#475569" }}>{r.toUpperCase()}</Text>
+                        </View>
+                      ))}
+                      {u.is_verified && <View style={{ backgroundColor: "#DCFCE7", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}><Text style={{ fontSize: 10, fontWeight: "700", color: "#166534" }}>VERIFIED</Text></View>}
+                      {u.is_flagged && <View style={{ backgroundColor: "#FEE2E2", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}><Text style={{ fontSize: 10, fontWeight: "700", color: "#991B1B" }}>FLAGGED</Text></View>}
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <TouchableOpacity onPress={() => { setEditingUser(u); setModalVisible(true); }} style={{ padding: 8 }}><Text>✏️</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleUserAction(u.id, 'delete')} style={{ padding: 8 }}><Text>🗑️</Text></TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {activeTab === "verification" && (
+          <View style={{ padding: 16 }}>
+            <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B", marginBottom: 16 }}>Verification Queue</Text>
+            {pendingProviders.length === 0 ? (
+              <Text style={{ textAlign: "center", color: "#64748B", marginTop: 40 }}>No pending verifications</Text>
+            ) : (
+              pendingProviders.map(prov => (
+                <View key={prov.id} style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, marginBottom: 12 }}>
+                  <Text style={{ fontSize: 16, fontWeight: "700" }}>{prov.name}</Text>
+                  <Text style={{ fontSize: 13, color: "#64748B" }}>{prov.primary_skill || "Provider"}</Text>
+                  <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+                    <TouchableOpacity onPress={() => handleUserAction(prov.id, 'approve')} style={{ flex: 1, backgroundColor: COLORS.primary, padding: 10, borderRadius: 8, alignItems: "center" }}>
+                      <Text style={{ color: "#fff", fontWeight: "700" }}>Approve</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleUserAction(prov.id, 'flag')} style={{ flex: 1, borderWidth: 1, borderColor: "#EF4444", padding: 10, borderRadius: 8, alignItems: "center" }}>
+                      <Text style={{ color: "#EF4444", fontWeight: "700" }}>Flag</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        )}
+
+        {activeTab === "logs" && (
+          <View style={{ padding: 16 }}>
+            <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B", marginBottom: 16 }}>System Events</Text>
+            {logs.map(log => (
+              <View key={log.id} style={{ backgroundColor: "#fff", padding: 12, borderRadius: 8, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: log.level === 'SEC' ? "#EF4444" : "#3B82F6" }}>
+                <Text style={{ fontSize: 13, fontWeight: "700" }}>{log.event}</Text>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
+                  <Text style={{ fontSize: 11, color: "#64748B" }}>{log.level}</Text>
+                  <Text style={{ fontSize: 11, color: "#94A3B8" }}>{new Date(log.timestamp).toLocaleTimeString()}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+        <View style={{ height: 60 }} />
       </ScrollView>
+
+      {/* CRUD Modal */}
+      {modalVisible && (
+        <View style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", padding: 20 }}>
+          <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, maxHeight: "90%" }}>
+            <ScrollView>
+              <Text style={{ fontSize: 20, fontWeight: "900", color: "#1E293B", marginBottom: 20 }}>
+                {editingUser?.id ? "Edit Account" : "Provision New Account"}
+              </Text>
+
+              <Text style={{ fontSize: 11, fontWeight: "700", color: "#64748B", marginBottom: 6 }}>FULL NAME</Text>
+              <TextInput
+                value={editingUser?.name}
+                onChangeText={(t) => setEditingUser({...editingUser, name: t})}
+                placeholder="e.g. John Doe"
+                style={{ backgroundColor: "#F1F5F9", padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 14 }}
+              />
+
+              <Text style={{ fontSize: 11, fontWeight: "700", color: "#64748B", marginBottom: 6 }}>EMAIL ADDRESS</Text>
+              <TextInput
+                value={editingUser?.email}
+                onChangeText={(t) => setEditingUser({...editingUser, email: t})}
+                placeholder="e.g. john@example.com"
+                autoCapitalize="none"
+                style={{ backgroundColor: "#F1F5F9", padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 14 }}
+              />
+
+              <Text style={{ fontSize: 11, fontWeight: "700", color: "#64748B", marginBottom: 6 }}>PHONE NUMBER</Text>
+              <TextInput
+                value={editingUser?.phone_number}
+                onChangeText={(t) => setEditingUser({...editingUser, phone_number: t})}
+                placeholder="e.g. 70000000"
+                style={{ backgroundColor: "#F1F5F9", padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 14 }}
+              />
+
+              <Text style={{ fontSize: 11, fontWeight: "700", color: "#64748B", marginBottom: 6 }}>SYSTEM ROLE</Text>
+              <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
+                {['customer', 'provider', 'admin'].map(r => (
+                  <TouchableOpacity
+                    key={r}
+                    onPress={() => setEditingUser({...editingUser, role: r})}
+                    style={{
+                      flex: 1,
+                      padding: 10,
+                      borderRadius: 8,
+                      backgroundColor: (editingUser?.role === r || editingUser?.roles?.includes(r)) ? COLORS.primary : "#F1F5F9",
+                      alignItems: "center"
+                    }}
+                  >
+                    <Text style={{ fontSize: 10, fontWeight: "800", color: (editingUser?.role === r || editingUser?.roles?.includes(r)) ? "#fff" : "#64748B" }}>
+                      {r.toUpperCase()}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: "#1E293B" }}>Verified Status</Text>
+                  <Text style={{ fontSize: 12, color: "#64748B" }}>Trust badge visibility</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setEditingUser({...editingUser, is_verified: !editingUser?.is_verified})}
+                  style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: editingUser?.is_verified ? "#10B981" : "#E2E8F0", padding: 2 }}
+                >
+                  <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: "#fff", transform: [{ translateX: editingUser?.is_verified ? 20 : 0 }] }} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: "#1E293B" }}>Flag Account</Text>
+                  <Text style={{ fontSize: 12, color: "#64748B" }}>Restrict access immediately</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setEditingUser({...editingUser, is_flagged: !editingUser?.is_flagged})}
+                  style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: editingUser?.is_flagged ? "#EF4444" : "#E2E8F0", padding: 2 }}
+                >
+                  <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: "#fff", transform: [{ translateX: editingUser?.is_flagged ? 20 : 0 }] }} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                <TouchableOpacity onPress={() => setModalVisible(false)} style={{ flex: 1, padding: 16, alignItems: "center" }}>
+                  <Text style={{ fontWeight: "700", color: "#64748B" }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleUserAction(editingUser?.id, editingUser?.id ? 'update' : 'create', editingUser)}
+                  style={{ flex: 1, backgroundColor: "#1E293B", padding: 16, borderRadius: 12, alignItems: "center" }}
+                >
+                  <Text style={{ fontWeight: "800", color: "#fff" }}>{editingUser?.id ? "Update Account" : "Create User"}</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -2127,7 +2385,7 @@ export default function App() {
       if (persona === 'provider' && (!userData.role || !userData.location)) {
         setOnboardingComplete(false);
       } else {
-        setOnboardingComplete(false);
+        setOnboardingComplete(true);
       }
     }
   };
@@ -2147,7 +2405,7 @@ export default function App() {
         if (user?.roles?.includes('admin')) {
           setCurrentUser('admin');
           setScreen('admin');
-          setOnboardingComplete(false);
+          setOnboardingComplete(true);
         } else {
           handleLogout();
           alert("Unauthorized access attempt.");
@@ -2170,7 +2428,7 @@ export default function App() {
       return <RoleSelectionScreen onSelectRole={async (role) => {
         // Optimistic UI update
         setCurrentUser(role);
-        if (role === "customer") setOnboardingComplete(false);
+        if (role === "customer") setOnboardingComplete(true);
         else setOnboardingComplete(false);
 
         // In a real app, we'd call the API here:
@@ -2181,7 +2439,7 @@ export default function App() {
     if (currentUser === "provider" && !onboardingComplete) {
       return <ProviderOnboardingScreen onComplete={(details) => {
         setUser({ ...user, ...details });
-        setOnboardingComplete(false);
+        setOnboardingComplete(true);
       }} />;
     }
 
@@ -2203,7 +2461,7 @@ export default function App() {
       case "trust":
         return <TrustScreen onNavigate={navigate} />;
       case "admin":
-        return <AdminScreen onNavigate={navigate} />;
+        return <AdminScreen onNavigate={navigate} onLogout={handleLogout} user={user} />;
       case "profile":
         return (
           <ProfileScreen
@@ -2217,12 +2475,12 @@ export default function App() {
 
               if (targetRole === 'provider') {
                 if (user?.role && user?.location) {
-                  setOnboardingComplete(false);
+                  setOnboardingComplete(true);
                 } else {
                   setOnboardingComplete(false);
                 }
               } else {
-                setOnboardingComplete(false);
+                setOnboardingComplete(true);
               }
 
               // We would ideally call API here to update active_persona
