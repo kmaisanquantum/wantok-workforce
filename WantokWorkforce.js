@@ -928,7 +928,7 @@ function ProfileScreen({ onNavigate, currentUser, onToggleUser, onLogout, user, 
                 {user?.name || (isProvider ? "Service Provider" : "Customer")}
               </Text>
               <Text style={{ color: "rgba(255,255,255,0.75)", marginTop: 4, fontSize: 13 }}>
-                {isProvider ? ((user?.role || "Electrician") + " · " + (user?.location || "Port Moresby")) : "Customer · Lae, PNG"}
+                {isProvider ? ((user?.primary_skill || "Electrician") + " · " + (user?.location_name || "Port Moresby")) : "Customer"}
               </Text>
             </View>
           </View>
@@ -1366,9 +1366,43 @@ function RoleSelectionScreen({ onSelectRole }) {
   );
 }
 
-function ProviderOnboardingScreen({ onComplete }) {
+function ProviderOnboardingScreen({ onComplete, user }) {
   const [trade, setTrade] = useState("");
   const [city, setCity] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const handleComplete = async () => {
+    if (!trade || !city) {
+      alert("Please fill in both fields.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/profile`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token}`
+        },
+        body: JSON.stringify({
+          primary_skill: trade,
+          location_name: city
+        })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        onComplete({ primary_skill: trade, location_name: city });
+      } else {
+        alert(data.error || "Failed to update profile.");
+      }
+    } catch (error) {
+      console.error("Trade profile update error:", error);
+      alert("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg, padding: 24 }}>
@@ -1418,26 +1452,25 @@ function ProviderOnboardingScreen({ onComplete }) {
       </View>
 
       <TouchableOpacity
-        onPress={() => onComplete({ role: trade, location: city })}
-        disabled={!trade || !city}
+        onPress={handleComplete}
+        disabled={!trade || !city || loading}
         style={{
-          backgroundColor: (!trade || !city) ? COLORS.textLight : COLORS.primary,
+          backgroundColor: (!trade || !city || loading) ? COLORS.textLight : COLORS.primary,
           paddingVertical: 16,
           borderRadius: 14,
           alignItems: "center",
         }}
       >
         <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>
-          Complete Profile
+          {loading ? "SAVING..." : "Complete Profile"}
         </Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-
 function AuthScreen({ onAuth }) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [dbStatus, setDbStatus] = useState("checking");
 
   useEffect(() => {
@@ -1791,7 +1824,7 @@ function AuthScreen({ onAuth }) {
 
 
 function AdminAuthScreen({ onAuth }) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(true);
@@ -2247,8 +2280,8 @@ export default function App() {
   }, []);
   const [screen, setScreen] = useState("home");
   const [screenData, setScreenData] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null); // "customer" or "provider"
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState("provider"); // "customer" or "provider"
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [user, setUser] = useState(null);
   const [onboardingComplete, setOnboardingComplete] = useState(true);
 
@@ -2269,10 +2302,10 @@ export default function App() {
       setCurrentUser(persona);
 
       // If provider, check if they have completed profile (role/location)
-      if (persona === 'provider' && (!userData.role || !userData.location)) {
+      if (persona === 'provider' && (!userData.primary_skill || !userData.location_name)) {
         setOnboardingComplete(false);
       } else {
-        setOnboardingComplete(false);
+        setOnboardingComplete(true);
       }
     }
   };
@@ -2292,7 +2325,7 @@ export default function App() {
         if (user?.roles?.includes('admin')) {
           setCurrentUser('admin');
           setScreen('admin');
-          setOnboardingComplete(false);
+          setOnboardingComplete(true);
         } else {
           handleLogout();
           alert("Unauthorized access attempt.");
@@ -2315,7 +2348,7 @@ export default function App() {
       return <RoleSelectionScreen onSelectRole={async (role) => {
         // Optimistic UI update
         setCurrentUser(role);
-        if (role === "customer") setOnboardingComplete(false);
+        if (role === "customer") setOnboardingComplete(true);
         else setOnboardingComplete(false);
 
         // In a real app, we'd call the API here:
@@ -2324,9 +2357,9 @@ export default function App() {
     }
 
     if (currentUser === "provider" && !onboardingComplete) {
-      return <ProviderOnboardingScreen onComplete={(details) => {
+      return <ProviderOnboardingScreen user={user} onComplete={(details) => {
         setUser({ ...user, ...details });
-        setOnboardingComplete(false);
+        setOnboardingComplete(true);
       }} />;
     }
 

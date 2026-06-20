@@ -119,6 +119,12 @@ class UserModel {
     const query = 'INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2) ON CONFLICT DO NOTHING';
     await pool.query(query, [userId, role]);
   }
+
+  static async updateTradeProfile(userId, { primary_skill, location_name }) {
+    const query = 'UPDATE users SET primary_skill = $1, location_name = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING id, primary_skill, location_name';
+    const { rows } = await pool.query(query, [primary_skill, location_name, userId]);
+    return rows[0];
+  }
 }
 
 module.exports = UserModel;
