@@ -1318,7 +1318,7 @@ function RoleSelectionScreen({ onSelectRole }) {
 function ProviderOnboardingScreen({ onComplete, user }) {
   const [trade, setTrade] = useState("");
   const [city, setCity] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const handleComplete = async () => {
     if (!trade || !city) {
