@@ -26,6 +26,9 @@ async function initializeDatabase(pool) {
       const categoriesTable = fs.readFileSync(path.join(__dirname, 'patch_categories.sql'), 'utf8');
       await client.query(categoriesTable);
 
+      const bookingsTable = fs.readFileSync(path.join(__dirname, 'patch_bookings.sql'), 'utf8');
+      await client.query(bookingsTable);
+
       const categoriesSeed = fs.readFileSync(path.join(__dirname, 'seed_categories.sql'), 'utf8');
       await client.query(categoriesSeed);
 

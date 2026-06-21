@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const AuthController = require('../controllers/auth_controller');
 const { authMiddleware } = require('../middlewares/auth');
+const { loginLimiter } = require('../middlewares/rate_limit');
 
 router.post('/register', AuthController.register);
-router.post('/login', AuthController.login);
+router.post('/login', loginLimiter, AuthController.login);
 
 // Persona Management
 router.post('/select-role', authMiddleware, AuthController.selectRole);

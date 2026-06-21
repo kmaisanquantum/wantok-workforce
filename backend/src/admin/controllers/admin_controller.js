@@ -1,10 +1,35 @@
 const UserModel = require('../../auth/models/user_model');
 const { pool } = require('../../auth/models/user_model');
 const bcrypt = require('bcrypt');
+const redisClient = require('../../../db/redis_init');
 
 class AdminController {
   static async getStats(req, res) {
     try {
+      // Priority: High-speed Redis Counters
+      if (redisClient) {
+        try {
+          const stats = await redisClient.mget(
+            'stats:total_customers',
+            'stats:total_providers',
+            'stats:completed_matches'
+          );
+
+          if (stats[0] !== null) {
+            console.log('⚡ Redis: Serving real-time dashboard metrics');
+            return res.status(200).json({
+              totalCustomers: parseInt(stats[0] || 0),
+              totalProviders: parseInt(stats[1] || 0),
+              totalMatches: parseInt(stats[2] || 0)
+            });
+          }
+        } catch (redisErr) {
+          console.warn('⚠️ Redis Stats Read Error:', redisErr.message);
+        }
+      }
+
+      // Fallback: SQL aggregations
+      console.log('🔄 Fallback: Aggregating stats from PostgreSQL');
       const customerCountResult = await pool.query(
         "SELECT COUNT(*) FROM user_roles WHERE role_name = 'customer'"
       );
@@ -15,11 +40,20 @@ class AdminController {
         "SELECT COUNT(*) FROM bookings WHERE status = 'completed'"
       );
 
-      return res.status(200).json({
+      const dbStats = {
         totalCustomers: parseInt(customerCountResult.rows[0].count),
         totalProviders: parseInt(providerCountResult.rows[0].count),
         totalMatches: parseInt(matchCountResult.rows[0].count)
-      });
+      };
+
+      // Sync Redis cache for next hit
+      if (redisClient) {
+        redisClient.set('stats:total_customers', dbStats.totalCustomers);
+        redisClient.set('stats:total_providers', dbStats.totalProviders);
+        redisClient.set('stats:completed_matches', dbStats.totalMatches);
+      }
+
+      return res.status(200).json(dbStats);
     } catch (error) {
       console.error('❌ Admin Stats Error:', error);
       return res.status(500).json({ error: 'Failed to fetch stats' });
@@ -135,6 +169,7 @@ class AdminController {
       const userId = rows[0].id;
 
       await client.query('INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2)', [userId, role]);
+      if (redisClient) { await redisClient.incr(role === 'provider' ? 'stats:total_providers' : 'stats:total_customers'); }
 
       await client.query('COMMIT');
       return res.status(201).json({ message: 'User created successfully', userId });
@@ -177,7 +212,11 @@ class AdminController {
       await client.query('BEGIN');
 
       await client.query('DELETE FROM user_roles WHERE user_id = $1', [userId]);
+      const user = await client.query('SELECT role FROM users WHERE id = $1', [userId]);
       await client.query('DELETE FROM users WHERE id = $1', [userId]);
+      if (redisClient && user.rows[0]) {
+        await redisClient.decr(user.rows[0].role === 'provider' ? 'stats:total_providers' : 'stats:total_customers');
+      }
 
       await client.query('COMMIT');
       return res.status(200).json({ message: 'User deleted successfully' });
