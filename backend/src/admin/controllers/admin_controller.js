@@ -76,7 +76,7 @@ class AdminController {
   // New CRUD methods
   static async getAllUsers(req, res) {
     try {
-      const { role } = req.query;
+      const { role, search } = req.query;
       let query = `
         SELECT u.id, u.name, u.email, u.phone_number, u.is_verified, u.is_flagged, u.created_at,
                u.primary_skill as trade_type, u.location_name as city_location,
@@ -86,10 +86,21 @@ class AdminController {
       `;
 
       const queryParams = [];
+      const filters = [];
+
       if (role && role !== 'All Roles') {
         const normalizedRole = role.toLowerCase().includes('provider') ? 'provider' : 'customer';
-        query += ' WHERE u.id IN (SELECT user_id FROM user_roles WHERE role_name = $1) ';
         queryParams.push(normalizedRole);
+        filters.push(`u.id IN (SELECT user_id FROM user_roles WHERE role_name = $${queryParams.length})`);
+      }
+
+      if (search) {
+        queryParams.push(`%${search}%`);
+        filters.push(`(u.name ILIKE $${queryParams.length} OR u.email ILIKE $${queryParams.length} OR u.phone_number ILIKE $${queryParams.length})`);
+      }
+
+      if (filters.length > 0) {
+        query += ' WHERE ' + filters.join(' AND ');
       }
 
       query += `
