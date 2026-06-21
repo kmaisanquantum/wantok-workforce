@@ -2043,7 +2043,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/stats`, {
+      const res = await fetch(`${API_BASE}/api/admin/dashboard-stats`, {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
       if (res.ok) setStats(await res.json());
@@ -2082,10 +2082,17 @@ function AdminScreen({ onNavigate, onLogout, user }) {
   };
 
   useEffect(() => {
-    if (activeTab === "dashboard") fetchStats();
+    let interval;
+    if (activeTab === "dashboard") {
+      fetchStats();
+      // Regular polling for real-time Redis counters
+      interval = setInterval(fetchStats, 10000); // every 10 seconds
+    }
     if (activeTab === "verification") fetchPending();
     if (activeTab === "users") fetchUsers();
     if (activeTab === "logs") fetchLogs();
+
+    return () => { if (interval) clearInterval(interval); };
   }, [activeTab]);
 
   useEffect(() => {

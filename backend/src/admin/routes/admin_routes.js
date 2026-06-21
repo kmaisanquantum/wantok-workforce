@@ -9,6 +9,7 @@ router.use(roleCheckMiddleware(['admin']));
 
 // GET /api/admin/stats -> Real-time dashboard metrics
 router.get('/stats', AdminController.getStats);
+router.get('/dashboard-stats', AdminController.getStats);
 
 // GET /api/admin/pending-providers -> Queue of providers awaiting verification
 router.get('/pending-providers', AdminController.getPendingProviders);
