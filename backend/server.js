@@ -1,13 +1,33 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const http = require('http');
+const { Server } = require('socket.io');
+const { createAdapter } = require('@socket.io/redis-adapter');
+
 const authRoutes = require('./src/auth/routes/auth_routes');
 const matchRoutes = require('./src/match/routes/match_routes');
 const adminRoutes = require('./src/admin/routes/admin_routes');
 const UserModel = require('./src/auth/models/user_model');
 const { initializeDatabase } = require('./db/db_init');
+const redisClient = require('./db/redis_init');
 
 const app = express();
+const httpServer = http.createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
+
+// Configure Redis adapter for Socket.io if Redis is available
+if (redisClient) {
+  const pubClient = redisClient;
+  const subClient = pubClient.duplicate();
+  io.adapter(createAdapter(pubClient, subClient));
+}
+
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -46,7 +66,7 @@ app.get('*', (req, res) => {
 });
 
 // Initialize server
-app.listen(PORT, '0.0.0.0', async () => {
+httpServer.listen(PORT, '0.0.0.0', async () => {
   console.log(`Wantok Unified Server running on port ${PORT}`);
 
   try {
@@ -57,3 +77,5 @@ app.listen(PORT, '0.0.0.0', async () => {
     console.error('❌ CRITICAL ERROR during startup:', err.message);
   }
 });
+
+module.exports = { app, io };
