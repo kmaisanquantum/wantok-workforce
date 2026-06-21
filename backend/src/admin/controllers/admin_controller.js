@@ -10,9 +10,9 @@ class AdminController {
       if (redisClient) {
         try {
           const stats = await redisClient.mget(
-            'stats:total_customers',
-            'stats:total_providers',
-            'stats:completed_matches'
+            'metrics:total_customers',
+            'metrics:total_providers',
+            'metrics:completed_matches'
           );
 
           if (stats[0] !== null) {
@@ -48,9 +48,9 @@ class AdminController {
 
       // Sync Redis cache for next hit
       if (redisClient) {
-        redisClient.set('stats:total_customers', dbStats.totalCustomers);
-        redisClient.set('stats:total_providers', dbStats.totalProviders);
-        redisClient.set('stats:completed_matches', dbStats.totalMatches);
+        redisClient.set('metrics:total_customers', dbStats.totalCustomers);
+        redisClient.set('metrics:total_providers', dbStats.totalProviders);
+        redisClient.set('metrics:completed_matches', dbStats.totalMatches);
       }
 
       return res.status(200).json(dbStats);
@@ -169,7 +169,7 @@ class AdminController {
       const userId = rows[0].id;
 
       await client.query('INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2)', [userId, role]);
-      if (redisClient) { await redisClient.incr(role === 'provider' ? 'stats:total_providers' : 'stats:total_customers'); }
+      if (redisClient) { await redisClient.incr(role === 'provider' ? 'metrics:total_providers' : 'metrics:total_customers'); }
 
       await client.query('COMMIT');
       return res.status(201).json({ message: 'User created successfully', userId });
@@ -215,7 +215,7 @@ class AdminController {
       const user = await client.query('SELECT role FROM users WHERE id = $1', [userId]);
       await client.query('DELETE FROM users WHERE id = $1', [userId]);
       if (redisClient && user.rows[0]) {
-        await redisClient.decr(user.rows[0].role === 'provider' ? 'stats:total_providers' : 'stats:total_customers');
+        await redisClient.decr(user.rows[0].role === 'provider' ? 'metrics:total_providers' : 'metrics:total_customers');
       }
 
       await client.query('COMMIT');
