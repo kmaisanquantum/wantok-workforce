@@ -3,22 +3,29 @@ const router = express.Router();
 const AdminController = require('../controllers/admin_controller');
 const { authMiddleware, roleCheckMiddleware } = require('../../auth/middlewares/auth');
 
-// All admin routes require admin role
+// All admin routes are protected
 router.use(authMiddleware);
 router.use(roleCheckMiddleware(['admin']));
 
+// GET /api/admin/stats -> Real-time dashboard metrics
 router.get('/stats', AdminController.getStats);
-router.get('/pending-providers', AdminController.getPendingProviders);
-router.post('/approve/:providerId', AdminController.approveProvider);
-router.post('/flag/:userId', AdminController.flagUser);
 
-// User Management CRUD
+// GET /api/admin/pending-providers -> Queue of providers awaiting verification
+router.get('/pending-providers', AdminController.getPendingProviders);
+
+// PATCH /api/admin/approve-provider/:providerId -> Verify a trade professional
+router.patch('/approve-provider/:providerId', AdminController.approveProvider);
+
+// User Management (CRUD)
 router.get('/users', AdminController.getAllUsers);
 router.post('/users', AdminController.createUser);
-router.put('/users/:userId', AdminController.updateUser);
+router.patch('/users/:userId', AdminController.updateUser);
 router.delete('/users/:userId', AdminController.deleteUser);
 
-// System Logs
+// PATCH /api/admin/flag-user/:userId -> Moderation action
+router.patch('/flag-user/:userId', AdminController.flagUser);
+
+// GET /api/admin/logs -> System event logs
 router.get('/logs', AdminController.getSystemLogs);
 
 module.exports = router;
