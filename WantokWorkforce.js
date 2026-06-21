@@ -2051,10 +2051,13 @@ function AdminScreen({ onNavigate, onLogout, user }) {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/users`, {
+      const res = await fetch(`${API_BASE}/api/admin/users?role=${encodeURIComponent(roleFilter)}`, {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
-      if (res.ok) setUsers(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(Array.isArray(data) ? data : (data.users || []));
+      }
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
@@ -2073,6 +2076,10 @@ function AdminScreen({ onNavigate, onLogout, user }) {
     if (activeTab === "users") fetchUsers();
     if (activeTab === "logs") fetchLogs();
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "users") fetchUsers();
+  }, [roleFilter]);
 
   const handleUserAction = async (userId, action, data = {}) => {
     try {
@@ -2220,12 +2227,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
               <View style={{ padding: 40, alignItems: "center" }}>
                 <Text style={{ color: "#64748B", fontSize: 14 }}>No users found.</Text>
               </View>
-            ) : users.filter(u => {
-              if (roleFilter === "All Roles") return true;
-              if (roleFilter === "Service Providers") return u.roles?.includes('provider');
-              if (roleFilter === "Customers") return u.roles?.includes('customer');
-              return true;
-            }).map(u => (
+            ) : users.map(u => (
               <View key={u.id} style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, marginBottom: 12, elevation: 1, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 5 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                   <View style={{ flex: 1 }}>

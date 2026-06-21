@@ -76,17 +76,30 @@ class AdminController {
   // New CRUD methods
   static async getAllUsers(req, res) {
     try {
-      const query = `
+      const { role } = req.query;
+      let query = `
         SELECT u.id, u.name, u.email, u.phone_number, u.is_verified, u.is_flagged, u.created_at,
                u.primary_skill as trade_type, u.location_name as city_location,
                array_agg(ur.role_name) as roles
         FROM users u
         LEFT JOIN user_roles ur ON u.id = ur.user_id
+      `;
+
+      const queryParams = [];
+      if (role && role !== 'All Roles') {
+        const normalizedRole = role.toLowerCase().includes('provider') ? 'provider' : 'customer';
+        query += ' WHERE u.id IN (SELECT user_id FROM user_roles WHERE role_name = $1) ';
+        queryParams.push(normalizedRole);
+      }
+
+      query += `
         GROUP BY u.id
         ORDER BY u.created_at DESC
       `;
-      const { rows } = await pool.query(query);
-      return res.status(200).json(rows);
+
+      const { rows } = await pool.query(query, queryParams);
+      console.log("Admin User Query Results:", rows);
+      return res.status(200).json({ users: rows });
     } catch (error) {
       console.error('❌ Admin Get Users Error:', error);
       return res.status(500).json({ error: 'Failed to fetch users' });
