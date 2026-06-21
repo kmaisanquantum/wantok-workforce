@@ -1,4 +1,5 @@
 const MatchService = require('../services/match_service');
+const redisClient = require('../../../db/redis_init');
 
 class MatchController {
   static async getNearbyWorkers(req, res) {
@@ -18,6 +19,18 @@ class MatchController {
       }
 
       console.log(`🔍 [Match] Searching for '${trade_category || 'Any'}' near [${lat}, ${lon}] within ${searchRadius}km`);
+
+      // Publish Job Alert to Redis Pub/Sub for worker matchmaking
+      if (redisClient) {
+        const jobPayload = {
+          lat,
+          lon,
+          trade_category,
+          radius: searchRadius,
+          timestamp: new Date().toISOString()
+        };
+        redisClient.publish('job_alerts', JSON.stringify(jobPayload));
+      }
 
       const workers = await MatchService.findNearbyWorkers(lat, lon, trade_category, searchRadius);
 

@@ -188,20 +188,25 @@ class AuthController {
 
       if (!updated) return res.status(404).json({ error: 'User not found' });
 
-      // Redis Geospatial Sync
+      // Redis Geospatial & Status Cache Sync
       if (redisClient) {
         try {
+          const statusKey = `provider:status:${userId}`;
           if (updated.is_available) {
+            // Geospatial add
             if (updated.longitude !== null && updated.latitude !== null) {
               await redisClient.geoadd('active_providers', updated.longitude, updated.latitude, userId);
-              console.log(`📍 Redis: Added provider ${userId} to geospatial index`);
             }
+            // Lightweight Status Cache (24h TTL)
+            await redisClient.set(statusKey, 'active', 'EX', 86400);
+            console.log(`📍 Redis: Provider ${userId} is now ACTIVE (Cached & Geoindexed)`);
           } else {
             await redisClient.zrem('active_providers', userId);
-            console.log(`📍 Redis: Removed provider ${userId} from geospatial index`);
+            await redisClient.del(statusKey);
+            console.log(`📍 Redis: Provider ${userId} is now OFFLINE (Cache cleared)`);
           }
         } catch (redisErr) {
-          console.error('⚠️ Redis Geospatial Sync Error:', redisErr.message);
+          console.error('⚠️ Redis Sync Error:', redisErr.message);
         }
       }
 
