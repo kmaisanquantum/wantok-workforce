@@ -2049,12 +2049,13 @@ function AdminScreen({ onNavigate, onLogout, user }) {
   };
 
   const fetchUsers = async () => {
+    setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/admin/users`, {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
       if (res.ok) setUsers(await res.json());
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
   const fetchLogs = async () => {
@@ -2211,7 +2212,15 @@ function AdminScreen({ onNavigate, onLogout, user }) {
               ))}
             </View>
 
-            {users.filter(u => {
+            {loading ? (
+              <View style={{ padding: 40, alignItems: "center" }}>
+                <Text style={{ color: "#64748B", fontSize: 14 }}>Loading records...</Text>
+              </View>
+            ) : users.length === 0 ? (
+              <View style={{ padding: 40, alignItems: "center" }}>
+                <Text style={{ color: "#64748B", fontSize: 14 }}>No users found.</Text>
+              </View>
+            ) : users.filter(u => {
               if (roleFilter === "All Roles") return true;
               if (roleFilter === "Service Providers") return u.roles?.includes('provider');
               if (roleFilter === "Customers") return u.roles?.includes('customer');
