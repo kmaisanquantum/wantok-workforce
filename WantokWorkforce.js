@@ -2029,6 +2029,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchStats = async () => {
     try {
@@ -2187,14 +2188,26 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
         {activeTab === "users" && (
           <View style={{ padding: 16 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
               <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B" }}>User Registrations</Text>
-              <TouchableOpacity
-                onPress={() => { setEditingUser({ roles: ['customer'] }); setModalVisible(true); }}
-                style={{ backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }}
-              >
-                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>+ New User</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: width > 600 ? 400 : "100%" }}>
+                <View style={{ flex: 1, backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#E2E8F0", elevation: 2 }}>
+                  <Text style={{ marginRight: 8, fontSize: 14 }}>🔍</Text>
+                  <TextInput
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholder="Search by name, email, or phone..."
+                    placeholderTextColor="#94A3B8"
+                    style={{ flex: 1, fontSize: 13, color: "#1E293B", padding: 0 }}
+                  />
+                </View>
+                <TouchableOpacity
+                  onPress={() => { setEditingUser({ roles: ['customer'] }); setModalVisible(true); }}
+                  style={{ backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>+ New User</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Quick Filter */}
@@ -2227,7 +2240,10 @@ function AdminScreen({ onNavigate, onLogout, user }) {
               <View style={{ padding: 40, alignItems: "center" }}>
                 <Text style={{ color: "#64748B", fontSize: 14 }}>No users found.</Text>
               </View>
-            ) : users.map(u => (
+            ) : users.filter(u => {
+                const q = searchQuery.toLowerCase();
+                return (u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone_number?.toLowerCase().includes(q));
+              }).map(u => (
               <View key={u.id} style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, marginBottom: 12, elevation: 1, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 5 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                   <View style={{ flex: 1 }}>
