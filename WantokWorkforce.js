@@ -1145,12 +1145,148 @@ function TrustScreen({ onNavigate }) {
 }
 
 // ─── BOTTOM NAV ─────────────────────────────────────────────────────────────
+const PROVIDER_NAV_ITEMS = [
+  { key: "home", icon: "📊", label: "Dashboard" },
+  { key: "active_jobs", icon: "💼", label: "Jobs" },
+  { key: "earnings", icon: "💰", label: "Earnings" },
+  { key: "profile", icon: "👤", label: "Profile" },
+];
+
 const NAV_ITEMS = [
   { key: "home", icon: "🏠", label: "Home" },
   { key: "trust", icon: "🛡️", label: "Trust" },
   { key: "booking", icon: "📅", label: "Bookings" },
   { key: "profile", icon: "👤", label: "Profile" },
 ];
+
+
+function AdminNavigationShell({ renderScreen }) {
+  return (
+    <View style={{ flex: 1 }}>
+      {renderScreen()}
+    </View>
+  );
+}
+
+function ProviderNavigationShell({ renderScreen, navigate, activeNav, onboardingComplete }) {
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>{renderScreen()}</View>
+      {onboardingComplete && (
+        <View
+          style={{
+            backgroundColor: "#fff",
+            height: Platform.OS === "ios" ? 84 : 68,
+            flexDirection: "row",
+            alignItems: "center",
+            borderTopWidth: 1,
+            borderTopColor: COLORS.border,
+            paddingBottom: Platform.OS === "ios" ? 20 : 4,
+          }}
+        >
+          {PROVIDER_NAV_ITEMS.map((item) => {
+            const isActive = activeNav === item.key;
+            return (
+              <TouchableOpacity
+                key={item.key}
+                onPress={() => navigate(item.key)}
+                style={{
+                  flex: 1,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 3,
+                  paddingVertical: 4,
+                }}
+              >
+                <View
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 12,
+                    backgroundColor: isActive ? "#F0FDF4" : "transparent",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: 20 }}>{item.icon}</Text>
+                </View>
+                <Text
+                  style={{
+                    fontSize: 10,
+                    fontWeight: isActive ? "800" : "500",
+                    color: isActive ? COLORS.primary : COLORS.textMuted,
+                  }}
+                >
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+}
+
+function CustomerNavigationShell({ renderScreen, navigate, activeNav, onboardingComplete }) {
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>{renderScreen()}</View>
+      {onboardingComplete && (
+        <View
+          style={{
+            backgroundColor: "#fff",
+            height: Platform.OS === "ios" ? 84 : 68,
+            flexDirection: "row",
+            alignItems: "center",
+            borderTopWidth: 1,
+            borderTopColor: COLORS.border,
+            paddingBottom: Platform.OS === "ios" ? 20 : 4,
+          }}
+        >
+          {NAV_ITEMS.map((item) => {
+            const isActive = activeNav === item.key;
+            return (
+              <TouchableOpacity
+                key={item.key}
+                onPress={() => navigate(item.key)}
+                style={{
+                  flex: 1,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 3,
+                  paddingVertical: 4,
+                }}
+              >
+                <View
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 12,
+                    backgroundColor: isActive ? "#F0FDF4" : "transparent",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: 20 }}>{item.icon}</Text>
+                </View>
+                <Text
+                  style={{
+                    fontSize: 10,
+                    fontWeight: isActive ? "800" : "500",
+                    color: isActive ? COLORS.primary : COLORS.textMuted,
+                  }}
+                >
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+}
 
 // ─── MAIN APP ───────────────────────────────────────────────────────────────
 
@@ -2385,6 +2521,20 @@ export default function App() {
             onUpdateUser={(updated) => setUser(updated)}
           />
         );
+      case "active_jobs":
+        return (
+          <View style={{ flex: 1, backgroundColor: COLORS.bg, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: COLORS.text }}>Active Jobs</Text>
+            <Text style={{ marginTop: 8, color: COLORS.textMuted }}>No active jobs at the moment.</Text>
+          </View>
+        );
+      case "earnings":
+        return (
+          <View style={{ flex: 1, backgroundColor: COLORS.bg, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: COLORS.text }}>Earnings</Text>
+            <Text style={{ marginTop: 8, color: COLORS.textMuted }}>K0.00</Text>
+          </View>
+        );
       default:
         return <HomeScreen
           onNavigate={navigate}
@@ -2396,7 +2546,7 @@ export default function App() {
     }
   };
 
-  const activeNav = ["home", "trust", "booking", "profile"].includes(screen)
+  const activeNav = ["home", "trust", "booking", "profile", "active_jobs", "earnings"].includes(screen)
     ? screen
     : "home";
 
@@ -2432,61 +2582,25 @@ export default function App() {
 
       </View>
 
-      {/* Screen Content */}
-      <View style={{ flex: 1, backgroundColor: COLORS.bg }}>{renderScreen()}</View>
-
-      {/* Bottom Nav */}
-      {isAuthenticated && currentUser && onboardingComplete && (
-        <View
-          style={{
-            backgroundColor: "#fff",
-            height: Platform.OS === "ios" ? 84 : 68,
-            flexDirection: "row",
-            alignItems: "center",
-            borderTopWidth: 1,
-            borderTopColor: COLORS.border,
-            paddingBottom: Platform.OS === "ios" ? 20 : 4,
-          }}
-        >
-          {NAV_ITEMS.map((item) => {
-            const isActive = activeNav === item.key;
-            return (
-              <TouchableOpacity
-                key={item.key}
-                onPress={() => navigate(item.key)}
-                style={{
-                  flex: 1,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 3,
-                  paddingVertical: 4,
-                }}
-              >
-                <View
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 12,
-                    backgroundColor: isActive ? "#F0FDF4" : "transparent",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text style={{ fontSize: 20 }}>{item.icon}</Text>
-                </View>
-                <Text
-                  style={{
-                    fontSize: 10,
-                    fontWeight: isActive ? "800" : "500",
-                    color: isActive ? COLORS.primary : COLORS.textMuted,
-                  }}
-                >
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+      {/* Isolated Role-Specific Layout Shells */}
+      {!isAuthenticated || !currentUser ? (
+        <View style={{ flex: 1, backgroundColor: COLORS.bg }}>{renderScreen()}</View>
+      ) : currentUser === 'admin' ? (
+        <AdminNavigationShell renderScreen={renderScreen} />
+      ) : currentUser === 'provider' ? (
+        <ProviderNavigationShell
+          renderScreen={renderScreen}
+          navigate={navigate}
+          activeNav={activeNav}
+          onboardingComplete={onboardingComplete}
+        />
+      ) : (
+        <CustomerNavigationShell
+          renderScreen={renderScreen}
+          navigate={navigate}
+          activeNav={activeNav}
+          onboardingComplete={onboardingComplete}
+        />
       )}
     </SafeAreaView>
   );
