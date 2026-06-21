@@ -1,4 +1,5 @@
 const UserModel = require('../../auth/models/user_model');
+const redisClient = require('../../../db/redis_init');
 
 class MatchService {
   /**
@@ -10,8 +11,21 @@ class MatchService {
    */
   static async findNearbyWorkers(lat, lon, trade, radiusKm = 50) {
     const pool = UserModel.getPool();
+    const cacheKey = `match:nearby:${lat}:${lon}:${trade}:${radiusKm}`;
 
-    // Using ST_DWithin for efficient spatial indexing and ST_DistanceSphere for human-readable distance
+    // 1. Try to fetch from Redis cache
+    if (redisClient) {
+      try {
+        const cachedData = await redisClient.get(cacheKey);
+        if (cachedData) {
+          return JSON.parse(cachedData);
+        }
+      } catch (cacheErr) {
+        console.warn('⚠️ Redis Cache Read Error:', cacheErr.message);
+      }
+    }
+
+    // 2. Query Database if cache miss or Redis unavailable
     const query = `
       SELECT
         id,
@@ -39,6 +53,16 @@ class MatchService {
 
     try {
       const { rows } = await pool.query(query, [lon, lat, trade, radiusKm]);
+
+      // 3. Store result in Redis cache (TTL: 5 minutes)
+      if (redisClient && rows.length > 0) {
+        try {
+          await redisClient.setex(cacheKey, 300, JSON.stringify(rows));
+        } catch (cacheSetErr) {
+          console.warn('⚠️ Redis Cache Write Error:', cacheSetErr.message);
+        }
+      }
+
       return rows;
     } catch (error) {
       console.error('❌ Spatial Query Error:', error.message);
