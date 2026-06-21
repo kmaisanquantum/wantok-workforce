@@ -1912,7 +1912,7 @@ function AdminAuthScreen({ onAuth }) {
   const [loading, setLoading] = useState(false);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleAdminLogin = async () => {
     if (!identifier || !password) {
@@ -1982,14 +1982,24 @@ function AdminAuthScreen({ onAuth }) {
           <Text style={{ color: "#94A3B8", fontSize: 12, fontWeight: "700", marginBottom: 8, textTransform: "uppercase" }}>
             Security Key
           </Text>
-          <TextInput
-            style={{ backgroundColor: "#0F172A", color: "#fff", borderRadius: 8, padding: 12, borderWidth: 1, borderColor: "#334155" }}
-            placeholder="Enter password"
-            placeholderTextColor="#475569"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-          />
+          <View style={{ position: 'relative' }}>
+            <TextInput
+              style={{ backgroundColor: "#0F172A", color: "#fff", borderRadius: 8, padding: 12, paddingRight: 48, borderWidth: 1, borderColor: "#334155" }}
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter password"
+              placeholderTextColor="#475569"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+            />
+            <TouchableOpacity
+              onPress={() => setShowPassword(!showPassword)}
+              onClick={() => setShowPassword(!showPassword)}
+              style={{ position: 'absolute', right: 12, top: 12 }}
+            >
+              <Text style={{ fontSize: 18 }}>{showPassword ? "👁️" : "🔒"}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <TouchableOpacity
