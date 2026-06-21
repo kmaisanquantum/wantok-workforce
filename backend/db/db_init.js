@@ -23,6 +23,12 @@ async function initializeDatabase(pool) {
       console.log('🔄 Running schema synchronization...');
       await client.query(schema);
 
+      const categoriesTable = fs.readFileSync(path.join(__dirname, 'patch_categories.sql'), 'utf8');
+      await client.query(categoriesTable);
+
+      const categoriesSeed = fs.readFileSync(path.join(__dirname, 'seed_categories.sql'), 'utf8');
+      await client.query(categoriesSeed);
+
       const adminSeed = fs.readFileSync(path.join(__dirname, "init_admin.sql"), "utf8");
       await client.query(adminSeed);
 
