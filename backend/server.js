@@ -21,12 +21,46 @@ const io = new Server(httpServer, {
   }
 });
 
+
 // Configure Redis adapter for Socket.io if Redis is available
 if (redisClient) {
   const pubClient = redisClient;
   const subClient = pubClient.duplicate();
   io.adapter(createAdapter(pubClient, subClient));
+
+  // Dedicated subscriber for job_alerts
+  const jobSubscriber = pubClient.duplicate();
+  jobSubscriber.subscribe('job_alerts');
+  jobSubscriber.on('message', (channel, message) => {
+    if (channel === 'job_alerts') {
+      try {
+        const payload = JSON.parse(message);
+        console.log(`📢 Redis Pub/Sub: Job alert for trade ${payload.trade_category}`);
+        // Broadcast to specific trade room
+        io.to(payload.trade_category).emit('new_job_alert', payload);
+      } catch (e) {
+        console.error('❌ Error parsing Pub/Sub message:', e.message);
+      }
+    }
+  });
 }
+
+// Socket.io Connection Handling & Room Management
+io.on('connection', (socket) => {
+  console.log('🔌 New client connected:', socket.id);
+
+  socket.on('join_trade_room', (trade) => {
+    if (trade) {
+      socket.join(trade);
+      console.log(`👤 Socket ${socket.id} joined room: ${trade}`);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('🔌 Client disconnected:', socket.id);
+  });
+});
+
 
 const PORT = process.env.PORT || 3000;
 
