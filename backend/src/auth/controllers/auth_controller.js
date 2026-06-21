@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const UserModel = require('../models/user_model');
+const redisClient = require('../../../db/redis_init');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'wantok-development-secret-2024';
 
@@ -186,6 +187,23 @@ class AuthController {
       const updated = await UserModel.updateAvailability(userId, is_available);
 
       if (!updated) return res.status(404).json({ error: 'User not found' });
+
+      // Redis Geospatial Sync
+      if (redisClient) {
+        try {
+          if (updated.is_available) {
+            if (updated.longitude !== null && updated.latitude !== null) {
+              await redisClient.geoadd('active_providers', updated.longitude, updated.latitude, userId);
+              console.log(`📍 Redis: Added provider ${userId} to geospatial index`);
+            }
+          } else {
+            await redisClient.zrem('active_providers', userId);
+            console.log(`📍 Redis: Removed provider ${userId} from geospatial index`);
+          }
+        } catch (redisErr) {
+          console.error('⚠️ Redis Geospatial Sync Error:', redisErr.message);
+        }
+      }
 
       return res.status(200).json({
         message: 'Availability updated',
