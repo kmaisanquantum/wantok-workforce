@@ -19,7 +19,9 @@ const { width } = Dimensions.get("window");
 const API_BASE = (typeof process !== 'undefined' && (process.env.REACT_APP_API_URL || process.env.EXPO_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL))
   ? (process.env.REACT_APP_API_URL || process.env.EXPO_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL)
   : (Platform.OS === 'web'
-      ? (typeof window !== 'undefined' && (window.location.origin.includes('wantok.dspng.tech') || window.location.hostname === 'wantok.dspng.tech') ? 'https://wantok.dspng.tech/api' : (window.location.origin + '/api'))
+      ? (typeof window !== 'undefined' && (window.location.origin.includes('wantok.dspng.tech') || window.location.hostname === 'wantok.dspng.tech')
+          ? (window.location.protocol + '//' + window.location.hostname + (window.location.port ? ':' + window.location.port : '') + '/api')
+          : (window.location.origin + '/api'))
       : 'http://45.32.243.144:3000/api');
 console.log('🔗 Active Backend Pipeline API Path Set to:', API_BASE);
 
@@ -2063,15 +2065,15 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       const res = await fetch(`${API_BASE}/admin/dashboard-stats`, {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        const data = await res.json();
         // Handle { success: true, data: { ... } } or { ... }
-        setStats(data.data || data);
+        setStats(data.data || data.stats || data);
       } else {
-        console.error("❌ Admin Stats Fetch Failed: ", res.status);
+        console.error("❌ Admin Stats Fetch Failed: ", res.status, data);
       }
     } catch (e) {
-      console.error("❌ Admin Data Pipeline Error: ", e.message);
+      console.error("❌ Admin Data Pipeline Error (Stats): ", e.message);
     }
   };
 
@@ -2080,14 +2082,14 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       const res = await fetch(`${API_BASE}/admin/pending-providers`, {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        const data = await res.json();
-        setPendingProviders(data.data || data);
+        setPendingProviders(data.data || data.providers || data);
       } else {
-        console.error("❌ Admin Pending Fetch Failed: ", res.status);
+        console.error("❌ Admin Pending Fetch Failed: ", res.status, data);
       }
     } catch (e) {
-      console.error("❌ Admin Data Pipeline Error: ", e.message);
+      console.error("❌ Admin Data Pipeline Error (Pending): ", e.message);
     }
   };
 
@@ -2097,16 +2099,15 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       const res = await fetch(`${API_BASE}/admin/users?role=${encodeURIComponent(roleFilter)}`, {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        const data = await res.json();
-        // Backend returns { users: [...] }
         const usersData = data.users || data.data?.users || data.data || data;
         setUsers(Array.isArray(usersData) ? usersData : []);
       } else {
-        console.error("❌ Admin Users Fetch Failed: ", res.status);
+        console.error("❌ Admin Users Fetch Failed: ", res.status, data);
       }
     } catch (e) {
-      console.error("❌ Admin Data Pipeline Error: ", e.message);
+      console.error("❌ Admin Data Pipeline Error (Users): ", e.message);
     } finally { setLoading(false); }
   };
 
@@ -2115,14 +2116,14 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       const res = await fetch(`${API_BASE}/admin/logs`, {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        const data = await res.json();
-        setLogs(data.data || data);
+        setLogs(data.data || data.logs || data);
       } else {
-        console.error("❌ Admin Logs Fetch Failed: ", res.status);
+        console.error("❌ Admin Logs Fetch Failed: ", res.status, data);
       }
     } catch (e) {
-      console.error("❌ Admin Data Pipeline Error: ", e.message);
+      console.error("❌ Admin Data Pipeline Error (Logs): ", e.message);
     }
   };
 
