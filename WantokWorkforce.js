@@ -1144,12 +1144,12 @@ function TrustScreen({ onNavigate }) {
               </View>
               {w.verified && <Text style={{ fontSize: 18 }}>✅</Text>}
             </View>
+            </View>
           ))}
         </View>
-      </View>
-    </ScrollView>
-  );
+      </ScrollView>
     </View>
+  );
 }
 
 // ─── BOTTOM NAV ─────────────────────────────────────────────────────────────
