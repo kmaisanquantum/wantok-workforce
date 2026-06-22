@@ -114,9 +114,14 @@ class AdminController {
       let query = `
         SELECT u.id, u.name, u.email, u.phone_number, u.is_verified, u.is_flagged, u.created_at,
                u.primary_skill as trade_type, u.location_name as city_location,
-               COALESCE(array_agg(ur.role_name) FILTER (WHERE ur.role_name IS NOT NULL), '{}') as roles
+               ARRAY(
+                 SELECT DISTINCT role_name FROM (
+                   SELECT role::TEXT as role_name FROM users WHERE id = u.id
+                   UNION
+                   SELECT role_name::TEXT FROM user_roles WHERE user_id = u.id
+                 ) sub
+               ) as roles
         FROM users u
-        LEFT JOIN user_roles ur ON u.id = ur.user_id
       `;
 
       const queryParams = [];
@@ -125,11 +130,11 @@ class AdminController {
       if (role && role !== 'All Roles') {
         const r = role.toLowerCase();
         if (r.includes('provider')) {
-          filters.push(`u.id IN (SELECT user_id FROM user_roles WHERE role_name::TEXT ILIKE '%provider%')`);
+          filters.push(`(u.role::TEXT ILIKE '%provider%' OR u.id IN (SELECT user_id FROM user_roles WHERE role_name::TEXT ILIKE '%provider%'))`);
         } else if (r.includes('customer')) {
-          filters.push(`u.id IN (SELECT user_id FROM user_roles WHERE role_name::TEXT ILIKE '%customer%')`);
+          filters.push(`(u.role::TEXT ILIKE '%customer%' OR u.id IN (SELECT user_id FROM user_roles WHERE role_name::TEXT ILIKE '%customer%'))`);
         } else if (r.includes('admin')) {
-          filters.push(`u.id IN (SELECT user_id FROM user_roles WHERE role_name::TEXT ILIKE '%admin%')`);
+          filters.push(`(u.role::TEXT ILIKE '%admin%' OR u.id IN (SELECT user_id FROM user_roles WHERE role_name::TEXT ILIKE '%admin%'))`);
         }
       }
 
@@ -143,7 +148,6 @@ class AdminController {
       }
 
       query += `
-        GROUP BY u.id
         ORDER BY u.created_at DESC
       `;
 
