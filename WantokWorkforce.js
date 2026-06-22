@@ -16,7 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import categories from "./categories.json";
 
 const { width } = Dimensions.get("window");
-const API_BASE = (typeof process !== 'undefined' && process.env.REACT_APP_API_URL) ? process.env.REACT_APP_API_URL : 'http://45.32.243.144:3000';
+const API_BASE = (typeof process !== 'undefined' && process.env.REACT_APP_API_URL) ? process.env.REACT_APP_API_URL : (Platform.OS === 'web' ? '/api' : 'http://45.32.243.144:3000');
 
 const COLORS = {
   primary: "#1A6B3C",
