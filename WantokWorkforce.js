@@ -16,7 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import categories from "./categories.json";
 
 const { width } = Dimensions.get("window");
-const API_BASE = (typeof process !== 'undefined' && process.env.REACT_APP_API_URL) ? process.env.REACT_APP_API_URL : (Platform.OS === 'web' ? (typeof window !== 'undefined' ? (window.location.origin + '/api') : '/api') : 'http://45.32.243.144:3000');
+const API_BASE = (typeof process !== 'undefined' && process.env.REACT_APP_API_URL) ? process.env.REACT_APP_API_URL : (Platform.OS === 'web' ? (typeof window !== 'undefined' ? (window.location.origin + '') : '') : 'http://45.32.243.144:3000');
 console.log('🔗 Active Backend Pipeline API Path Set to:', API_BASE);
 
 const COLORS = {
@@ -83,7 +83,7 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
     const lon = 147.1803;
 
     try {
-      const url = `${API_BASE}/api/match/nearby?latitude=${lat}&longitude=${lon}${selectedCategory ? '&trade_category=' + selectedCategory : ''}`;
+      const url = `${API_BASE}/match/nearby?latitude=${lat}&longitude=${lon}${selectedCategory ? '&trade_category=' + selectedCategory : ''}`;
       const response = await fetch(url);
       const data = await response.json();
 
@@ -137,7 +137,7 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
                   const newStatus = !user?.is_available;
                   onUpdateUser({ ...user, is_available: newStatus });
                   try {
-                    await fetch(`${API_BASE}/api/auth/availability`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` }, body: JSON.stringify({ is_available: newStatus }) });
+                    await fetch(`${API_BASE}/auth/availability`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` }, body: JSON.stringify({ is_available: newStatus }) });
                   } catch (err) {
                     onUpdateUser({ ...user, is_available: !newStatus });
                     alert("Could not update status.");
@@ -1464,7 +1464,7 @@ function ProviderOnboardingScreen({ onComplete, user }) {
     }
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/api/auth/profile`, {
+      const response = await fetch(`${API_BASE}/auth/profile`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1565,10 +1565,10 @@ function AuthScreen({ onAuth }) {
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       try {
         // First check basic API health
-        const apiRes = await fetch(`${API_BASE}/api/health`, { signal: controller.signal });
+        const apiRes = await fetch(`${API_BASE}/health`, { signal: controller.signal });
         if (apiRes.ok) {
           // If API is healthy, check DB health
-          const dbRes = await fetch(`${API_BASE}/api/health/db`, { signal: controller.signal });
+          const dbRes = await fetch(`${API_BASE}/health/db`, { signal: controller.signal });
           if (dbRes.ok) setDbStatus("connected");
           else setDbStatus("online (db issues)");
         } else {
@@ -1603,7 +1603,7 @@ function AuthScreen({ onAuth }) {
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     try {
-      const response = await fetch(`${API_BASE}/api/auth/login`, {
+      const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier, password }),
@@ -1653,7 +1653,7 @@ function AuthScreen({ onAuth }) {
       const timeoutId = setTimeout(() => controller.abort(), 45000);
 
       try {
-        const response = await fetch(`${API_BASE}/api/auth/register`, {
+        const response = await fetch(`${API_BASE}/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, email, phone, password }),
@@ -1931,7 +1931,7 @@ function AdminAuthScreen({ onAuth }) {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE}/api/auth/login`, {
+      const response = await fetch(`${API_BASE}/auth/admin-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier, password }),
@@ -2052,7 +2052,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/dashboard-stats`, {
+      const res = await fetch(`${API_BASE}/admin/dashboard-stats`, {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
       if (res.ok) {
@@ -2066,7 +2066,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
   const fetchPending = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/pending-providers`, {
+      const res = await fetch(`${API_BASE}/admin/pending-providers`, {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
       if (res.ok) {
@@ -2081,7 +2081,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/users?role=${encodeURIComponent(roleFilter)}`, {
+      const res = await fetch(`${API_BASE}/admin/users?role=${encodeURIComponent(roleFilter)}`, {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
       if (res.ok) {
@@ -2096,7 +2096,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
   const fetchLogs = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/logs`, {
+      const res = await fetch(`${API_BASE}/admin/logs`, {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
       if (res.ok) {
@@ -2131,29 +2131,29 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       const token = user?.token;
       let res;
       if (action === 'delete') {
-        res = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
+        res = await fetch(`${API_BASE}/admin/users/${userId}`, {
           method: "DELETE",
           headers: { "Authorization": `Bearer ${token}` }
         });
       } else if (action === 'update') {
-        res = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
+        res = await fetch(`${API_BASE}/admin/users/${userId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
           body: JSON.stringify(data)
         });
       } else if (action === 'create') {
-        res = await fetch(`${API_BASE}/api/admin/users`, {
+        res = await fetch(`${API_BASE}/admin/users`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
           body: JSON.stringify(data)
         });
       } else if (action === 'approve') {
-        res = await fetch(`${API_BASE}/api/admin/approve/${userId}`, {
+        res = await fetch(`${API_BASE}/admin/approve/${userId}`, {
           method: "POST",
           headers: { "Authorization": `Bearer ${token}` }
         });
       } else if (action === 'flag') {
-        res = await fetch(`${API_BASE}/api/admin/flag/${userId}`, {
+        res = await fetch(`${API_BASE}/admin/flag/${userId}`, {
           method: "POST",
           headers: { "Authorization": `Bearer ${token}` }
         });
@@ -2555,7 +2555,7 @@ export default function App() {
         else setOnboardingComplete(false);
 
         // In a real app, we'd call the API here:
-        try { await fetch(`${API_BASE}/api/auth/select-role`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${user?.token}` }, body: JSON.stringify({ role }) }); } catch (e) { console.error("Role selection persistence failed", e); }
+        try { await fetch(`${API_BASE}/auth/select-role`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${user?.token}` }, body: JSON.stringify({ role }) }); } catch (e) { console.error("Role selection persistence failed", e); }
       }} />;
     }
 

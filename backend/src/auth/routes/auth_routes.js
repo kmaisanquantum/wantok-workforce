@@ -6,6 +6,7 @@ const { loginLimiter } = require('../middlewares/rate_limit');
 
 router.post('/register', AuthController.register);
 router.post('/login', loginLimiter, AuthController.login);
+router.post('/admin-login', loginLimiter, AuthController.login);
 
 // Persona Management
 router.post('/select-role', authMiddleware, AuthController.selectRole);
