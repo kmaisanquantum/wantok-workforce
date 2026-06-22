@@ -106,10 +106,14 @@ httpServer.listen(PORT, '0.0.0.0', async () => {
 
   try {
     const pool = UserModel.getPool();
-    await initializeDatabase(pool);
-    console.log('✅ Backend is ready and database is synced.');
+    if (pool) {
+      await initializeDatabase(pool);
+      console.log('✅ Backend is ready and database is synced.');
+    } else {
+      console.warn('⚠️ Database pool not initialized. Migration bypassed.');
+    }
   } catch (err) {
-    console.error('❌ CRITICAL ERROR during startup:', err.message);
+    console.error('❌ Migration error bypassed for safety:', err.message);
   }
 });
 

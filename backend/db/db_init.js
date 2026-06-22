@@ -17,11 +17,11 @@ async function initializeDatabase(pool) {
     console.log(`🔗 [Success] Database reached successfully via: ${host}`);
 
     try {
+      console.log('🔄 Running core schema synchronization...');
+      await client.query(schema);
+
       console.log('🔄 Applying schema patches...');
       await client.query(patch);
-
-      console.log('🔄 Running schema synchronization...');
-      await client.query(schema);
 
       const categoriesTable = fs.readFileSync(path.join(__dirname, 'patch_categories.sql'), 'utf8');
       await client.query(categoriesTable);
