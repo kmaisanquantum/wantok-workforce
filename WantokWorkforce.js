@@ -1563,9 +1563,16 @@ function AuthScreen({ onAuth }) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       try {
-        const res = await fetch(`${API_BASE}/api/health/db`, { signal: controller.signal });
-        if (res.ok) setDbStatus("connected");
-        else setDbStatus("error");
+        // First check basic API health
+        const apiRes = await fetch(`${API_BASE}/api/health`, { signal: controller.signal });
+        if (apiRes.ok) {
+          // If API is healthy, check DB health
+          const dbRes = await fetch(`${API_BASE}/api/health/db`, { signal: controller.signal });
+          if (dbRes.ok) setDbStatus("connected");
+          else setDbStatus("online (db issues)");
+        } else {
+          setDbStatus("error");
+        }
       } catch (e) {
         setDbStatus("offline");
       } finally {
