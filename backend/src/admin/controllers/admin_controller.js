@@ -62,7 +62,7 @@ class AdminController {
   static async getPendingProviders(req, res) {
     try {
       const query = `
-        SELECT id, name, email, phone_number, primary_skill, created_at
+        SELECT id, name, email, phone_number, primary_skill, created_at, bio, hourly_rate
         FROM users
         WHERE is_verified = FALSE AND is_flagged = FALSE
         AND id IN (SELECT user_id FROM user_roles WHERE role_name = 'provider')
@@ -311,7 +311,7 @@ class AdminController {
   // System Settings
   static async getSettings(req, res) {
     try {
-      const { rows } = await pool.query('SELECT key, value FROM system_settings');
+      const { rows } = await pool.query('SELECT key, value, group_category FROM system_settings');
       return res.status(200).json({ success: true, settings: rows });
     } catch (error) {
       console.error('❌ Admin Get Settings Error:', error);
@@ -321,7 +321,18 @@ class AdminController {
 
   static async updateSettings(req, res) {
     try {
-      const { key, value } = req.body;
+      const { key, value, settings } = req.body;
+
+      if (settings && typeof settings === 'object') {
+          for (const [k, v] of Object.entries(settings)) {
+              await pool.query(
+                'INSERT INTO system_settings (key, value, "updatedAt") VALUES ($1, $2, CURRENT_TIMESTAMP) ON CONFLICT (key) DO UPDATE SET value = $2, "updatedAt" = CURRENT_TIMESTAMP',
+                [k, String(v)]
+              );
+          }
+          return res.status(200).json({ success: true, message: 'Settings updated successfully.' });
+      }
+
       if (!key || value === undefined) {
         return res.status(400).json({ error: 'Key and value are required' });
       }
@@ -335,6 +346,27 @@ class AdminController {
     } catch (error) {
       console.error('❌ Admin Update Settings Error:', error);
       return res.status(500).json({ error: 'Failed to update system settings' });
+    }
+  }
+
+  static async updateMatchConfig(req, res) {
+    try {
+      const { radius, fee } = req.body;
+      const updates = {};
+      if (radius !== undefined) updates.match_radius = radius;
+      if (fee !== undefined) updates.platform_fee = fee;
+
+      for (const [key, value] of Object.entries(updates)) {
+        await pool.query(
+          'INSERT INTO system_settings (key, value, group_category, "updatedAt") VALUES ($1, $2, \'engine\', CURRENT_TIMESTAMP) ON CONFLICT (key) DO UPDATE SET value = $2, "updatedAt" = CURRENT_TIMESTAMP',
+          [key, String(value)]
+        );
+      }
+
+      return res.status(200).json({ success: true, message: 'Match engine parameters updated successfully.' });
+    } catch (error) {
+      console.error('❌ Admin Match Config Error:', error);
+      return res.status(500).json({ error: 'Failed to update match configuration' });
     }
   }
 

@@ -31,6 +31,9 @@ router.post('/queue/override', AdminController.overrideQueue);
 router.get('/settings', AdminController.getSettings);
 router.post('/settings', AdminController.updateSettings);
 
+// Match Engine Config
+router.post('/match-config', AdminController.updateMatchConfig);
+
 // PATCH /api/admin/flag-user/:userId -> Moderation action
 router.patch('/flag-user/:userId', AdminController.flagUser);
 

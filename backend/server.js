@@ -4,6 +4,7 @@ const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 const { createAdapter } = require('@socket.io/redis-adapter');
+const jwt = require('jsonwebtoken');
 
 const authRoutes = require('./src/auth/routes/auth_routes');
 const matchRoutes = require('./src/match/routes/match_routes');
@@ -11,6 +12,8 @@ const adminRoutes = require('./src/admin/routes/admin_routes');
 const UserModel = require('./src/auth/models/user_model');
 const { initializeDatabase } = require('./db/db_init');
 const redisClient = require('./db/redis_init');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'wantok-development-secret-2024';
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -45,9 +48,33 @@ if (redisClient) {
   });
 }
 
+// Socket.io Authentication Middleware
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth.token || socket.handshake.headers['authorization']?.split(' ')[1];
+    if (!token) return next(new Error('Authentication error: No token provided'));
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await UserModel.findById(decoded.id);
+
+    if (!user) return next(new Error('Authentication error: User not found'));
+
+    // Security Check: Block suspended or pending verification users from socket real-time stream
+    if (user.status === 'suspended' || user.status === 'pending_verification') {
+      console.warn(`🚫 Socket connection rejected for ${user.email} (Status: ${user.status})`);
+      return next(new Error(`Access denied: Account ${user.status}`));
+    }
+
+    socket.user = user;
+    next();
+  } catch (err) {
+    next(new Error('Authentication error: Invalid token'));
+  }
+});
+
 // Socket.io Connection Handling & Room Management
 io.on('connection', (socket) => {
-  console.log('🔌 New client connected:', socket.id);
+  console.log('🔌 New client connected:', socket.id, 'User:', socket.user?.email);
 
   socket.on('join_trade_room', (trade) => {
     if (trade) {
