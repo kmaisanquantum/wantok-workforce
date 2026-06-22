@@ -65,7 +65,7 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors({ origin: true, credentials: true, methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'] }));
+app.use(cors({ origin: ["http://wantok.dspng.tech", "https://wantok.dspng.tech", "http://localhost:3000"], credentials: true, methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"] }));
 app.options('*', cors());
 app.use(express.json());
 
