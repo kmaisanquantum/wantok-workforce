@@ -2259,7 +2259,11 @@ function AdminScreen({ onNavigate, onLogout, user }) {
               </View>
             ) : users.filter(u => {
                 const q = searchQuery.toLowerCase();
-                return (u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone_number?.toLowerCase().includes(q));
+                return (
+                  (u.name || "").toLowerCase().includes(q) ||
+                  (u.email || "").toLowerCase().includes(q) ||
+                  (u.phone_number || "").toLowerCase().includes(q)
+                );
               }).map(u => (
               <View key={u.id} style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, marginBottom: 12, elevation: 1, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 5 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
