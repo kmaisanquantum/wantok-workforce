@@ -23,6 +23,10 @@ router.post('/users', AdminController.createUser);
 router.patch('/users/:userId', AdminController.updateUser);
 router.delete('/users/:userId', AdminController.deleteUser);
 
+// Queue Management
+router.get('/queue', AdminController.getQueue);
+router.post('/queue/override', AdminController.overrideQueue);
+
 // PATCH /api/admin/flag-user/:userId -> Moderation action
 router.patch('/flag-user/:userId', AdminController.flagUser);
 

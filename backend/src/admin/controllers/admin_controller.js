@@ -1,4 +1,3 @@
-const UserModel = require('../../auth/models/user_model');
 const { pool } = require('../../auth/models/user_model');
 const bcrypt = require('bcrypt');
 const redisClient = require('../../../db/redis_init');
@@ -112,7 +111,7 @@ class AdminController {
     try {
       const { role, search } = req.query;
       let query = `
-        SELECT u.id, u.name, u.email, u.phone_number, u.is_verified, u.is_flagged, u.created_at,
+        SELECT u.id, u.name, u.email, u.phone_number, u.is_verified, u.is_flagged, u.status, u.balance, u.created_at,
                u.primary_skill as trade_type, u.location_name as city_location,
                ARRAY(
                  SELECT DISTINCT role_name FROM (
@@ -152,9 +151,6 @@ class AdminController {
       `;
 
       const { rows: usersArray } = await pool.query(query, queryParams);
-      console.log('--- ADMIN FETCH CHANNELS ---');
-      console.log('Query result length:', usersArray.length);
-      console.log("Admin User Query Results:", usersArray);
       return res.status(200).json({ users: Array.isArray(usersArray) ? usersArray : [] });
     } catch (error) {
       console.error('❌ Admin Get Users Error:', error);
@@ -194,24 +190,53 @@ class AdminController {
   }
 
   static async updateUser(req, res) {
+    let client;
     try {
       const { userId } = req.params;
-      const { name, email, phone_number, is_verified, is_flagged } = req.body;
+      const { name, email, phone_number, is_verified, is_flagged, status, balance, role } = req.body;
 
-      const query = `
-        UPDATE users
-        SET name = $1, email = $2, phone_number = $3, is_verified = $4, is_flagged = $5
-        WHERE id = $6
-        RETURNING id
-      `;
-      const { rows } = await pool.query(query, [name, email, phone_number, is_verified, is_flagged, userId]);
+      client = await pool.connect();
+      await client.query('BEGIN');
 
-      if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
+      const fields = [];
+      const values = [];
+      let idx = 1;
 
-      return res.status(200).json({ message: 'User updated successfully' });
+      if (name !== undefined) { fields.push(`name = $${idx++}`); values.push(name); }
+      if (email !== undefined) { fields.push(`email = $${idx++}`); values.push(email); }
+      if (phone_number !== undefined) { fields.push(`phone_number = $${idx++}`); values.push(phone_number); }
+      if (is_verified !== undefined) { fields.push(`is_verified = $${idx++}`); values.push(is_verified); }
+      if (is_flagged !== undefined) { fields.push(`is_flagged = $${idx++}`); values.push(is_flagged); }
+      if (status !== undefined) { fields.push(`status = $${idx++}`); values.push(status); }
+      if (balance !== undefined) { fields.push(`balance = $${idx++}`); values.push(balance); }
+      if (role !== undefined) {
+        fields.push(`role = $${idx++}`); values.push(role);
+        fields.push(`active_persona = $${idx++}`); values.push(role);
+      }
+
+      if (fields.length > 0) {
+        values.push(userId);
+        const query = `UPDATE users SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id`;
+        const { rows } = await client.query(query, values);
+        if (rows.length === 0) {
+          await client.query('ROLLBACK');
+          return res.status(404).json({ error: 'User not found' });
+        }
+      }
+
+      if (role !== undefined) {
+        await client.query('DELETE FROM user_roles WHERE user_id = $1', [userId]);
+        await client.query('INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2)', [userId, role]);
+      }
+
+      await client.query('COMMIT');
+      return res.status(200).json({ success: true, message: 'User updated successfully' });
     } catch (error) {
+      if (client) await client.query('ROLLBACK');
       console.error('❌ Admin Update User Error:', error);
       return res.status(500).json({ error: 'Failed to update user' });
+    } finally {
+      if (client) client.release();
     }
   }
 
@@ -240,9 +265,51 @@ class AdminController {
     }
   }
 
+  static async getQueue(req, res) {
+    try {
+      const query = `
+        SELECT b.id, b.service_type, b.status, b.price, b.scheduled_at, b.created_at,
+               c.name as customer_name, p.name as provider_name
+        FROM bookings b
+        JOIN users c ON b.customer_id = c.id
+        LEFT JOIN users p ON b.provider_id = p.id
+        ORDER BY b.created_at DESC
+      `;
+      const { rows } = await pool.query(query);
+      return res.status(200).json(rows);
+    } catch (error) {
+      console.error('❌ Admin Get Queue Error:', error);
+      return res.status(500).json({ error: 'Failed to fetch queue' });
+    }
+  }
+
+  static async overrideQueue(req, res) {
+    try {
+      const { matchId, action } = req.body;
+      let newStatus;
+      if (action === 'force_complete') newStatus = 'completed';
+      else if (action === 'cancel') newStatus = 'cancelled';
+      else return res.status(400).json({ error: 'Invalid action' });
+
+      const query = 'UPDATE bookings SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id';
+      const { rows } = await pool.query(query, [newStatus, matchId]);
+
+      if (rows.length === 0) return res.status(404).json({ error: 'Match/Booking not found' });
+
+      // If completed, increment completed matches metric in Redis
+      if (newStatus === 'completed' && redisClient) {
+        await redisClient.incr('metrics:completed_matches');
+      }
+
+      return res.status(200).json({ success: true, message: `Queue action ${action} executed successfully` });
+    } catch (error) {
+      console.error('❌ Admin Queue Override Error:', error);
+      return res.status(500).json({ error: 'Failed to execute queue override' });
+    }
+  }
+
   static async getSystemLogs(req, res) {
     try {
-      // Mock logs for now, in a real app we'd query a logs table or external service
       const logs = [
         { id: 1, event: 'System Startup', level: 'INFO', timestamp: new Date(Date.now() - 3600000).toISOString() },
         { id: 2, event: 'DB Connection Established', level: 'INFO', timestamp: new Date(Date.now() - 3500000).toISOString() },
