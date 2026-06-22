@@ -85,7 +85,7 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
     try {
       const url = `${API_BASE}/match/nearby?latitude=${lat}&longitude=${lon}${selectedCategory ? '&trade_category=' + selectedCategory : ''}`;
       const response = await fetch(url);
-      const data = await response.json();
+      data = await response.json().catch(() => ({ error: 'Invalid response from server' }));
 
       if (response.ok) {
         setNearbyWorkers(data.workers);
@@ -1463,6 +1463,7 @@ function ProviderOnboardingScreen({ onComplete, user }) {
       return;
     }
     setLoading(true);
+    let data;
     try {
       const response = await fetch(`${API_BASE}/auth/profile`, {
         method: 'PATCH',
@@ -1476,7 +1477,7 @@ function ProviderOnboardingScreen({ onComplete, user }) {
         })
       });
 
-      const data = await response.json();
+      data = await response.json().catch(() => ({ error: 'Invalid response from server' }));
       if (response.ok) {
         onComplete({ primary_skill: trade, location_name: city });
       } else {
@@ -1602,6 +1603,7 @@ function AuthScreen({ onAuth }) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
+    let data;
     try {
       const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
@@ -1610,7 +1612,7 @@ function AuthScreen({ onAuth }) {
         signal: controller.signal
       });
 
-      const data = await response.json().catch(() => ({ error: 'Invalid response from server' }));
+      data = await response.json().catch(() => ({ error: 'Invalid response from server' }));
 
       if (response.ok) {
         onAuth({ ...data.user, token: data.token }, false);
@@ -1622,7 +1624,7 @@ function AuthScreen({ onAuth }) {
         alert('Server connection timeout. Please check backend logs.');
       } else {
         console.error('SignIn Error:', error);
-        alert('Sign-in failed: ' + (error.message || 'Please verify your credentials or check connection.'));
+        alert('Sign-in failed: ' + (data?.message || data?.error || error.message || 'Please verify your credentials or check connection.'));
       }
     } finally {
       clearTimeout(timeoutId);
@@ -1652,6 +1654,7 @@ function AuthScreen({ onAuth }) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 45000);
 
+      let data;
       try {
         const response = await fetch(`${API_BASE}/auth/register`, {
           method: 'POST',
@@ -1660,7 +1663,7 @@ function AuthScreen({ onAuth }) {
           signal: controller.signal
         });
 
-        const data = await response.json().catch(() => ({ error: 'Invalid response from server' }));
+        data = await response.json().catch(() => ({ error: 'Invalid response from server' }));
 
         if (response.ok) {
           console.log('✅ Registration success payload:', data);
@@ -1673,7 +1676,7 @@ function AuthScreen({ onAuth }) {
           alert('Server connection timeout. Please check backend logs.');
         } else {
           console.error('SignUp Error:', error);
-          alert('Sign-up failed: ' + (error.message || 'Please verify your credentials or check connection.'));
+          alert('Sign-up failed: ' + (data?.message || data?.error || error.message || 'Please verify your credentials or check connection.'));
         }
       } finally {
         clearTimeout(timeoutId);
@@ -1930,6 +1933,7 @@ function AdminAuthScreen({ onAuth }) {
     }
     setLoading(true);
 
+    let data;
     try {
       const response = await fetch(`${API_BASE}/auth/admin-login`, {
         method: 'POST',
@@ -1937,7 +1941,7 @@ function AdminAuthScreen({ onAuth }) {
         body: JSON.stringify({ identifier, password }),
       });
 
-      const data = await response.json();
+      data = await response.json().catch(() => ({ error: 'Invalid response from server' }));
 
       if (response.ok) {
         // Strict Role Check: Must be admin
@@ -1952,7 +1956,7 @@ function AdminAuthScreen({ onAuth }) {
       }
     } catch (error) {
       console.error('Admin Login Error:', error);
-      alert('Admin Login failed: ' + (error.message || 'Unknown network error.'));
+      alert('Admin Login failed: ' + (data?.message || data?.error || error.message || 'Unknown network error.'));
     } finally {
       setLoading(false);
     }

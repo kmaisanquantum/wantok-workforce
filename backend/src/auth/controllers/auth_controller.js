@@ -51,12 +51,13 @@ class AuthController {
       console.log('✅ Registration successful for:', email, 'Role:', userRole);
       return res.status(201).json({
         success: true,
-        message: 'Account registered successfully.',
+        message: 'User registered successfully',
         token,
         user: {
           id: user.id,
           name: user.name,
           email: user.email,
+          phone: user.phone_number,
           role: user.role,
           roles: [user.role],
           is_available: user.is_available
