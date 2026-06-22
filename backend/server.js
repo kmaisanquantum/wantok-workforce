@@ -65,8 +65,20 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors({ origin: ["http://wantok.dspng.tech", "https://wantok.dspng.tech", "http://localhost:3000"], credentials: true, methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"] }));
-app.options('*', cors());
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = ["http://wantok.dspng.tech", "https://wantok.dspng.tech", "http://localhost:3000", "http://localhost:19006"];
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // Domain API Routes
