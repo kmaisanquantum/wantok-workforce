@@ -2054,6 +2054,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeSubTab, setActiveSubTab] = useState("verification_queue");
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("All Roles");
   const [modalVisible, setModalVisible] = useState(false);
@@ -2482,24 +2483,143 @@ function AdminScreen({ onNavigate, onLogout, user }) {
           </View>
         )}
 
-        {activeTab === "settings" && (
-          <View style={{ padding: 16 }}>
-            <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B", marginBottom: 20 }}>Engine Controls & System Settings</Text>
+                {activeTab === "settings" && (
+          <View style={{ flex: 1 }}>
+            {/* Sub-Nav for Controls */}
+            <View style={{ flexDirection: "row", backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#E2E8F0", paddingHorizontal: 16 }}>
+              {[
+                { id: "verification_queue", label: "Trust Verification Queue" },
+                { id: "match_engine", label: "Match Engine Parameters" }
+              ].map(st => (
+                <TouchableOpacity
+                  key={st.id}
+                  onPress={() => setActiveSubTab(st.id)}
+                  style={{
+                    paddingVertical: 12,
+                    marginRight: 20,
+                    borderBottomWidth: 2,
+                    borderBottomColor: activeSubTab === st.id ? COLORS.primary : "transparent"
+                  }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: activeSubTab === st.id ? COLORS.primary : "#64748B" }}>
+                    {st.label.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-            <View style={{ backgroundColor: "#fff", padding: 20, borderRadius: 16, elevation: 2, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 }}>
-
-              {/* Match Radius */}
-              <View style={{ marginBottom: 24 }}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <View>
-                    <Text style={{ fontSize: 14, fontWeight: "700", color: "#1E293B" }}>Match Radius (km)</Text>
-                    <Text style={{ fontSize: 12, color: "#64748B" }}>Maximum distance for provider matching</Text>
-                  </View>
-                  <Text style={{ fontSize: 16, fontWeight: "800", color: COLORS.primary }}>{systemSettings.match_radius} km</Text>
+            <ScrollView style={{ flex: 1, padding: 16 }}>
+              {activeSubTab === "verification_queue" && (
+                <View>
+                  <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B", marginBottom: 16 }}>Pending Provider Verifications</Text>
+                  {pendingProviders.length === 0 ? (
+                    <View style={{ backgroundColor: "#fff", padding: 20, borderRadius: 12, alignItems: "center" }}>
+                      <Text style={{ color: "#94A3B8", fontSize: 13 }}>No pending profiles for review</Text>
+                    </View>
+                  ) : (
+                    pendingProviders.map(prov => (
+                      <View key={prov.id} style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, marginBottom: 12, flexDirection: "row", gap: 16 }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 16, fontWeight: "700", color: "#1E293B" }}>{prov.name}</Text>
+                          <Text style={{ fontSize: 13, color: COLORS.primary, fontWeight: "600" }}>{prov.primary_skill || "General Trade"}</Text>
+                          <Text style={{ fontSize: 12, color: "#64748B", marginTop: 4 }}>{prov.email} • {prov.phone_number}</Text>
+                          <Text style={{ fontSize: 12, color: "#1E293B", marginTop: 8, fontStyle: "italic" }}>"{prov.bio || 'No bio provided'}"</Text>
+                        </View>
+                        <View style={{ width: 120, gap: 8 }}>
+                          <TouchableOpacity onPress={() => handleUserAction(prov.id, 'approve')} style={{ backgroundColor: "#10B981", padding: 8, borderRadius: 6, alignItems: "center" }}>
+                            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 11 }}>Approve</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={() => handleUserAction(prov.id, 'flag')} style={{ borderWidth: 1, borderColor: "#EF4444", padding: 8, borderRadius: 6, alignItems: "center" }}>
+                            <Text style={{ color: "#EF4444", fontWeight: "700", fontSize: 11 }}>Flag/Reject</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))
+                  )}
                 </View>
-                <TextInput
-                  keyboardType="numeric"
-                  value={String(systemSettings.match_radius)}
+              )}
+
+              {activeSubTab === "match_engine" && (
+                <View>
+                  <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B", marginBottom: 20 }}>Match Engine Parameters</Text>
+
+                  <View style={{ backgroundColor: "#fff", padding: 20, borderRadius: 16, elevation: 2 }}>
+
+                    {/* Match Radius */}
+                    <View style={{ marginBottom: 24 }}>
+                      <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12 }}>
+                        <Text style={{ fontSize: 14, fontWeight: "700", color: "#1E293B" }}>PostGIS Search Radius (km)</Text>
+                        <Text style={{ fontSize: 16, fontWeight: "800", color: COLORS.primary }}>{systemSettings.match_radius} km</Text>
+                      </View>
+                      <TextInput
+                        keyboardType="numeric"
+                        value={String(systemSettings.match_radius)}
+                        onChangeText={(val) => setSystemSettings({ ...systemSettings, match_radius: val })}
+                        onBlur={() => handleUserAction(null, 'update_settings', { match_radius: systemSettings.match_radius })}
+                        style={{ backgroundColor: "#F1F5F9", padding: 12, borderRadius: 10, fontSize: 15, fontWeight: "600" }}
+                      />
+                    </View>
+
+                    {/* Platform Fee */}
+                    <View style={{ marginBottom: 24 }}>
+                      <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12 }}>
+                        <Text style={{ fontSize: 14, fontWeight: "700", color: "#1E293B" }}>Global Fee Metric (K)</Text>
+                        <Text style={{ fontSize: 16, fontWeight: "800", color: "#10B981" }}>K{parseFloat(systemSettings.platform_fee).toFixed(2)}</Text>
+                      </View>
+                      <TextInput
+                        keyboardType="numeric"
+                        value={String(systemSettings.platform_fee)}
+                        onChangeText={(val) => setSystemSettings({ ...systemSettings, platform_fee: val })}
+                        onBlur={() => handleUserAction(null, 'update_settings', { platform_fee: systemSettings.platform_fee })}
+                        style={{ backgroundColor: "#F1F5F9", padding: 12, borderRadius: 10, fontSize: 15, fontWeight: "600" }}
+                      />
+                    </View>
+
+                    <TouchableOpacity
+                        onPress={() => {
+                            // Example of hitting match-config specifically
+                            fetch(`${API_BASE}/admin/match-config`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${user?.token}`
+                                },
+                                body: JSON.stringify({ radius: systemSettings.match_radius, fee: systemSettings.platform_fee })
+                            }).then(res => res.ok ? alert('Engine updated') : alert('Update failed'));
+                        }}
+                        style={{ backgroundColor: COLORS.primary, padding: 16, borderRadius: 12, alignItems: "center" }}
+                    >
+                        <Text style={{ color: "#fff", fontWeight: "800" }}>PUSH ENGINE RELOAD</Text>
+                    </TouchableOpacity>
+
+                  </View>
+
+                  {/* Maintenance Mode still here in Match Engine? Or separately? Let's keep it here for now as a parameter */}
+                  <View style={{ backgroundColor: "#fff", padding: 20, borderRadius: 16, marginTop: 16 }}>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                        <Text style={{ fontSize: 14, fontWeight: "700", color: "#1E293B" }}>System Maintenance Mode</Text>
+                        <TouchableOpacity
+                            onPress={() => {
+                            const newVal = !systemSettings.maintenance_mode;
+                            setSystemSettings({ ...systemSettings, maintenance_mode: newVal });
+                            handleUserAction(null, 'update_settings', { maintenance_mode: newVal });
+                            }}
+                            style={{
+                            width: 56, height: 30, borderRadius: 15,
+                            backgroundColor: systemSettings.maintenance_mode ? "#EF4444" : "#E2E8F0",
+                            padding: 3, flexDirection: systemSettings.maintenance_mode ? 'row-reverse' : 'row'
+                            }}
+                        >
+                            <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: "#fff" }} />
+                        </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              )}
+              <View style={{ height: 100 }} />
+            </ScrollView>
+          </View>
+        )}
                   onChangeText={(val) => setSystemSettings({ ...systemSettings, match_radius: val })}
                   onBlur={() => handleUserAction(null, 'update_settings', { match_radius: systemSettings.match_radius })}
                   style={{ backgroundColor: "#F1F5F9", padding: 12, borderRadius: 10, fontSize: 15, fontWeight: "600", color: "#1E293B" }}

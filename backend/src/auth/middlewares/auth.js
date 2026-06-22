@@ -15,6 +15,16 @@ const authMiddleware = async (req, res, next) => {
     if (!user) {
       return res.status(401).json({ error: 'Unauthorized: User not found' });
     }
+
+    // Check account status
+    if (user.status === 'suspended') {
+      return res.status(403).json({ error: 'Forbidden: Account is suspended' });
+    }
+    if (user.status === 'pending_verification' && req.path !== '/profile' && req.method !== 'GET') {
+      // Allow them to see profile or possibly other benign things, but restricted overall
+      return res.status(403).json({ error: 'Forbidden: Account pending verification' });
+    }
+
     req.user = user;
     next();
   } catch (error) {

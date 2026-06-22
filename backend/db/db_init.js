@@ -37,6 +37,7 @@ async function initializeDatabase(pool) {
       await runPatch("patch_bookings.sql", "bookings table patch");
       await runPatch("patch_admin_master.sql", "admin master patch");
       await runPatch("patch_system_settings.sql", "system settings patch");
+      await runPatch("patch_system_settings_v2.sql", "system settings v2 patch");
       await runPatch("seed_categories.sql", "categories seed");
       await runPatch("init_admin.sql", "admin user seed");
       await runPatch("seed_stats.sql", "system stats seed");
