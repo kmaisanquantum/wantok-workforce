@@ -1,5 +1,6 @@
 const MatchService = require('../services/match_service');
 const UserModel = require('../../auth/models/user_model');
+const AdminController = require('../../admin/controllers/admin_controller');
 const redisClient = require('../../../db/redis_init');
 
 class MatchController {
@@ -13,7 +14,15 @@ class MatchController {
 
       const lat = parseFloat(latitude);
       const lon = parseFloat(longitude);
-      const searchRadius = radius ? parseFloat(radius) : 50;
+
+      // Load radius from database settings if not provided
+      let searchRadius;
+      if (radius) {
+        searchRadius = parseFloat(radius);
+      } else {
+        searchRadius = await AdminController.getInternalSetting('match_radius', 50);
+        searchRadius = parseFloat(searchRadius);
+      }
 
       if (isNaN(lat) || lon > 180 || lon < -180 || lat > 90 || lat < -90) {
         return res.status(400).json({ error: 'Invalid coordinate values' });

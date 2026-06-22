@@ -308,6 +308,52 @@ class AdminController {
     }
   }
 
+  // System Settings
+  static async getSettings(req, res) {
+    try {
+      const { rows } = await pool.query('SELECT key, value FROM system_settings');
+      const settings = {};
+      rows.forEach(row => {
+        settings[row.key] = row.value;
+      });
+      return res.status(200).json(settings);
+    } catch (error) {
+      console.error('❌ Admin Get Settings Error:', error);
+      return res.status(500).json({ error: 'Failed to fetch system settings' });
+    }
+  }
+
+  static async updateSettings(req, res) {
+    try {
+      const { settings } = req.body; // Expecting { key: value, ... }
+      if (!settings || typeof settings !== 'object') {
+        return res.status(400).json({ error: 'Invalid settings format' });
+      }
+
+      for (const [key, value] of Object.entries(settings)) {
+        await pool.query(
+          'INSERT INTO system_settings (key, value, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP',
+          [key, JSON.stringify(value)]
+        );
+      }
+
+      return res.status(200).json({ success: true, message: 'Settings updated successfully' });
+    } catch (error) {
+      console.error('❌ Admin Update Settings Error:', error);
+      return res.status(500).json({ error: 'Failed to update system settings' });
+    }
+  }
+
+  static async getInternalSetting(key, defaultValue) {
+    try {
+      const { rows } = await pool.query('SELECT value FROM system_settings WHERE key = $1', [key]);
+      return rows.length > 0 ? rows[0].value : defaultValue;
+    } catch (error) {
+      console.error(`❌ Error fetching setting ${key}:`, error);
+      return defaultValue;
+    }
+  }
+
   static async getSystemLogs(req, res) {
     try {
       const logs = [
