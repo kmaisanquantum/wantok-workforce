@@ -27,6 +27,10 @@ router.delete('/users/:userId', AdminController.deleteUser);
 router.get('/queue', AdminController.getQueue);
 router.post('/queue/override', AdminController.overrideQueue);
 
+// System Settings
+router.get('/settings', AdminController.getSettings);
+router.post('/settings', AdminController.updateSettings);
+
 // PATCH /api/admin/flag-user/:userId -> Moderation action
 router.patch('/flag-user/:userId', AdminController.flagUser);
 
