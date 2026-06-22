@@ -41,9 +41,16 @@ class AuthController {
       console.log('🎟️ Issuing JWT session...');
       const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
 
-      if (redisClient) { redisClient.incr(userRole === 'provider' ? 'metrics:total_providers' : 'metrics:total_customers'); }
+      if (redisClient) {
+        try {
+          await redisClient.incr(userRole === 'provider' ? 'metrics:total_providers' : 'metrics:total_customers');
+        } catch (redisErr) {
+          console.error('⚠️ Redis metrics update failed but continuing registration:', redisErr.message);
+        }
+      }
       console.log('✅ Registration successful for:', email, 'Role:', userRole);
       return res.status(201).json({
+        success: true,
         message: 'Account registered successfully.',
         token,
         user: {
