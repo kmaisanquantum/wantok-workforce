@@ -65,7 +65,7 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors({ origin: '*' }));
+app.use(cors({ origin: true, credentials: true }));
 app.options('*', cors());
 app.use(express.json());
 
