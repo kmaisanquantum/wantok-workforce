@@ -19,7 +19,7 @@ const { width } = Dimensions.get("window");
 const API_BASE = (typeof process !== 'undefined' && (process.env.REACT_APP_API_URL || process.env.EXPO_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL))
   ? (process.env.REACT_APP_API_URL || process.env.EXPO_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL)
   : (Platform.OS === 'web'
-      ? (typeof window !== 'undefined' && window.location.origin.includes('wantok.dspng.tech') ? 'https://wantok.dspng.tech/api' : '/api')
+      ? (typeof window !== 'undefined' && (window.location.origin.includes('wantok.dspng.tech') || window.location.hostname === 'wantok.dspng.tech') ? 'https://wantok.dspng.tech/api' : (window.location.origin + '/api'))
       : 'http://45.32.243.144:3000/api');
 console.log('🔗 Active Backend Pipeline API Path Set to:', API_BASE);
 
@@ -1621,16 +1621,14 @@ function AuthScreen({ onAuth }) {
       if (response.ok) {
         onAuth({ ...data.user, token: data.token }, false);
       } else {
-        alert("Network Status: " + response.status + "
-Details: " + (data.details || data.error || "Signin failed"));
+        alert("Network Status: " + response.status + "\nDetails: " + (data.details || data.error || "Signin failed"));
       }
     } catch (error) {
       if (error.name === 'AbortError') {
         alert('Server connection timeout. Please check backend logs.');
       } else {
         console.error("🚨 Full Network Error (SignIn):", error);
-        alert("Network Status: OFFLINE
-Details: " + (data?.message || data?.error || error.message || "Please verify your credentials or check connection."));
+        alert("Network Status: OFFLINE\nDetails: " + (data?.message || data?.error || error.message || "Please verify your credentials or check connection."));
       }
     } finally {
       clearTimeout(timeoutId);
@@ -1675,16 +1673,14 @@ Details: " + (data?.message || data?.error || error.message || "Please verify yo
           console.log('✅ Registration success payload:', data);
           onAuth({ ...data.user, token: data.token }, true);
         } else {
-          alert("Network Status: " + response.status + "
-Details: " + (data.details || data.error || "Signup failed"));
+          alert("Network Status: " + response.status + "\nDetails: " + (data.details || data.error || "Signup failed"));
         }
       } catch (error) {
         if (error.name === 'AbortError') {
           alert('Server connection timeout. Please check backend logs.');
         } else {
           console.error("🚨 Full Network Error (SignUp):", error);
-          alert("Network Status: OFFLINE
-Details: " + (data?.message || data?.error || error.message || "Please verify your credentials or check connection."));
+          alert("Network Status: OFFLINE\nDetails: " + (data?.message || data?.error || error.message || "Please verify your credentials or check connection."));
         }
       } finally {
         clearTimeout(timeoutId);
@@ -1960,13 +1956,11 @@ function AdminAuthScreen({ onAuth }) {
           if (Platform.OS === 'web') window.location.href = '/';
         }
       } else {
-        alert("Network Status: " + response.status + "
-Details: " + (data.error || "Login failed"));
+        alert("Network Status: " + response.status + "\nDetails: " + (data.error || "Login failed"));
       }
     } catch (error) {
       console.error("🚨 Full Network Error (AdminLogin):", error);
-      alert("Network Status: OFFLINE
-Details: " + (data?.message || data?.error || error.message || "Unknown network error."));
+      alert("Network Status: OFFLINE\nDetails: " + (data?.message || data?.error || error.message || "Unknown network error."));
     } finally {
       setLoading(false);
     }
@@ -2071,10 +2065,13 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       });
       if (res.ok) {
         const data = await res.json();
+        // Handle { success: true, data: { ... } } or { ... }
         setStats(data.data || data);
+      } else {
+        console.error("❌ Admin Stats Fetch Failed: ", res.status);
       }
     } catch (e) {
-      console.error("❌ Admin Data Pipeline Error (Stats): ", e.message);
+      console.error("❌ Admin Data Pipeline Error: ", e.message);
     }
   };
 
@@ -2086,9 +2083,11 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       if (res.ok) {
         const data = await res.json();
         setPendingProviders(data.data || data);
+      } else {
+        console.error("❌ Admin Pending Fetch Failed: ", res.status);
       }
     } catch (e) {
-      console.error("❌ Admin Data Pipeline Error (Pending): ", e.message);
+      console.error("❌ Admin Data Pipeline Error: ", e.message);
     }
   };
 
@@ -2100,11 +2099,14 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       });
       if (res.ok) {
         const data = await res.json();
+        // Backend returns { users: [...] }
         const usersData = data.users || data.data?.users || data.data || data;
         setUsers(Array.isArray(usersData) ? usersData : []);
+      } else {
+        console.error("❌ Admin Users Fetch Failed: ", res.status);
       }
     } catch (e) {
-      console.error("❌ Admin Data Pipeline Error (Users): ", e.message);
+      console.error("❌ Admin Data Pipeline Error: ", e.message);
     } finally { setLoading(false); }
   };
 
@@ -2116,9 +2118,11 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       if (res.ok) {
         const data = await res.json();
         setLogs(data.data || data);
+      } else {
+        console.error("❌ Admin Logs Fetch Failed: ", res.status);
       }
     } catch (e) {
-      console.error("❌ Admin Data Pipeline Error (Logs): ", e.message);
+      console.error("❌ Admin Data Pipeline Error: ", e.message);
     }
   };
 
