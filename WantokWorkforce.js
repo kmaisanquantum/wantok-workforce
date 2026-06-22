@@ -1663,6 +1663,7 @@ function AuthScreen({ onAuth }) {
         const data = await response.json().catch(() => ({ error: 'Invalid response from server' }));
 
         if (response.ok) {
+          console.log('✅ Registration success payload:', data);
           onAuth({ ...data.user, token: data.token }, true);
         } else {
           alert(data.details || data.error || 'Signup failed');
