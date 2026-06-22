@@ -16,7 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import categories from "./categories.json";
 
 const { width } = Dimensions.get("window");
-const API_BASE = Platform.OS === 'web' ? '' : 'http://45.32.243.144:3000';
+const API_BASE = (typeof process !== 'undefined' && process.env.REACT_APP_API_URL) ? process.env.REACT_APP_API_URL : (Platform.OS === 'web' ? 'https://wantok.dspng.tech' : 'http://45.32.243.144:3000');
 
 const COLORS = {
   primary: "#1A6B3C",
@@ -2046,8 +2046,13 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       const res = await fetch(`${API_BASE}/api/admin/dashboard-stats`, {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
-      if (res.ok) setStats(await res.json());
-    } catch (e) { console.error(e); }
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data.data || data);
+      }
+    } catch (e) {
+      console.error("❌ Admin Data Pipeline Error (Stats): ", e.message);
+    }
   };
 
   const fetchPending = async () => {
@@ -2055,8 +2060,13 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       const res = await fetch(`${API_BASE}/api/admin/pending-providers`, {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
-      if (res.ok) setPendingProviders(await res.json());
-    } catch (e) { console.error(e); }
+      if (res.ok) {
+        const data = await res.json();
+        setPendingProviders(data.data || data);
+      }
+    } catch (e) {
+      console.error("❌ Admin Data Pipeline Error (Pending): ", e.message);
+    }
   };
 
   const fetchUsers = async () => {
@@ -2067,9 +2077,12 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setUsers(Array.isArray(data) ? data : (data.users || []));
+        const usersData = data.users || data.data?.users || data.data || data;
+        setUsers(Array.isArray(usersData) ? usersData : []);
       }
-    } catch (e) { console.error(e); } finally { setLoading(false); }
+    } catch (e) {
+      console.error("❌ Admin Data Pipeline Error (Users): ", e.message);
+    } finally { setLoading(false); }
   };
 
   const fetchLogs = async () => {
@@ -2077,8 +2090,13 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       const res = await fetch(`${API_BASE}/api/admin/logs`, {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
-      if (res.ok) setLogs(await res.json());
-    } catch (e) { console.error(e); }
+      if (res.ok) {
+        const data = await res.json();
+        setLogs(data.data || data);
+      }
+    } catch (e) {
+      console.error("❌ Admin Data Pipeline Error (Logs): ", e.message);
+    }
   };
 
   useEffect(() => {
