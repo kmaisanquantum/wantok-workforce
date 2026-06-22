@@ -2277,7 +2277,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
                     )}
 
                     <View style={{ flexDirection: "row", gap: 4, marginTop: 4 }}>
-                      {u.roles?.map(r => (
+                      {(Array.isArray(u.roles) ? u.roles : []).map(r => (
                         <View key={r} style={{
                           backgroundColor: r === 'provider' ? "#DCFCE7" : (r === 'customer' ? "#DBEAFE" : "#E2E8F0"),
                           paddingHorizontal: 8,
