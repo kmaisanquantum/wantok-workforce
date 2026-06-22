@@ -114,7 +114,7 @@ class AdminController {
       let query = `
         SELECT u.id, u.name, u.email, u.phone_number, u.is_verified, u.is_flagged, u.created_at,
                u.primary_skill as trade_type, u.location_name as city_location,
-               array_agg(ur.role_name) as roles
+               COALESCE(array_agg(ur.role_name) FILTER (WHERE ur.role_name IS NOT NULL), '{}') as roles
         FROM users u
         LEFT JOIN user_roles ur ON u.id = ur.user_id
       `;
@@ -123,9 +123,14 @@ class AdminController {
       const filters = [];
 
       if (role && role !== 'All Roles') {
-        const normalizedRole = role.toLowerCase().includes('provider') ? 'provider' : 'customer';
-        queryParams.push(normalizedRole);
-        filters.push(`u.id IN (SELECT user_id FROM user_roles WHERE role_name = $${queryParams.length})`);
+        const r = role.toLowerCase();
+        if (r.includes('provider')) {
+          filters.push(`u.id IN (SELECT user_id FROM user_roles WHERE role_name::TEXT ILIKE '%provider%')`);
+        } else if (r.includes('customer')) {
+          filters.push(`u.id IN (SELECT user_id FROM user_roles WHERE role_name::TEXT ILIKE '%customer%')`);
+        } else if (r.includes('admin')) {
+          filters.push(`u.id IN (SELECT user_id FROM user_roles WHERE role_name::TEXT ILIKE '%admin%')`);
+        }
       }
 
       if (search) {
@@ -142,9 +147,11 @@ class AdminController {
         ORDER BY u.created_at DESC
       `;
 
-      const { rows } = await pool.query(query, queryParams);
-      console.log("Admin User Query Results:", rows);
-      return res.status(200).json({ users: rows });
+      const { rows: usersArray } = await pool.query(query, queryParams);
+      console.log('--- ADMIN FETCH CHANNELS ---');
+      console.log('Query result length:', usersArray.length);
+      console.log("Admin User Query Results:", usersArray);
+      return res.status(200).json({ users: Array.isArray(usersArray) ? usersArray : [] });
     } catch (error) {
       console.error('❌ Admin Get Users Error:', error);
       return res.status(500).json({ error: 'Failed to fetch users' });
