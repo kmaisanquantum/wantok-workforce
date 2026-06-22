@@ -2126,8 +2126,13 @@ function AdminScreen({ onNavigate, onLogout, user }) {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setSystemSettings(data);
+      if (res.ok && data.settings) {
+        // Convert settings array of {key, value} into an object
+        const settingsObj = {};
+        data.settings.forEach(s => {
+          settingsObj[s.key] = s.value;
+        });
+        setSystemSettings(settingsObj);
       }
     } catch (e) {
       console.error("❌ Admin Data Pipeline Error (Settings): ", e.message);
@@ -2198,10 +2203,12 @@ function AdminScreen({ onNavigate, onLogout, user }) {
           headers: { "Authorization": `Bearer ${token}` }
         });
       } else if (action === 'update_settings') {
+        const key = Object.keys(data)[0];
+        const value = data[key];
         res = await fetch(`${API_BASE}/admin/settings`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-          body: JSON.stringify({ settings: data })
+          body: JSON.stringify({ key, value })
         });
       } else if (action === 'queue_override') {
         res = await fetch(`${API_BASE}/admin/queue/override`, {
