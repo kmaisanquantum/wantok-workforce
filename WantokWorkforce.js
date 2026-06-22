@@ -2049,28 +2049,26 @@ function AdminAuthScreen({ onAuth }) {
 }
 
 function AdminScreen({ onNavigate, onLogout, user }) {
-  const [activeTab, setActiveTab] = useState("dashboard"); // dashboard, users, verification, logs
   const [stats, setStats] = useState({ totalCustomers: 0, totalProviders: 0, totalMatches: 0 });
   const [pendingProviders, setPendingProviders] = useState([]);
   const [users, setUsers] = useState([]);
-  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("All Roles");
-  const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [logs, setLogs] = useState([]);
+  const [queue, setQueue] = useState([]);
 
   const fetchStats = async () => {
     try {
-      const res = await fetch(`${API_BASE}/admin/dashboard-stats`, {
+      const res = await fetch(`${API_BASE}/admin/stats`, {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        // Handle { success: true, data: { ... } } or { ... }
-        setStats(data.data || data.stats || data);
-      } else {
-        console.error("❌ Admin Stats Fetch Failed: ", res.status, data);
+        setStats(data.data || data);
       }
     } catch (e) {
       console.error("❌ Admin Data Pipeline Error (Stats): ", e.message);
@@ -2085,8 +2083,6 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setPendingProviders(data.data || data.providers || data);
-      } else {
-        console.error("❌ Admin Pending Fetch Failed: ", res.status, data);
       }
     } catch (e) {
       console.error("❌ Admin Data Pipeline Error (Pending): ", e.message);
@@ -2103,12 +2099,24 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       if (res.ok) {
         const usersData = data.users || data.data?.users || data.data || data;
         setUsers(Array.isArray(usersData) ? usersData : []);
-      } else {
-        console.error("❌ Admin Users Fetch Failed: ", res.status, data);
       }
     } catch (e) {
       console.error("❌ Admin Data Pipeline Error (Users): ", e.message);
     } finally { setLoading(false); }
+  };
+
+  const fetchQueue = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/queue`, {
+        headers: { "Authorization": `Bearer ${user?.token}` }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setQueue(Array.isArray(data) ? data : []);
+      }
+    } catch (e) {
+      console.error("❌ Admin Data Pipeline Error (Queue): ", e.message);
+    }
   };
 
   const fetchLogs = async () => {
@@ -2119,8 +2127,6 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setLogs(data.data || data.logs || data);
-      } else {
-        console.error("❌ Admin Logs Fetch Failed: ", res.status, data);
       }
     } catch (e) {
       console.error("❌ Admin Data Pipeline Error (Logs): ", e.message);
@@ -2131,10 +2137,9 @@ function AdminScreen({ onNavigate, onLogout, user }) {
     let interval;
     if (activeTab === "dashboard") {
       fetchStats();
-      // Regular polling for real-time Redis counters
-      interval = setInterval(fetchStats, 10000); // every 10 seconds
+      interval = setInterval(fetchStats, 10000);
     }
-    if (activeTab === "verification") fetchPending();
+    if (activeTab === "verification") { fetchPending(); fetchQueue(); }
     if (activeTab === "users") fetchUsers();
     if (activeTab === "logs") fetchLogs();
 
@@ -2156,7 +2161,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
         });
       } else if (action === 'update') {
         res = await fetch(`${API_BASE}/admin/users/${userId}`, {
-          method: "PUT",
+          method: "PATCH",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
           body: JSON.stringify(data)
         });
@@ -2167,20 +2172,26 @@ function AdminScreen({ onNavigate, onLogout, user }) {
           body: JSON.stringify(data)
         });
       } else if (action === 'approve') {
-        res = await fetch(`${API_BASE}/admin/approve/${userId}`, {
-          method: "POST",
+        res = await fetch(`${API_BASE}/admin/approve-provider/${userId}`, {
+          method: "PATCH",
           headers: { "Authorization": `Bearer ${token}` }
         });
       } else if (action === 'flag') {
-        res = await fetch(`${API_BASE}/admin/flag/${userId}`, {
-          method: "POST",
+        res = await fetch(`${API_BASE}/admin/flag-user/${userId}`, {
+          method: "PATCH",
           headers: { "Authorization": `Bearer ${token}` }
+        });
+      } else if (action === 'queue_override') {
+        res = await fetch(`${API_BASE}/admin/queue/override`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify(data)
         });
       }
 
       if (res && res.ok) {
         if (activeTab === "users") fetchUsers();
-        if (activeTab === "verification") fetchPending();
+        if (activeTab === "verification") { fetchPending(); fetchQueue(); }
         if (activeTab === "dashboard") fetchStats();
         setModalVisible(false);
       } else {
@@ -2319,6 +2330,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
                       <Text style={{ fontSize: 11, color: "#94A3B8" }}>{new Date(u.created_at).toLocaleDateString()}</Text>
                     </View>
                     <Text style={{ fontSize: 12, color: "#64748B", marginBottom: 6 }}>{u.email} • {u.phone_number}</Text>
+                    <Text style={{ fontSize: 12, color: "#1E293B", fontWeight: "600", marginBottom: 6 }}>Balance: K{parseFloat(u.balance || 0).toFixed(2)} • Status: {u.status || 'active'}</Text>
 
                     {u.roles?.includes('provider') && u.trade_type && (
                       <Text style={{ fontSize: 12, color: COLORS.primary, fontWeight: "600", marginBottom: 6 }}>
@@ -2326,7 +2338,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
                       </Text>
                     )}
 
-                    <View style={{ flexDirection: "row", gap: 4, marginTop: 4 }}>
+                    <View style={{ flexDirection: "row", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
                       {(Array.isArray(u.roles) ? u.roles : []).map(r => (
                         <View key={r} style={{
                           backgroundColor: r === 'provider' ? "#DCFCE7" : (r === 'customer' ? "#DBEAFE" : "#E2E8F0"),
@@ -2343,6 +2355,22 @@ function AdminScreen({ onNavigate, onLogout, user }) {
                       ))}
                       {u.is_verified && <View style={{ backgroundColor: "#F0FDF4", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: "#BBF7D0" }}><Text style={{ fontSize: 10, fontWeight: "800", color: "#15803D" }}>✅ VERIFIED</Text></View>}
                       {u.is_flagged && <View style={{ backgroundColor: "#FEF2F2", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: "#FECDD3" }}><Text style={{ fontSize: 10, fontWeight: "800", color: "#B91C1C" }}>🚩 FLAGGED</Text></View>}
+                      {u.status === 'suspended' && <View style={{ backgroundColor: "#000", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}><Text style={{ fontSize: 10, fontWeight: "800", color: "#fff" }}>⛔ SUSPENDED</Text></View>}
+                    </View>
+
+                    <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+                      <TouchableOpacity
+                        onPress={() => handleUserAction(u.id, 'update', { role: u.roles?.includes('provider') ? 'customer' : 'provider' })}
+                        style={{ backgroundColor: "#F1F5F9", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: "#E2E8F0" }}
+                      >
+                        <Text style={{ fontSize: 10, fontWeight: "700", color: "#475569" }}>Toggle Role</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleUserAction(u.id, 'update', { status: u.status === 'suspended' ? 'active' : 'suspended' })}
+                        style={{ backgroundColor: u.status === 'suspended' ? "#DCFCE7" : "#FEF2F2", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: u.status === 'suspended' ? "#BBF7D0" : "#FECDD3" }}
+                      >
+                        <Text style={{ fontSize: 10, fontWeight: "700", color: u.status === 'suspended' ? "#166534" : "#B91C1C" }}>{u.status === 'suspended' ? 'Activate' : 'Suspend'}</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
                   <View style={{ flexDirection: "row", gap: 4 }}>
@@ -2357,9 +2385,54 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
         {activeTab === "verification" && (
           <View style={{ padding: 16 }}>
-            <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B", marginBottom: 16 }}>Verification Queue</Text>
+            <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B", marginBottom: 16 }}>System Monitoring Queue</Text>
+
+            {/* Active Matches / Jobs Section */}
+            <Text style={{ fontSize: 14, fontWeight: "700", color: "#64748B", marginBottom: 12 }}>ACTIVE MATCHES & JOBS</Text>
+            {queue.length === 0 ? (
+              <View style={{ backgroundColor: "#fff", padding: 20, borderRadius: 12, marginBottom: 24, alignItems: "center" }}>
+                <Text style={{ color: "#94A3B8", fontSize: 13 }}>No active matching transactions</Text>
+              </View>
+            ) : (
+              queue.map(item => (
+                <View key={item.id} style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: item.status === 'completed' ? "#10B981" : (item.status === 'cancelled' ? "#EF4444" : "#3B82F6") }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <View>
+                      <Text style={{ fontSize: 15, fontWeight: "700", color: "#1E293B" }}>{item.service_type} Match</Text>
+                      <Text style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>{item.customer_name} ➔ {item.provider_name || 'Searching...'}</Text>
+                      <Text style={{ fontSize: 11, color: "#94A3B8", marginTop: 4 }}>ID: {item.id} • {new Date(item.created_at).toLocaleString()}</Text>
+                    </View>
+                    <View style={{ backgroundColor: "#F1F5F9", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                      <Text style={{ fontSize: 10, fontWeight: "800", color: "#475569" }}>{item.status.toUpperCase()}</Text>
+                    </View>
+                  </View>
+
+                  {item.status === 'pending' && (
+                    <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+                      <TouchableOpacity
+                        onPress={() => handleUserAction(item.id, 'queue_override', { matchId: item.id, action: 'force_complete' })}
+                        style={{ flex: 1, backgroundColor: "#10B981", paddingVertical: 8, borderRadius: 6, alignItems: "center" }}
+                      >
+                        <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>Manually Complete</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleUserAction(item.id, 'queue_override', { matchId: item.id, action: 'cancel' })}
+                        style={{ flex: 1, backgroundColor: "#EF4444", paddingVertical: 8, borderRadius: 6, alignItems: "center" }}
+                      >
+                        <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>Force Terminate</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              ))
+            )}
+
+            {/* Provider Verification Section */}
+            <Text style={{ fontSize: 14, fontWeight: "700", color: "#64748B", marginBottom: 12, marginTop: 12 }}>PENDING VERIFICATIONS</Text>
             {pendingProviders.length === 0 ? (
-              <Text style={{ textAlign: "center", color: "#64748B", marginTop: 40 }}>No pending verifications</Text>
+              <View style={{ backgroundColor: "#fff", padding: 20, borderRadius: 12, alignItems: "center" }}>
+                <Text style={{ color: "#94A3B8", fontSize: 13 }}>No pending verifications</Text>
+              </View>
             ) : (
               pendingProviders.map(prov => (
                 <View key={prov.id} style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, marginBottom: 12 }}>
