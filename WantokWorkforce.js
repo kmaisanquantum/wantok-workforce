@@ -16,7 +16,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import categories from "./categories.json";
 
 const { width } = Dimensions.get("window");
-const API_BASE = (typeof process !== 'undefined' && process.env.REACT_APP_API_URL) ? process.env.REACT_APP_API_URL : (Platform.OS === 'web' ? '/api' : 'http://45.32.243.144:3000');
+const API_BASE = (typeof process !== 'undefined' && process.env.REACT_APP_API_URL) ? process.env.REACT_APP_API_URL : (Platform.OS === 'web' ? (typeof window !== 'undefined' ? (window.location.origin + '/api') : '/api') : 'http://45.32.243.144:3000');
+console.log('🔗 Active Backend Pipeline API Path Set to:', API_BASE);
 
 const COLORS = {
   primary: "#1A6B3C",
@@ -1621,7 +1622,7 @@ function AuthScreen({ onAuth }) {
         alert('Server connection timeout. Please check backend logs.');
       } else {
         console.error('SignIn Error:', error);
-        alert('Sign-in failed. Please verify your credentials or check connection.');
+        alert('Sign-in failed: ' + (error.message || 'Please verify your credentials or check connection.'));
       }
     } finally {
       clearTimeout(timeoutId);
@@ -1671,7 +1672,7 @@ function AuthScreen({ onAuth }) {
           alert('Server connection timeout. Please check backend logs.');
         } else {
           console.error('SignUp Error:', error);
-          alert('Sign-up failed. Please verify your credentials or check connection.');
+          alert('Sign-up failed: ' + (error.message || 'Please verify your credentials or check connection.'));
         }
       } finally {
         clearTimeout(timeoutId);
@@ -1950,7 +1951,7 @@ function AdminAuthScreen({ onAuth }) {
       }
     } catch (error) {
       console.error('Admin Login Error:', error);
-      alert('Network error.');
+      alert('Admin Login failed: ' + (error.message || 'Unknown network error.'));
     } finally {
       setLoading(false);
     }
