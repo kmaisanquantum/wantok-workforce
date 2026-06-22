@@ -66,6 +66,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({ origin: ['http://wantok.dspng.tech', 'https://wantok.dspng.tech'], credentials: true }));
+app.options('*', cors());
 app.use(express.json());
 
 // Domain API Routes
