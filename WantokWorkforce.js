@@ -1621,14 +1621,16 @@ function AuthScreen({ onAuth }) {
       if (response.ok) {
         onAuth({ ...data.user, token: data.token }, false);
       } else {
-        alert(data.details || data.error || 'Signin failed');
+        alert("Network Status: " + response.status + "
+Details: " + (data.details || data.error || "Signin failed"));
       }
     } catch (error) {
       if (error.name === 'AbortError') {
         alert('Server connection timeout. Please check backend logs.');
       } else {
-        console.error('SignIn Error:', error);
-        alert('Sign-in failed: ' + (data?.message || data?.error || error.message || 'Please verify your credentials or check connection.'));
+        console.error("🚨 Full Network Error (SignIn):", error);
+        alert("Network Status: OFFLINE
+Details: " + (data?.message || data?.error || error.message || "Please verify your credentials or check connection."));
       }
     } finally {
       clearTimeout(timeoutId);
@@ -1673,14 +1675,16 @@ function AuthScreen({ onAuth }) {
           console.log('✅ Registration success payload:', data);
           onAuth({ ...data.user, token: data.token }, true);
         } else {
-          alert(data.details || data.error || 'Signup failed');
+          alert("Network Status: " + response.status + "
+Details: " + (data.details || data.error || "Signup failed"));
         }
       } catch (error) {
         if (error.name === 'AbortError') {
           alert('Server connection timeout. Please check backend logs.');
         } else {
-          console.error('SignUp Error:', error);
-          alert('Sign-up failed: ' + (data?.message || data?.error || error.message || 'Please verify your credentials or check connection.'));
+          console.error("🚨 Full Network Error (SignUp):", error);
+          alert("Network Status: OFFLINE
+Details: " + (data?.message || data?.error || error.message || "Please verify your credentials or check connection."));
         }
       } finally {
         clearTimeout(timeoutId);
@@ -1956,11 +1960,13 @@ function AdminAuthScreen({ onAuth }) {
           if (Platform.OS === 'web') window.location.href = '/';
         }
       } else {
-        alert(data.error || 'Login failed');
+        alert("Network Status: " + response.status + "
+Details: " + (data.error || "Login failed"));
       }
     } catch (error) {
-      console.error('Admin Login Error:', error);
-      alert('Admin Login failed: ' + (data?.message || data?.error || error.message || 'Unknown network error.'));
+      console.error("🚨 Full Network Error (AdminLogin):", error);
+      alert("Network Status: OFFLINE
+Details: " + (data?.message || data?.error || error.message || "Unknown network error."));
     } finally {
       setLoading(false);
     }
