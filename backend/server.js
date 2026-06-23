@@ -16,6 +16,7 @@ const redisClient = require('./db/redis_init');
 const JWT_SECRET = process.env.JWT_SECRET || 'wantok-development-secret-2024';
 
 const app = express();
+app.set("trust proxy", 1);
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, {
   cors: {
