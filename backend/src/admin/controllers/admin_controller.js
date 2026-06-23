@@ -401,15 +401,12 @@ class AdminController {
 
   static async getSystemLogs(req, res) {
     try {
-      const logs = [
-        { id: 1, event: 'System Startup', level: 'INFO', timestamp: new Date(Date.now() - 3600000).toISOString() },
-        { id: 2, event: 'DB Connection Established', level: 'INFO', timestamp: new Date(Date.now() - 3500000).toISOString() },
-        { id: 3, event: 'Admin Login: admin@dspng.tech', level: 'SEC', timestamp: new Date(Date.now() - 1800000).toISOString() },
-        { id: 4, event: 'New Provider Signup: John Doe', level: 'INFO', timestamp: new Date(Date.now() - 900000).toISOString() },
-      ];
-      return res.status(200).json(logs);
+      const query = 'SELECT id, timestamp, level, action as event FROM audit_logs ORDER BY timestamp DESC LIMIT 100';
+      const { rows } = await UserModel.getPool().query(query);
+      return res.status(200).json(rows);
     } catch (error) {
-      return res.status(500).json({ error: 'Failed to fetch logs' });
+      console.error('❌ getSystemLogs Error:', error);
+      return res.status(500).json({ error: 'Failed to fetch audit logs' });
     }
   }
 }
