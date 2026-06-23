@@ -94,7 +94,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 const corsOptions = {
   origin: function (origin, callback) {
-    const allowedOrigins = ["http://wantok.dspng.tech", "https://wantok.dspng.tech", "http://localhost:3000", "http://localhost:19006"];
+    const allowedOrigins = ["http://wantok.dspng.tech", "https://wantok.dspng.tech", "https://wantok-workforce.onrender.com", "http://localhost:3000", "http://localhost:19006", "http://localhost:8081"];
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
