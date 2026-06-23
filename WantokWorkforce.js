@@ -1341,12 +1341,17 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch(`${API_BASE}/admin/stats`, {
+      const res = await fetch(`${API_BASE}/admin/dashboard-metrics`, {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setStats(data.data || data);
+      if (res.ok && data.success) {
+        // Map backend completedMatches to frontend totalMatches state property
+        setStats({
+          totalCustomers: data.data.totalCustomers || 0,
+          totalProviders: data.data.totalProviders || 0,
+          totalMatches: data.data.completedMatches || 0
+        });
       }
     } catch (e) {
       console.error("❌ Admin Data Pipeline Error (Stats): ", e.message);
