@@ -3,6 +3,25 @@ const bcrypt = require('bcrypt');
 const redisClient = require('../../../db/redis_init');
 
 class AdminController {
+  static async getDashboardMetrics(req, res) {
+    try {
+      const query = `
+        SELECT
+          (SELECT COUNT(*)::INT FROM user_roles WHERE role_name = 'customer') as "totalCustomers",
+          (SELECT COUNT(*)::INT FROM user_roles WHERE role_name = 'provider') as "totalProviders",
+          (SELECT COUNT(*)::INT FROM bookings WHERE status = 'completed') as "completedMatches"
+      `;
+      const { rows } = await UserModel.getPool().query(query);
+      return res.status(200).json({
+        success: true,
+        data: rows[0]
+      });
+    } catch (error) {
+      console.error('❌ Admin Dashboard Metrics Error:', error);
+      return res.status(500).json({ error: 'Failed to fetch dashboard metrics' });
+    }
+  }
+
   static async getStats(req, res) {
     try {
       // Priority: High-speed Redis Counters
