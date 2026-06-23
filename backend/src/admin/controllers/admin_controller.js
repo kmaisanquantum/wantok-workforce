@@ -1,4 +1,5 @@
-const { pool } = require('../../auth/models/user_model');
+const UserModel = require('../../auth/models/user_model');
+const pool = UserModel.getPool();
 const bcrypt = require('bcrypt');
 const redisClient = require('../../../db/redis_init');
 
