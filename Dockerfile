@@ -13,7 +13,9 @@ RUN cd backend && npm ci
 
 # Copy the rest of the application
 COPY . .
-RUN npm run build
+
+# Run build with increased memory
+RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
 # Production stage
 FROM node:20-slim
@@ -26,9 +28,11 @@ COPY --from=build /app/dist ./dist
 # Copy backend code and dependencies
 COPY --from=build /app/backend ./backend
 COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/node_modules ./node_modules
 
 EXPOSE 3000
 
 ENV NODE_ENV=production
 
+# Start the unified server
 CMD ["npm", "run", "start:prod"]
