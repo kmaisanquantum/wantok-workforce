@@ -16,13 +16,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import categories from "./categories.json";
 
 const { width } = Dimensions.get("window");
-const API_BASE = (typeof process !== 'undefined' && (process.env.REACT_APP_API_URL || process.env.EXPO_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL))
-  ? (process.env.REACT_APP_API_URL || process.env.EXPO_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL)
-  : (Platform.OS === 'web'
-      ? (typeof window !== 'undefined' && (window.location.origin.includes('wantok.dspng.tech') || window.location.hostname === 'wantok.dspng.tech')
-          ? (window.location.protocol + '//' + window.location.hostname + (window.location.port ? ':' + window.location.port : '') + '/api')
-          : (window.location.origin + '/api'))
-      : 'http://45.32.243.144:3000/api');
+const API_BASE = (typeof window !== 'undefined' && (window.location.origin.includes('wantok.dspng.tech') || window.location.hostname === 'wantok.dspng.tech'))
+  ? 'https://wantok.dspng.tech/api'
+  : (typeof process !== 'undefined' && (process.env.REACT_APP_API_URL || process.env.EXPO_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL))
+    ? (process.env.REACT_APP_API_URL || process.env.EXPO_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL)
+    : (Platform.OS === 'web' ? (typeof window !== 'undefined' ? window.location.origin + '/api' : '/api') : 'https://wantok.dspng.tech/api');
 console.log('🔗 Active Backend Pipeline API Path Set to:', API_BASE);
 
 const COLORS = {
