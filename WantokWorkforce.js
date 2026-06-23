@@ -16,7 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import categories from "./categories.json";
 
 const { width } = Dimensions.get("window");
-const API_BASE = (typeof process !== "undefined" && process.env.EXPO_PUBLIC_API_URL) || "https://wantok.dspng.tech/api";
+const API_BASE = (typeof window !== "undefined" && window.location.hostname !== "localhost") ? "/api" : ((typeof process !== "undefined" && process.env.EXPO_PUBLIC_API_URL) || "https://wantok.dspng.tech/api");
 console.log('🔗 Active Backend Pipeline API Path Set to:', API_BASE);
 
 const COLORS = {
@@ -761,7 +761,9 @@ function AuthScreen({ onAuth }) {
       const timeoutId = setTimeout(() => controller.abort(), 30000);
       try {
         // First check basic API health
+        console.log(`🔍 Checking system health at: ${API_BASE}/health`);
         const apiRes = await fetch(`${API_BASE}/health`, { signal: controller.signal });
+        console.log(`📡 API Health Response: ${apiRes.status}`);
         if (apiRes.ok) {
           // If API is healthy, check DB health
           const dbRes = await fetch(`${API_BASE}/health/db`, { signal: controller.signal });
@@ -771,6 +773,7 @@ function AuthScreen({ onAuth }) {
           setDbStatus("error");
         }
       } catch (e) {
+        console.error("❌ Health check failed:", e);
         setDbStatus("offline");
       } finally {
         clearTimeout(timeoutId);
