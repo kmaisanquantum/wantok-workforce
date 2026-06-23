@@ -80,7 +80,20 @@ class UserModel {
   }
 
   static async findByIdentifier(identifier) {
-    const query = 'SELECT u.*, array_agg(ur.role_name) as roles FROM users u LEFT JOIN user_roles ur ON u.id = ur.user_id WHERE u.email = $1 OR u.phone_number = $1 GROUP BY u.id';
+    const query = `
+      SELECT u.*,
+             ARRAY(
+               SELECT DISTINCT role_name FROM (
+                 SELECT role::TEXT as role_name FROM users WHERE id = u.id
+                 UNION
+                 SELECT role_name::TEXT FROM user_roles WHERE user_id = u.id
+               ) sub
+               WHERE role_name IS NOT NULL
+             ) as roles
+      FROM users u
+      WHERE u.email = $1 OR u.phone_number = $1
+      GROUP BY u.id
+    `;
     const { rows } = await pool.query(query, [identifier]);
     return rows[0];
   }
@@ -92,7 +105,20 @@ class UserModel {
   }
 
   static async findById(id) {
-    const query = 'SELECT u.*, array_agg(ur.role_name) as roles FROM users u LEFT JOIN user_roles ur ON u.id = ur.user_id WHERE u.id = $1 GROUP BY u.id';
+    const query = `
+      SELECT u.*,
+             ARRAY(
+               SELECT DISTINCT role_name FROM (
+                 SELECT role::TEXT as role_name FROM users WHERE id = u.id
+                 UNION
+                 SELECT role_name::TEXT FROM user_roles WHERE user_id = u.id
+               ) sub
+               WHERE role_name IS NOT NULL
+             ) as roles
+      FROM users u
+      WHERE u.id = $1
+      GROUP BY u.id
+    `;
     const { rows } = await pool.query(query, [id]);
     return rows[0];
   }
