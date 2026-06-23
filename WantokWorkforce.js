@@ -1146,8 +1146,8 @@ function TrustScreen({ onNavigate }) {
             </View>
           ))}
         </View>
+        </View>
       </ScrollView>
-    </View>
     </View>
   );
 }
