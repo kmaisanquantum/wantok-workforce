@@ -2299,4 +2299,3 @@ function WorkerCard({ worker, onPress }) {
   );
 }
 
-export default WantokWorkforce;
