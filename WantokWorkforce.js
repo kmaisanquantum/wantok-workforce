@@ -1148,6 +1148,7 @@ function TrustScreen({ onNavigate }) {
         </View>
       </ScrollView>
     </View>
+    </View>
   );
 }
 
@@ -2972,7 +2973,7 @@ function WorkerCard({ worker, onPress }) {
           }}
         >
           <Text style={{ color: "#fff", fontWeight: "800", fontSize: 18 }}>
-            {worker.name ? worker.name.charAt(0) : "W"}
+            {worker?.name ? worker.name.charAt(0) : "W"}
           </Text>
         </LinearGradient>
         <View
@@ -2994,11 +2995,14 @@ function WorkerCard({ worker, onPress }) {
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
           <View>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={{ fontSize: 15, fontWeight: "700", color: COLORS.text }}>{worker.name}</Text>
-              {worker.is_verified && <Text style={{ fontSize: 14 }}>✅</Text>}
+              <Text style={{ fontSize: 15, fontWeight: "700", color: COLORS.text }}>{worker?.name || "Anonymous Worker"}</Text>
+              {worker?.is_verified && <TrustBadge />}
             </View>
             <Text style={{ marginTop: 2, fontSize: 13, color: COLORS.primary, fontWeight: "600" }}>
-              {worker.primary_skill || "General Trade"}
+              {worker?.primary_skill || "General Trade"}
+            </Text>
+            <Text style={{ marginTop: 4, fontSize: 12, color: COLORS.textMuted }}>
+              📞 {worker?.phone_number || "No contact info"}
             </Text>
           </View>
         </View>
@@ -3008,17 +3012,11 @@ function WorkerCard({ worker, onPress }) {
           <Text style={{ fontSize: 12, fontWeight: "600", color: COLORS.text }}>4.8</Text>
         </View>
 
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
             <Text style={{ fontSize: 12 }}>📍</Text>
             <Text style={{ fontSize: 12, color: COLORS.textMuted }}>
-              {worker.distance_km ? `${parseFloat(worker.distance_km).toFixed(1)} km away` : worker.location_name || "Nearby"}
-            </Text>
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <Text style={{ fontSize: 12 }}>🛡️</Text>
-            <Text style={{ fontSize: 12, color: COLORS.primary, fontWeight: "700" }}>
-              {worker.is_verified ? "98% Trust" : "85% Trust"}
+              {worker?.distance_km ? worker.distance_km + " km away" : worker?.location_name || "Nearby"}
             </Text>
           </View>
         </View>
