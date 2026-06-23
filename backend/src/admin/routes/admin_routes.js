@@ -39,5 +39,6 @@ router.patch('/flag-user/:userId', AdminController.flagUser);
 
 // GET /api/admin/logs -> System event logs
 router.get('/logs', AdminController.getSystemLogs);
+router.get('/system-logs', AdminController.getSystemLogs);
 
 module.exports = router;

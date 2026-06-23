@@ -1418,7 +1418,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
   const fetchLogs = async () => {
     try {
-      const res = await fetch(`${API_BASE}/admin/logs`, {
+      const res = await fetch(`${API_BASE}/admin/system-logs`, {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
       const data = await res.json().catch(() => ({}));
@@ -1919,7 +1919,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
               {logs.length === 0 ? (
                 <Text style={{ color: "#475569", fontSize: 12, fontStyle: "italic", textAlign: "center", padding: 20 }}>- No active log stream -</Text>
               ) : (
-                logs.map(log => (
+                (Array.isArray(logs) ? logs : []).map(log => (
                   <View key={log.id} style={{ marginBottom: 10, flexDirection: "row", gap: 10 }}>
                     <Text style={{ color: "#475569", fontSize: 11, width: 80, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
                       [{new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}]
