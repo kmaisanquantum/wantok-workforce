@@ -9,4 +9,4 @@ Target Database: wantok
 Error Message:
 Error Code: ECONNREFUSED
 ❌ Migration error bypassed for safety:
-📡 [2026-06-23T22:50:15.647Z] GET /api/health - Origin: Same-Origin
+📡 [2026-06-23T22:50:46.764Z] GET /api/health - Origin: https://wantok.dspng.tech

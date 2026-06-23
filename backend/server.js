@@ -94,12 +94,13 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 const corsOptions = {
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
   origin: function (origin, callback) {
     const allowedOrigins = ["http://wantok.dspng.tech", "https://wantok.dspng.tech", "https://wantok-workforce.onrender.com", "http://localhost:3000", "http://localhost:19006", "http://localhost:8081"];
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      console.warn("🚫 CORS Rejected Origin:", origin); callback(new Error("Not allowed by CORS: " + origin));
     }
   },
   credentials: true,
@@ -107,6 +108,10 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+app.use((req, res, next) => {
+  console.log(`📡 [${new Date().toISOString()}] ${req.method} ${req.url} - Origin: ${req.headers.origin || "Same-Origin"}`);
+  next();
+});
 app.use(express.json());
 
 // Domain API Routes
