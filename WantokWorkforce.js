@@ -1899,16 +1899,61 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
         {activeTab === "logs" && (
           <View style={{ padding: 16 }}>
-            <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B", marginBottom: 16 }}>System Events</Text>
-            {logs.map(log => (
-              <View key={log.id} style={{ backgroundColor: "#fff", padding: 12, borderRadius: 8, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: log.level === 'SEC' ? "#EF4444" : "#3B82F6" }}>
-                <Text style={{ fontSize: 13, fontWeight: "700" }}>{log.event}</Text>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
-                  <Text style={{ fontSize: 11, color: "#64748B" }}>{log.level}</Text>
-                  <Text style={{ fontSize: 11, color: "#94A3B8" }}>{new Date(log.timestamp).toLocaleTimeString()}</Text>
-                </View>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B" }}>System Activity Logs</Text>
+              <TouchableOpacity
+                onPress={fetchLogs}
+                style={{ backgroundColor: "#F1F5F9", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: "#E2E8F0", flexDirection: "row", alignItems: "center", gap: 6 }}
+              >
+                <Text style={{ fontSize: 14 }}>🔄</Text>
+                <Text style={{ fontSize: 12, fontWeight: "700", color: "#475569" }}>REFRESH</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ backgroundColor: "#0F172A", borderRadius: 12, padding: 16, borderLeftWidth: 4, borderLeftColor: "#334155", elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: "#1E293B", paddingBottom: 8 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#22C55E" }} />
+                <Text style={{ color: "#94A3B8", fontSize: 11, fontWeight: "700", letterSpacing: 1 }}>TTY1 / SYSTEM_SERVICE / STDOUT</Text>
               </View>
-            ))}
+
+              {logs.length === 0 ? (
+                <Text style={{ color: "#475569", fontSize: 12, fontStyle: "italic", textAlign: "center", padding: 20 }}>- No active log stream -</Text>
+              ) : (
+                logs.map(log => (
+                  <View key={log.id} style={{ marginBottom: 10, flexDirection: "row", gap: 10 }}>
+                    <Text style={{ color: "#475569", fontSize: 11, width: 80, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+                      [{new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}]
+                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <Text style={{
+                          fontSize: 10,
+                          fontWeight: "800",
+                          color: log.level === 'SEC' ? "#F87171" : "#22D3EE",
+                          backgroundColor: log.level === 'SEC' ? "rgba(248, 113, 113, 0.1)" : "rgba(34, 211, 238, 0.1)",
+                          paddingHorizontal: 4,
+                          paddingVertical: 1,
+                          borderRadius: 3
+                        }}>
+                          {log.level}
+                        </Text>
+                        <Text style={{ color: "#E2E8F0", fontSize: 12, fontWeight: "600", fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+                          {log.event}
+                        </Text>
+                      </View>
+                      <Text style={{ color: "#64748B", fontSize: 11, marginTop: 2, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+                        PID: {Math.floor(1000 + Math.random() * 9000)} / host.wantok.internal
+                      </Text>
+                    </View>
+                  </View>
+                ))
+              )}
+              <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: "#1E293B", paddingTop: 8 }}>
+                <Text style={{ color: "#22C55E", fontSize: 11, fontWeight: "700", fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+                  $ _
+                </Text>
+              </View>
+            </View>
           </View>
         )}
         <View style={{ height: 60 }} />
