@@ -1,5 +1,4 @@
 const UserModel = require('../../auth/models/user_model');
-const pool = UserModel.getPool();
 const bcrypt = require('bcrypt');
 const redisClient = require('../../../db/redis_init');
 
@@ -30,13 +29,13 @@ class AdminController {
 
       // Fallback: SQL aggregations
       console.log('🔄 Fallback: Aggregating stats from PostgreSQL');
-      const customerCountResult = await pool.query(
+      const customerCountResult = await UserModel.getPool().query(
         "SELECT COUNT(*) FROM user_roles WHERE role_name = 'customer'"
       );
-      const providerCountResult = await pool.query(
+      const providerCountResult = await UserModel.getPool().query(
         "SELECT COUNT(*) FROM user_roles WHERE role_name = 'provider'"
       );
-      const matchCountResult = await pool.query(
+      const matchCountResult = await UserModel.getPool().query(
         "SELECT COUNT(*) FROM bookings WHERE status = 'completed'"
       );
 
@@ -69,7 +68,7 @@ class AdminController {
         AND id IN (SELECT user_id FROM user_roles WHERE role_name = 'provider')
         ORDER BY created_at DESC
       `;
-      const { rows } = await pool.query(query);
+      const { rows } = await UserModel.getPool().query(query);
       return res.status(200).json(rows);
     } catch (error) {
       console.error('❌ Admin Pending Providers Error:', error);
@@ -81,7 +80,7 @@ class AdminController {
     try {
       const { providerId } = req.params;
       const query = 'UPDATE users SET is_verified = TRUE WHERE id = $1 RETURNING id';
-      const { rows } = await pool.query(query, [providerId]);
+      const { rows } = await UserModel.getPool().query(query, [providerId]);
 
       if (rows.length === 0) return res.status(404).json({ error: 'Provider not found' });
 
@@ -96,7 +95,7 @@ class AdminController {
     try {
       const { userId } = req.params;
       const query = 'UPDATE users SET is_flagged = TRUE WHERE id = $1 RETURNING id';
-      const { rows } = await pool.query(query, [userId]);
+      const { rows } = await UserModel.getPool().query(query, [userId]);
 
       if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
 
@@ -151,7 +150,7 @@ class AdminController {
         ORDER BY u.created_at DESC
       `;
 
-      const { rows: usersArray } = await pool.query(query, queryParams);
+      const { rows: usersArray } = await UserModel.getPool().query(query, queryParams);
       return res.status(200).json({ users: Array.isArray(usersArray) ? usersArray : [] });
     } catch (error) {
       console.error('❌ Admin Get Users Error:', error);
@@ -165,7 +164,7 @@ class AdminController {
       const { name, email, phone_number, password, role } = req.body;
       const passwordHash = await bcrypt.hash(password || 'Wantok2024!', 12);
 
-      client = await pool.connect();
+      client = await UserModel.getPool().connect();
       await client.query('BEGIN');
 
       const userQuery = `
@@ -196,7 +195,7 @@ class AdminController {
       const { userId } = req.params;
       const { name, email, phone_number, is_verified, is_flagged, status, balance, role } = req.body;
 
-      client = await pool.connect();
+      client = await UserModel.getPool().connect();
       await client.query('BEGIN');
 
       const fields = [];
@@ -245,7 +244,7 @@ class AdminController {
     let client;
     try {
       const { userId } = req.params;
-      client = await pool.connect();
+      client = await UserModel.getPool().connect();
       await client.query('BEGIN');
 
       await client.query('DELETE FROM user_roles WHERE user_id = $1', [userId]);
@@ -276,7 +275,7 @@ class AdminController {
         LEFT JOIN users p ON b.provider_id = p.id
         ORDER BY b.created_at DESC
       `;
-      const { rows } = await pool.query(query);
+      const { rows } = await UserModel.getPool().query(query);
       return res.status(200).json(rows);
     } catch (error) {
       console.error('❌ Admin Get Queue Error:', error);
@@ -293,7 +292,7 @@ class AdminController {
       else return res.status(400).json({ error: 'Invalid action' });
 
       const query = 'UPDATE bookings SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id';
-      const { rows } = await pool.query(query, [newStatus, matchId]);
+      const { rows } = await UserModel.getPool().query(query, [newStatus, matchId]);
 
       if (rows.length === 0) return res.status(404).json({ error: 'Match/Booking not found' });
 
@@ -312,7 +311,7 @@ class AdminController {
   // System Settings
   static async getSettings(req, res) {
     try {
-      const { rows } = await pool.query('SELECT key, value, group_category FROM system_settings');
+      const { rows } = await UserModel.getPool().query('SELECT key, value, group_category FROM system_settings');
       return res.status(200).json({ success: true, settings: rows });
     } catch (error) {
       console.error('❌ Admin Get Settings Error:', error);
@@ -326,7 +325,7 @@ class AdminController {
 
       if (settings && typeof settings === 'object') {
           for (const [k, v] of Object.entries(settings)) {
-              await pool.query(
+              await UserModel.getPool().query(
                 'INSERT INTO system_settings (key, value, "updatedAt") VALUES ($1, $2, CURRENT_TIMESTAMP) ON CONFLICT (key) DO UPDATE SET value = $2, "updatedAt" = CURRENT_TIMESTAMP',
                 [k, String(v)]
               );
@@ -338,7 +337,7 @@ class AdminController {
         return res.status(400).json({ error: 'Key and value are required' });
       }
 
-      await pool.query(
+      await UserModel.getPool().query(
         'INSERT INTO system_settings (key, value, "updatedAt") VALUES ($1, $2, CURRENT_TIMESTAMP) ON CONFLICT (key) DO UPDATE SET value = $2, "updatedAt" = CURRENT_TIMESTAMP',
         [key, String(value)]
       );
@@ -358,7 +357,7 @@ class AdminController {
       if (fee !== undefined) updates.platform_fee = fee;
 
       for (const [key, value] of Object.entries(updates)) {
-        await pool.query(
+        await UserModel.getPool().query(
           'INSERT INTO system_settings (key, value, group_category, "updatedAt") VALUES ($1, $2, \'engine\', CURRENT_TIMESTAMP) ON CONFLICT (key) DO UPDATE SET value = $2, "updatedAt" = CURRENT_TIMESTAMP',
           [key, String(value)]
         );
@@ -373,7 +372,7 @@ class AdminController {
 
   static async getInternalSetting(key, defaultValue) {
     try {
-      const { rows } = await pool.query('SELECT value FROM system_settings WHERE key = $1', [key]);
+      const { rows } = await UserModel.getPool().query('SELECT value FROM system_settings WHERE key = $1', [key]);
       return rows.length > 0 ? rows[0].value : defaultValue;
     } catch (error) {
       console.error(`❌ Error fetching setting ${key}:`, error);
