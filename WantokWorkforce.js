@@ -486,6 +486,7 @@ function TrustScreen({ onNavigate }) {
               {w.verified && <Text style={{ fontSize: 18 }}>✅</Text>}
             </View>
           ))}
+        </View>
       </ScrollView>
     </View>
   );

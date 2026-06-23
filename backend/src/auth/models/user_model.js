@@ -32,21 +32,9 @@ const getPoolConfig = () => {
   return config;
 };
 
-let pool;
-const initPool = () => {
-  try {
-    const config = getPoolConfig();
-    pool = new Pool(config);
-    pool.on('error', (err) => console.error('❌ [DB] Unexpected error on idle client', err));
-    module.exports.pool = pool;
-    return pool;
-  } catch (err) {
-    console.error('❌ [DB] Failed to initialize pool:', err);
-    throw err;
-  }
-};
-
-initPool();
+// Initialize pool immediately on module load
+const pool = new Pool(getPoolConfig());
+pool.on('error', (err) => console.error('❌ [DB] Unexpected error on idle client', err));
 
 class UserModel {
   static getPool() { return pool; }
