@@ -125,7 +125,7 @@ class AdminController {
                    UNION
                    SELECT role_name::TEXT FROM user_roles WHERE user_id = u.id
                  ) sub
-                 WHERE role_name IS NOT NULL
+                 WHERE role_name IS NOT NULL AND role_name::TEXT NOT IN ('null', 'undefined', '')
                ) as roles
         FROM users u
         WHERE 1=1

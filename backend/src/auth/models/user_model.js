@@ -89,7 +89,7 @@ class UserModel {
                  UNION
                  SELECT role_name::TEXT FROM user_roles WHERE user_id = u.id
                ) sub
-               WHERE role_name IS NOT NULL
+               WHERE role_name IS NOT NULL AND role_name::TEXT NOT IN ('null', 'undefined', '')
              ) as roles
       FROM users u
       WHERE u.email = $1 OR u.phone_number = $1
@@ -113,7 +113,7 @@ class UserModel {
                  UNION
                  SELECT role_name::TEXT FROM user_roles WHERE user_id = u.id
                ) sub
-               WHERE role_name IS NOT NULL
+               WHERE role_name IS NOT NULL AND role_name::TEXT NOT IN ('null', 'undefined', '')
              ) as roles
       FROM users u
       WHERE u.id = $1
