@@ -16,7 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import categories from "./categories.json";
 
 const { width } = Dimensions.get("window");
-const API_BASE = (typeof window !== "undefined" && window.location.hostname !== "localhost") ? "/api" : ((typeof process !== "undefined" && process.env.EXPO_PUBLIC_API_URL) || "https://wantok.dspng.tech/api");
+const API_BASE = (typeof process !== "undefined" && process.env.EXPO_PUBLIC_API_URL) || ((typeof window !== "undefined" && window.location.hostname !== "localhost") ? "/api" : "https://wantok.dspng.tech/api");
 console.log('🔗 Active Backend Pipeline API Path Set to:', API_BASE);
 
 const COLORS = {
