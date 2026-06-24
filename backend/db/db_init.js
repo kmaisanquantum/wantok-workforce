@@ -49,12 +49,13 @@ async function initializeDatabase(pool) {
       client.release();
     }
   } catch (err) {
-    console.error("❌ [Critical] Database connection failed.");
+    console.warn("⚠️ [Non-Critical] Database connection failed during initialization.");
     console.error(`Target Host: ${host}`);
     console.error(`Target Database: ${database}`);
     console.error("Error Message:", err.message);
     console.error("Error Code:", err.code);
-    throw err;
+    console.log("🚀 Continuing server startup anyway. Database-dependent features will be unavailable until connection is restored.");
+
   }
 }
 
