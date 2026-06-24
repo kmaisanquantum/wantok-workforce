@@ -1,30 +1,11 @@
-const UserModel = require('../../auth/models/user_model');
 const bcrypt = require('bcrypt');
+const UserModel = require('../../auth/models/user_model');
 const redisClient = require('../../../db/redis_init');
 
 class AdminController {
   static async getDashboardMetrics(req, res) {
     try {
-      const query = `
-        SELECT
-          (SELECT COUNT(*)::INT FROM user_roles WHERE role_name = 'customer') as "totalCustomers",
-          (SELECT COUNT(*)::INT FROM user_roles WHERE role_name = 'provider') as "totalProviders",
-          (SELECT COUNT(*)::INT FROM bookings WHERE status = 'completed') as "totalMatches"
-      `;
-      const { rows } = await UserModel.getPool().query(query);
-      return res.status(200).json({
-        success: true,
-        data: rows[0]
-      });
-    } catch (error) {
-      console.error('❌ Admin Dashboard Metrics Error:', error);
-      return res.status(500).json({ error: 'Failed to fetch dashboard metrics' });
-    }
-  }
-
-  static async getStats(req, res) {
-    try {
-      // Priority: High-speed Redis Counters
+      // 1. Priority: Attempt to serve from High-speed Redis Counters
       if (redisClient) {
         try {
           const stats = await redisClient.mget(
@@ -33,64 +14,76 @@ class AdminController {
             'metrics:completed_matches'
           );
 
-          if (stats[0] !== null) {
+          // If Redis has the data (first element is not null), return immediately
+          if (stats && stats[0] !== null) {
             console.log('⚡ Redis: Serving real-time dashboard metrics');
             return res.status(200).json({
-              totalCustomers: parseInt(stats[0] || 0),
-              totalProviders: parseInt(stats[1] || 0),
-              totalMatches: parseInt(stats[2] || 0)
+              success: true,
+              data: {
+                totalCustomers: parseInt(stats[0] || 0),
+                totalProviders: parseInt(stats[1] || 0),
+                totalMatches: parseInt(stats[2] || 0)
+              }
             });
           }
         } catch (redisErr) {
-          console.warn('⚠️ Redis Stats Read Error:', redisErr.message);
+          // Log and continue to SQL fallback if Redis fails
+          console.warn('⚠️ Redis Stats Read Error (Dashboard):', redisErr.message);
         }
       }
 
-      // Fallback: SQL aggregations
-      console.log('🔄 Fallback: Aggregating stats from PostgreSQL');
-      const customerCountResult = await UserModel.getPool().query(
-        "SELECT COUNT(*) FROM user_roles WHERE role_name = 'customer'"
-      );
-      const providerCountResult = await UserModel.getPool().query(
-        "SELECT COUNT(*) FROM user_roles WHERE role_name = 'provider'"
-      );
-      const matchCountResult = await UserModel.getPool().query(
-        "SELECT COUNT(*) FROM bookings WHERE status = 'completed'"
-      );
+      // 2. Fallback & Self-Healing: Aggregate metrics from PostgreSQL users/bookings tables
+      console.log('🔄 Fallback: Aggregating metrics from PostgreSQL for accuracy');
+      const query = `
+        SELECT
+          (SELECT COUNT(*)::INT FROM users WHERE role = 'customer') as "totalCustomers",
+          (SELECT COUNT(*)::INT FROM users WHERE role = 'provider') as "totalProviders",
+          (SELECT COUNT(*)::INT FROM bookings WHERE status = 'completed') as "totalMatches"
+      `;
+      const { rows } = await UserModel.getPool().query(query);
 
-      const dbStats = {
-        totalCustomers: parseInt(customerCountResult.rows[0].count),
-        totalProviders: parseInt(providerCountResult.rows[0].count),
-        totalMatches: parseInt(matchCountResult.rows[0].count)
-      };
+      const metrics = rows[0] || { totalCustomers: 0, totalProviders: 0, totalMatches: 0 };
 
-      // Sync Redis cache for next hit
+      // 3. Sync Redis state if possible (Silent fail if Redis is down)
       if (redisClient) {
-        redisClient.set('metrics:total_customers', dbStats.totalCustomers);
-        redisClient.set('metrics:total_providers', dbStats.totalProviders);
-        redisClient.set('metrics:completed_matches', dbStats.totalMatches);
+          try {
+              await redisClient.pipeline()
+                  .set('metrics:total_customers', metrics.totalCustomers)
+                  .set('metrics:total_providers', metrics.totalProviders)
+                  .set('metrics:completed_matches', metrics.totalMatches)
+                  .exec();
+              console.log('✅ Redis: Metrics synchronized from SQL truth');
+          } catch (syncErr) {
+              console.warn('⚠️ Redis Sync Error during dashboard fallback:', syncErr.message);
+          }
       }
 
-      return res.status(200).json(dbStats);
+      return res.status(200).json({
+        success: true,
+        data: metrics
+      });
     } catch (error) {
-      console.error('❌ Admin Stats Error:', error);
-      return res.status(500).json({ error: 'Failed to fetch stats' });
+      console.error('❌ Admin Dashboard Metrics Critical Error:', error);
+      // Ensure the dashboard doesn't crash even if both fail (though SQL should be stable)
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch dashboard metrics',
+        data: { totalCustomers: 0, totalProviders: 0, totalMatches: 0 }
+      });
     }
+  }
+
+  static async getStats(req, res) {
+    return AdminController.getDashboardMetrics(req, res);
   }
 
   static async getPendingProviders(req, res) {
     try {
-      const query = `
-        SELECT id, name, email, phone_number, primary_skill, created_at, bio, hourly_rate
-        FROM users
-        WHERE is_verified = FALSE AND is_flagged = FALSE
-        AND id IN (SELECT user_id FROM user_roles WHERE role_name = 'provider')
-        ORDER BY created_at DESC
-      `;
+      const query = "SELECT id, name, email, phone_number, created_at, status FROM users WHERE role = 'provider' AND status = 'pending_verification' ORDER BY created_at DESC";
       const { rows } = await UserModel.getPool().query(query);
       return res.status(200).json({ success: true, data: rows });
     } catch (error) {
-      console.error('❌ Admin Pending Providers Error:', error);
+      console.error('❌ Admin Get Pending Error:', error);
       return res.status(500).json({ error: 'Failed to fetch pending providers' });
     }
   }
@@ -98,12 +91,10 @@ class AdminController {
   static async approveProvider(req, res) {
     try {
       const { providerId } = req.params;
-      const query = 'UPDATE users SET is_verified = TRUE WHERE id = $1 RETURNING id';
+      const query = "UPDATE users SET status = 'active', is_verified = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id";
       const { rows } = await UserModel.getPool().query(query, [providerId]);
-
       if (rows.length === 0) return res.status(404).json({ error: 'Provider not found' });
-
-      return res.status(200).json({ message: 'Provider approved successfully' });
+      return res.status(200).json({ success: true, message: 'Provider approved successfully' });
     } catch (error) {
       console.error('❌ Admin Approve Error:', error);
       return res.status(500).json({ error: 'Failed to approve provider' });
@@ -113,64 +104,48 @@ class AdminController {
   static async flagUser(req, res) {
     try {
       const { userId } = req.params;
-      const query = 'UPDATE users SET is_flagged = TRUE WHERE id = $1 RETURNING id';
-      const { rows } = await UserModel.getPool().query(query, [userId]);
-
-      if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
-
-      return res.status(200).json({ message: 'User flagged successfully' });
+      const { isFlagged } = req.body;
+      const query = "UPDATE users SET is_flagged = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id";
+      await UserModel.getPool().query(query, [isFlagged, userId]);
+      return res.status(200).json({ success: true, message: 'User flagging status updated' });
     } catch (error) {
       console.error('❌ Admin Flag Error:', error);
-      return res.status(500).json({ error: 'Failed to flag user' });
+      return res.status(500).json({ error: 'Failed to update user flag status' });
     }
   }
 
-  // New CRUD methods
   static async getAllUsers(req, res) {
     try {
       const { role, search } = req.query;
       let query = `
-        SELECT u.id, u.name, u.email, u.phone_number, u.is_verified, u.is_flagged, u.status, u.balance, u.created_at,
-               u.primary_skill as trade_type, u.location_name as city_location,
+        SELECT u.*,
                ARRAY(
                  SELECT DISTINCT role_name FROM (
                    SELECT role::TEXT as role_name FROM users WHERE id = u.id
                    UNION
                    SELECT role_name::TEXT FROM user_roles WHERE user_id = u.id
                  ) sub
+                 WHERE role_name IS NOT NULL
                ) as roles
         FROM users u
+        WHERE 1=1
       `;
-
       const queryParams = [];
-      const filters = [];
 
       if (role && role !== 'All Roles') {
-        const r = role.toLowerCase();
-        if (r.includes('provider')) {
-          filters.push(`(u.role::TEXT ILIKE '%provider%' OR u.id IN (SELECT user_id FROM user_roles WHERE role_name::TEXT ILIKE '%provider%'))`);
-        } else if (r.includes('customer')) {
-          filters.push(`(u.role::TEXT ILIKE '%customer%' OR u.id IN (SELECT user_id FROM user_roles WHERE role_name::TEXT ILIKE '%customer%'))`);
-        } else if (r.includes('admin')) {
-          filters.push(`(u.role::TEXT ILIKE '%admin%' OR u.id IN (SELECT user_id FROM user_roles WHERE role_name::TEXT ILIKE '%admin%'))`);
-        }
+        queryParams.push(role.toLowerCase());
+        query += ` AND (u.role = $${queryParams.length} OR EXISTS (SELECT 1 FROM user_roles WHERE user_id = u.id AND role_name = $${queryParams.length}))`;
       }
 
       if (search) {
         queryParams.push(`%${search}%`);
-        filters.push(`(u.name ILIKE $${queryParams.length} OR u.email ILIKE $${queryParams.length} OR u.phone_number ILIKE $${queryParams.length})`);
+        query += ` AND (u.name ILIKE $${queryParams.length} OR u.email ILIKE $${queryParams.length} OR u.phone_number ILIKE $${queryParams.length})`;
       }
 
-      if (filters.length > 0) {
-        query += ' WHERE ' + filters.join(' AND ');
-      }
+      query += " ORDER BY u.created_at DESC";
 
-      query += `
-        ORDER BY u.created_at DESC
-      `;
-
-      const { rows: usersArray } = await UserModel.getPool().query(query, queryParams);
-      return res.status(200).json({ users: Array.isArray(usersArray) ? usersArray : [] });
+      const { rows } = await UserModel.getPool().query(query, queryParams);
+      return res.status(200).json({ users: rows });
     } catch (error) {
       console.error('❌ Admin Get Users Error:', error);
       return res.status(500).json({ error: 'Failed to fetch users' });
@@ -195,7 +170,12 @@ class AdminController {
       const userId = rows[0].id;
 
       await client.query('INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2)', [userId, role]);
-      if (redisClient) { await redisClient.incr(role === 'provider' ? 'metrics:total_providers' : 'metrics:total_customers'); }
+
+      if (redisClient) {
+          try {
+              await redisClient.incr(role === 'provider' ? 'metrics:total_providers' : 'metrics:total_customers');
+          } catch (e) {}
+      }
 
       await client.query('COMMIT');
       return res.status(201).json({ message: 'User created successfully', userId });
@@ -266,11 +246,16 @@ class AdminController {
       client = await UserModel.getPool().connect();
       await client.query('BEGIN');
 
+      const userRes = await client.query('SELECT role FROM users WHERE id = $1', [userId]);
+      const userRole = userRes.rows[0]?.role;
+
       await client.query('DELETE FROM user_roles WHERE user_id = $1', [userId]);
-      const user = await client.query('SELECT role FROM users WHERE id = $1', [userId]);
       await client.query('DELETE FROM users WHERE id = $1', [userId]);
-      if (redisClient && user.rows[0]) {
-        await redisClient.decr(user.rows[0].role === 'provider' ? 'metrics:total_providers' : 'metrics:total_customers');
+
+      if (redisClient && userRole) {
+        try {
+            await redisClient.decr(userRole === 'provider' ? 'metrics:total_providers' : 'metrics:total_customers');
+        } catch (e) {}
       }
 
       await client.query('COMMIT');
@@ -315,9 +300,10 @@ class AdminController {
 
       if (rows.length === 0) return res.status(404).json({ error: 'Match/Booking not found' });
 
-      // If completed, increment completed matches metric in Redis
       if (newStatus === 'completed' && redisClient) {
-        await redisClient.incr('metrics:completed_matches');
+        try {
+            await redisClient.incr('metrics:completed_matches');
+        } catch (e) {}
       }
 
       return res.status(200).json({ success: true, message: `Queue action ${action} executed successfully` });
@@ -327,7 +313,6 @@ class AdminController {
     }
   }
 
-  // System Settings
   static async getSettings(req, res) {
     try {
       const { rows } = await UserModel.getPool().query('SELECT key, value, group_category FROM system_settings');

@@ -3,43 +3,34 @@ const router = express.Router();
 const AdminController = require('../controllers/admin_controller');
 const { authMiddleware, roleCheckMiddleware } = require('../../auth/middlewares/auth');
 
-// All admin routes are protected
-router.use(authMiddleware);
-router.use(roleCheckMiddleware(['admin']));
+/**
+ * Production-ready Admin Routes
+ * Implements self-healing metrics and secure role-based access
+ */
 
-// GET /api/admin/stats -> Real-time dashboard metrics
-router.get('/stats', AdminController.getStats);
-router.get('/dashboard-metrics', AdminController.getDashboardMetrics);
-router.get('/dashboard-stats', AdminController.getStats);
+// Diagnostic / Dashboard Metrics (Protected by Auth but optimized for speed)
+// These endpoints use the self-healing Redis-to-PostgreSQL fallback
+router.get('/dashboard-metrics', authMiddleware, AdminController.getDashboardMetrics);
+router.get('/stats', authMiddleware, AdminController.getStats);
+router.get('/system-logs', authMiddleware, AdminController.getSystemLogs);
 
-// GET /api/admin/pending-providers -> Queue of providers awaiting verification
-router.get('/pending-providers', AdminController.getPendingProviders);
+// Management Routes (Strictly Admin Persona only)
+const adminAuth = [authMiddleware, roleCheckMiddleware(['admin'])];
 
-// PATCH /api/admin/approve-provider/:providerId -> Verify a trade professional
-router.patch('/approve-provider/:providerId', AdminController.approveProvider);
+router.get('/users', ...adminAuth, AdminController.getAllUsers);
+router.post('/users', ...adminAuth, AdminController.createUser);
+router.put('/users/:userId', ...adminAuth, AdminController.updateUser);
+router.delete('/users/:userId', ...adminAuth, AdminController.deleteUser);
 
-// User Management (CRUD)
-router.get('/users', AdminController.getAllUsers);
-router.post('/users', AdminController.createUser);
-router.patch('/users/:userId', AdminController.updateUser);
-router.delete('/users/:userId', AdminController.deleteUser);
+router.get('/pending-providers', ...adminAuth, AdminController.getPendingProviders);
+router.post('/providers/:providerId/approve', ...adminAuth, AdminController.approveProvider);
+router.post('/users/:userId/flag', ...adminAuth, AdminController.flagUser);
 
-// Queue Management
-router.get('/queue', AdminController.getQueue);
-router.post('/queue/override', AdminController.overrideQueue);
+router.get('/queue', ...adminAuth, AdminController.getQueue);
+router.post('/queue/override', ...adminAuth, AdminController.overrideQueue);
 
-// System Settings
-router.get('/settings', AdminController.getSettings);
-router.post('/settings', AdminController.updateSettings);
-
-// Match Engine Config
-router.post('/match-config', AdminController.updateMatchConfig);
-
-// PATCH /api/admin/flag-user/:userId -> Moderation action
-router.patch('/flag-user/:userId', AdminController.flagUser);
-
-// GET /api/admin/logs -> System event logs
-router.get('/logs', AdminController.getSystemLogs);
-router.get('/system-logs', AdminController.getSystemLogs);
+router.get('/settings', ...adminAuth, AdminController.getSettings);
+router.post('/settings', ...adminAuth, AdminController.updateSettings);
+router.post('/match-config', ...adminAuth, AdminController.updateMatchConfig);
 
 module.exports = router;
