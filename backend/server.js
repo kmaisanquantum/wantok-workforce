@@ -61,7 +61,7 @@ io.use(async (socket, next) => {
     if (!user) return next(new Error('Authentication error: User not found'));
 
     // Security Check: Block suspended or pending verification users from socket real-time stream
-    if (user.status === 'suspended' || user.status === 'pending_verification') {
+    if (user.status === 'suspended') {
       console.warn(`🚫 Socket connection rejected for ${user.email} (Status: ${user.status})`);
       return next(new Error(`Access denied: Account ${user.status}`));
     }

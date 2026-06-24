@@ -20,9 +20,11 @@ const authMiddleware = async (req, res, next) => {
     if (user.status === 'suspended') {
       return res.status(403).json({ error: 'Forbidden: Account is suspended' });
     }
-    if (user.status === 'pending_verification' && req.path !== '/profile' && req.method !== 'GET') {
-      // Allow them to see profile or possibly other benign things, but restricted overall
-      return res.status(403).json({ error: 'Forbidden: Account pending verification' });
+
+    // User Request: Remove blocking for pending_verification to ensure service providers can sign up and proceed.
+    // We will still log it for auditing purposes.
+    if (user.status === 'pending_verification') {
+      console.log(`ℹ️ User ${user.email} is accessing system while pending_verification.`);
     }
 
     req.user = user;
