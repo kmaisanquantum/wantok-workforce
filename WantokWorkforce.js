@@ -1338,8 +1338,9 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
   const fetchStats = async () => {
     try {
+      const adminToken = user?.token;
       const res = await fetch(`${API_BASE}/admin/dashboard-metrics`, {
-        headers: { "Authorization": `Bearer ${user?.token}` }
+        headers: { "Authorization": `Bearer ${adminToken}` }
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success && data.data) {
@@ -1421,8 +1422,9 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
   const fetchLogs = async () => {
     try {
+      const adminToken = user?.token;
       const res = await fetch(`${API_BASE}/admin/system-logs`, {
-        headers: { "Authorization": `Bearer ${user?.token}` }
+        headers: { "Authorization": `Bearer ${adminToken}` }
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success && Array.isArray(data.data)) {
