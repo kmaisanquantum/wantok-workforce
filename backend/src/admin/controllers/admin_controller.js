@@ -5,6 +5,9 @@ const redisClient = require('../../../db/redis_init');
 class AdminController {
   static async getDashboardMetrics(req, res) {
     try {
+      let metrics = null;
+      let needsSync = false;
+
       // 1. Priority: Attempt to serve from High-speed Redis Counters
       if (redisClient) {
         try {
@@ -14,48 +17,58 @@ class AdminController {
             'metrics:completed_matches'
           );
 
-          // If Redis has the data (first element is not null), return immediately
           if (stats && stats[0] !== null) {
-            console.log('⚡ Redis: Serving real-time dashboard metrics');
-            return res.status(200).json({
-              success: true,
-              data: {
-                totalCustomers: parseInt(stats[0] || 0),
-                totalProviders: parseInt(stats[1] || 0),
-                totalMatches: parseInt(stats[2] || 0)
-              }
-            });
+            const customers = parseInt(stats[0] || 0);
+            const providers = parseInt(stats[1] || 0);
+            const matches = parseInt(stats[2] || 0);
+
+            // Self-healing: If any counter is negative, trigger a sync
+            if (customers < 0 || providers < 0 || matches < 0) {
+              console.warn('⚠️ Redis counters detected negative values. Triggering auto-recalc.');
+              needsSync = true;
+            } else {
+              console.log('⚡ Redis: Serving real-time dashboard metrics');
+              return res.status(200).json({
+                success: true,
+                data: { totalCustomers: customers, totalProviders: providers, totalMatches: matches }
+              });
+            }
+          } else {
+            needsSync = true;
           }
         } catch (redisErr) {
-          // Log and continue to SQL fallback if Redis fails
           console.warn('⚠️ Redis Stats Read Error (Dashboard):', redisErr.message);
+          needsSync = true;
         }
+      } else {
+        needsSync = true;
       }
 
-      // 2. Fallback & Self-Healing: Aggregate metrics from PostgreSQL users/bookings tables
-      console.log('🔄 Fallback: Aggregating metrics from PostgreSQL for accuracy');
-      const query = `
-        SELECT
-          (SELECT COUNT(*)::INT FROM users WHERE role = 'customer') as "totalCustomers",
-          (SELECT COUNT(*)::INT FROM users WHERE role = 'provider') as "totalProviders",
-          (SELECT COUNT(*)::INT FROM bookings WHERE status = 'completed') as "totalMatches"
-      `;
-      const { rows } = await UserModel.getPool().query(query);
+      // 2. Fallback & Self-Healing: Aggregate metrics from PostgreSQL
+      if (needsSync) {
+        console.log('🔄 Syncing metrics from PostgreSQL truth...');
+        const query = `
+          SELECT
+            (SELECT COUNT(*)::INT FROM users WHERE role = 'customer') as "totalCustomers",
+            (SELECT COUNT(*)::INT FROM users WHERE role = 'provider') as "totalProviders",
+            (SELECT COUNT(*)::INT FROM bookings WHERE status = 'completed') as "totalMatches"
+        `;
+        const { rows } = await UserModel.getPool().query(query);
+        metrics = rows[0] || { totalCustomers: 0, totalProviders: 0, totalMatches: 0 };
 
-      const metrics = rows[0] || { totalCustomers: 0, totalProviders: 0, totalMatches: 0 };
-
-      // 3. Sync Redis state if possible (Silent fail if Redis is down)
-      if (redisClient) {
-          try {
-              await redisClient.pipeline()
-                  .set('metrics:total_customers', metrics.totalCustomers)
-                  .set('metrics:total_providers', metrics.totalProviders)
-                  .set('metrics:completed_matches', metrics.totalMatches)
-                  .exec();
-              console.log('✅ Redis: Metrics synchronized from SQL truth');
-          } catch (syncErr) {
-              console.warn('⚠️ Redis Sync Error during dashboard fallback:', syncErr.message);
-          }
+        // 3. Sync Redis state
+        if (redisClient) {
+            try {
+                await redisClient.pipeline()
+                    .set('metrics:total_customers', metrics.totalCustomers)
+                    .set('metrics:total_providers', metrics.totalProviders)
+                    .set('metrics:completed_matches', metrics.totalMatches)
+                    .exec();
+                console.log('✅ Redis: Metrics synchronized from SQL');
+            } catch (syncErr) {
+                console.warn('⚠️ Redis Sync Error:', syncErr.message);
+            }
+        }
       }
 
       return res.status(200).json({
@@ -64,7 +77,6 @@ class AdminController {
       });
     } catch (error) {
       console.error('❌ Admin Dashboard Metrics Critical Error:', error);
-      // Ensure the dashboard doesn't crash even if both fail (though SQL should be stable)
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch dashboard metrics',
@@ -116,7 +128,14 @@ class AdminController {
 
   static async getAllUsers(req, res) {
     try {
-      const { role, search } = req.query;
+      let { role, search } = req.query;
+
+      // Map frontend filter strings to DB roles
+      let dbRole = null;
+      if (role === 'Service Providers') dbRole = 'provider';
+      else if (role === 'Customers') dbRole = 'customer';
+      else if (role && role !== 'All Roles') dbRole = role.toLowerCase();
+
       let query = `
         SELECT u.*,
                ARRAY(
@@ -132,20 +151,21 @@ class AdminController {
       `;
       const queryParams = [];
 
-      if (role && role !== 'All Roles') {
-        queryParams.push(role.toLowerCase());
-        query += ` AND (u.role = $${queryParams.length} OR EXISTS (SELECT 1 FROM user_roles WHERE user_id = u.id AND role_name = $${queryParams.length}))`;
+      if (dbRole) {
+        queryParams.push(dbRole);
+        query += " AND (u.role = $" + queryParams.length + " OR EXISTS (SELECT 1 FROM user_roles WHERE user_id = u.id AND role_name = $" + queryParams.length + "))";
       }
 
       if (search) {
-        queryParams.push(`%${search}%`);
-        query += ` AND (u.name ILIKE $${queryParams.length} OR u.email ILIKE $${queryParams.length} OR u.phone_number ILIKE $${queryParams.length})`;
+        queryParams.push("%" + search + "%");
+        query += " AND (u.name ILIKE $" + queryParams.length + " OR u.email ILIKE $" + queryParams.length + " OR u.phone_number ILIKE $" + queryParams.length + ")";
       }
 
       query += " ORDER BY u.created_at DESC";
 
       const { rows } = await UserModel.getPool().query(query, queryParams);
-      return res.status(200).json({ users: rows });
+      console.log(`🔍 Admin: Fetched ${rows.length} users (Role Filter: ${role || 'None'})`);
+      return res.status(200).json({ success: true, users: rows });
     } catch (error) {
       console.error('❌ Admin Get Users Error:', error);
       return res.status(500).json({ error: 'Failed to fetch users' });
@@ -201,21 +221,21 @@ class AdminController {
       const values = [];
       let idx = 1;
 
-      if (name !== undefined) { fields.push(`name = $${idx++}`); values.push(name); }
-      if (email !== undefined) { fields.push(`email = $${idx++}`); values.push(email); }
-      if (phone_number !== undefined) { fields.push(`phone_number = $${idx++}`); values.push(phone_number); }
-      if (is_verified !== undefined) { fields.push(`is_verified = $${idx++}`); values.push(is_verified); }
-      if (is_flagged !== undefined) { fields.push(`is_flagged = $${idx++}`); values.push(is_flagged); }
-      if (status !== undefined) { fields.push(`status = $${idx++}`); values.push(status); }
-      if (balance !== undefined) { fields.push(`balance = $${idx++}`); values.push(balance); }
+      if (name !== undefined) { fields.push("name = $" + (idx++)); values.push(name); }
+      if (email !== undefined) { fields.push("email = $" + (idx++)); values.push(email); }
+      if (phone_number !== undefined) { fields.push("phone_number = $" + (idx++)); values.push(phone_number); }
+      if (is_verified !== undefined) { fields.push("is_verified = $" + (idx++)); values.push(is_verified); }
+      if (is_flagged !== undefined) { fields.push("is_flagged = $" + (idx++)); values.push(is_flagged); }
+      if (status !== undefined) { fields.push("status = $" + (idx++)); values.push(status); }
+      if (balance !== undefined) { fields.push("balance = $" + (idx++)); values.push(balance); }
       if (role !== undefined) {
-        fields.push(`role = $${idx++}`); values.push(role);
-        fields.push(`active_persona = $${idx++}`); values.push(role);
+        fields.push("role = $" + (idx++)); values.push(role);
+        fields.push("active_persona = $" + (idx++)); values.push(role);
       }
 
       if (fields.length > 0) {
         values.push(userId);
-        const query = `UPDATE users SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id`;
+        const query = "UPDATE users SET " + fields.join(', ') + " WHERE id = $" + idx + " RETURNING id";
         const { rows } = await client.query(query, values);
         if (rows.length === 0) {
           await client.query('ROLLBACK');
@@ -306,7 +326,7 @@ class AdminController {
         } catch (e) {}
       }
 
-      return res.status(200).json({ success: true, message: `Queue action ${action} executed successfully` });
+      return res.status(200).json({ success: true, message: "Queue action " + action + " executed successfully" });
     } catch (error) {
       console.error('❌ Admin Queue Override Error:', error);
       return res.status(500).json({ error: 'Failed to execute queue override' });
@@ -346,7 +366,7 @@ class AdminController {
         [key, String(value)]
       );
 
-      return res.status(200).json({ success: true, message: `Setting ${key} updated successfully.` });
+      return res.status(200).json({ success: true, message: "Setting " + key + " updated successfully." });
     } catch (error) {
       console.error('❌ Admin Update Settings Error:', error);
       return res.status(500).json({ error: 'Failed to update system settings' });
@@ -379,7 +399,7 @@ class AdminController {
       const { rows } = await UserModel.getPool().query('SELECT value FROM system_settings WHERE key = $1', [key]);
       return rows.length > 0 ? rows[0].value : defaultValue;
     } catch (error) {
-      console.error(`❌ Error fetching setting ${key}:`, error);
+      console.error("❌ Error fetching setting " + key + ":", error);
       return defaultValue;
     }
   }
