@@ -9,7 +9,7 @@ class AdminController {
         SELECT
           (SELECT COUNT(*)::INT FROM user_roles WHERE role_name = 'customer') as "totalCustomers",
           (SELECT COUNT(*)::INT FROM user_roles WHERE role_name = 'provider') as "totalProviders",
-          (SELECT COUNT(*)::INT FROM bookings WHERE status = 'completed') as "completedMatches"
+          (SELECT COUNT(*)::INT FROM bookings WHERE status = 'completed') as "totalMatches"
       `;
       const { rows } = await UserModel.getPool().query(query);
       return res.status(200).json({
@@ -88,7 +88,7 @@ class AdminController {
         ORDER BY created_at DESC
       `;
       const { rows } = await UserModel.getPool().query(query);
-      return res.status(200).json(rows);
+      return res.status(200).json({ success: true, data: rows });
     } catch (error) {
       console.error('❌ Admin Pending Providers Error:', error);
       return res.status(500).json({ error: 'Failed to fetch pending providers' });
@@ -295,7 +295,7 @@ class AdminController {
         ORDER BY b.created_at DESC
       `;
       const { rows } = await UserModel.getPool().query(query);
-      return res.status(200).json(rows);
+      return res.status(200).json({ success: true, data: rows });
     } catch (error) {
       console.error('❌ Admin Get Queue Error:', error);
       return res.status(500).json({ error: 'Failed to fetch queue' });
@@ -401,9 +401,9 @@ class AdminController {
 
   static async getSystemLogs(req, res) {
     try {
-      const query = 'SELECT id, timestamp, level, action as event FROM audit_logs ORDER BY timestamp DESC LIMIT 100';
+      const query = 'SELECT id, timestamp, level, action as message FROM audit_logs ORDER BY timestamp DESC LIMIT 100';
       const { rows } = await UserModel.getPool().query(query);
-      return res.status(200).json(rows);
+      return res.status(200).json({ success: true, data: rows });
     } catch (error) {
       console.error('❌ getSystemLogs Error:', error);
       return res.status(500).json({ error: 'Failed to fetch audit logs' });
