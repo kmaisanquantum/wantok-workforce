@@ -1359,8 +1359,9 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
   const fetchPending = async () => {
     try {
+      const adminToken = user?.token;
       const res = await fetch(`${API_BASE}/admin/pending-providers`, {
-        headers: { "Authorization": `Bearer ${user?.token}` }
+        headers: { "Authorization": `Bearer ${adminToken}` }
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
@@ -1374,8 +1375,9 @@ function AdminScreen({ onNavigate, onLogout, user }) {
   const fetchUsers = async () => {
     setLoading(true);
     try {
+      const adminToken = user?.token;
       const res = await fetch(`${API_BASE}/admin/users?role=${encodeURIComponent(roleFilter)}`, {
-        headers: { "Authorization": `Bearer ${user?.token}` }
+        headers: { "Authorization": `Bearer ${adminToken}` }
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
@@ -1389,8 +1391,9 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
   const fetchQueue = async () => {
     try {
+      const adminToken = user?.token;
       const res = await fetch(`${API_BASE}/admin/queue`, {
-        headers: { "Authorization": `Bearer ${user?.token}` }
+        headers: { "Authorization": `Bearer ${adminToken}` }
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
@@ -1403,8 +1406,9 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
   const fetchSettings = async () => {
     try {
+      const adminToken = user?.token;
       const res = await fetch(`${API_BASE}/admin/settings`, {
-        headers: { "Authorization": `Bearer ${user?.token}` }
+        headers: { "Authorization": `Bearer ${adminToken}` }
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.settings) {
@@ -1458,47 +1462,47 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
   const handleUserAction = async (userId, action, data = {}) => {
     try {
-      const token = user?.token;
+      const adminToken = user?.token;
       let res;
       if (action === 'delete') {
         res = await fetch(`${API_BASE}/admin/users/${userId}`, {
           method: "DELETE",
-          headers: { "Authorization": `Bearer ${token}` }
+          headers: { "Authorization": `Bearer ${adminToken}` }
         });
       } else if (action === 'update') {
         res = await fetch(`${API_BASE}/admin/users/${userId}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${adminToken}` },
           body: JSON.stringify(data)
         });
       } else if (action === 'create') {
         res = await fetch(`${API_BASE}/admin/users`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${adminToken}` },
           body: JSON.stringify(data)
         });
       } else if (action === 'approve') {
         res = await fetch(`${API_BASE}/admin/approve-provider/${userId}`, {
           method: "PATCH",
-          headers: { "Authorization": `Bearer ${token}` }
+          headers: { "Authorization": `Bearer ${adminToken}` }
         });
       } else if (action === 'flag') {
         res = await fetch(`${API_BASE}/admin/flag-user/${userId}`, {
           method: "PATCH",
-          headers: { "Authorization": `Bearer ${token}` }
+          headers: { "Authorization": `Bearer ${adminToken}` }
         });
       } else if (action === 'update_settings') {
         const key = Object.keys(data)[0];
         const value = data[key];
         res = await fetch(`${API_BASE}/admin/settings`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${adminToken}` },
           body: JSON.stringify({ key, value })
         });
       } else if (action === 'queue_override') {
         res = await fetch(`${API_BASE}/admin/queue/override`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${adminToken}` },
           body: JSON.stringify(data)
         });
       }
@@ -2068,19 +2072,34 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 }
 
 export default function App() {
+  const [screen, setScreen] = useState("home");
+  const [user, setUser] = useState(null);
+
   useEffect(() => {
     if (Platform.OS === "web") {
       const path = window.location.pathname;
       if (path === "/@dm1n") {
         setScreen("admin-auth");
       }
+
+      try {
+        const savedUser = localStorage.getItem('wantok_user');
+        if (savedUser) {
+          const parsed = JSON.parse(savedUser);
+          setUser(parsed);
+          setIsAuthenticated(true);
+          const persona = parsed.active_persona || (parsed.roles && parsed.roles[0]) || 'customer';
+          setCurrentUser(persona);
+          setOnboardingComplete(true);
+        }
+      } catch (e) {
+        console.error("Failed to restore session", e);
+      }
     }
   }, []);
-  const [screen, setScreen] = useState("home");
   const [screenData, setScreenData] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
 
   const navigate = (to, data = null) => {
@@ -2090,6 +2109,9 @@ export default function App() {
 
   const handleAuth = (userData, isSignUp = false) => {
     setUser(userData);
+    if (Platform.OS === 'web') {
+      localStorage.setItem('wantok_user', JSON.stringify(userData));
+    }
     setIsAuthenticated(true);
     if (isSignUp) {
       setCurrentUser(null);
@@ -2109,6 +2131,9 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    if (Platform.OS === 'web') {
+      localStorage.removeItem('wantok_user');
+    }
     setIsAuthenticated(false);
     setUser(null);
     setCurrentUser(null);
