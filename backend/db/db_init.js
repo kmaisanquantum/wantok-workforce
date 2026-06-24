@@ -43,6 +43,7 @@ async function initializeDatabase(pool) {
       await runPatch("seed_categories.sql", "categories seed");
       await runPatch("init_admin.sql", "admin user seed");
       await runPatch("seed_stats.sql", "system stats seed");
+      await runPatch("patch_backfill_roles.sql", "user roles backfill");
 
       console.log("✅ [Ready] Database initialization complete.");
     } finally {
