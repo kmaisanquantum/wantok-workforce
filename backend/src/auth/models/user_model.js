@@ -66,7 +66,7 @@ class UserModel {
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id, name, email, phone_number, role, active_persona, is_available
       `;
-      const { rows } = await client.query(userQuery, [name, phone, email, passwordHash, role, role]);
+      const { rows } = await client.query(userQuery, [name, phone, email.toLowerCase().trim(), passwordHash, role, role]);
       const user = rows[0];
       await client.query('INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2)', [user.id, role]);
       await client.query('COMMIT');
@@ -80,6 +80,7 @@ class UserModel {
   }
 
   static async findByIdentifier(identifier) {
+    const cleanId = String(identifier).toLowerCase().trim();
     const query = `
       SELECT u.*,
              ARRAY(
@@ -92,9 +93,8 @@ class UserModel {
              ) as roles
       FROM users u
       WHERE u.email = $1 OR u.phone_number = $1
-      GROUP BY u.id
     `;
-    const { rows } = await pool.query(query, [identifier]);
+    const { rows } = await pool.query(query, [cleanId]);
     return rows[0];
   }
 
@@ -117,7 +117,6 @@ class UserModel {
              ) as roles
       FROM users u
       WHERE u.id = $1
-      GROUP BY u.id
     `;
     const { rows } = await pool.query(query, [id]);
     return rows[0];

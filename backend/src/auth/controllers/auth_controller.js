@@ -9,7 +9,8 @@ class AuthController {
   static async register(req, res) {
     console.log('📥 Registration request received:', { ...req.body, password: '****' });
     try {
-      const { name, phone, email, password, role } = req.body;
+      const { name, phone, password, role } = req.body;
+      const email = req.body.email?.toLowerCase().trim();
 
       if (!name || !phone || !email || !password) {
         return res.status(400).json({ error: 'Missing required fields' });
@@ -73,18 +74,25 @@ class AuthController {
   static async login(req, res) {
     console.log('📥 Login attempt:', req.body.identifier);
     try {
-      const { identifier, password } = req.body;
+      const { password } = req.body;
+      const identifier = req.body.identifier?.toLowerCase().trim();
 
       if (!identifier || !password) {
         return res.status(400).json({ error: 'Identifier and password are required' });
       }
 
       const user = await UserModel.findByIdentifier(identifier);
-      if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+      if (!user) {
+        console.warn(`🚫 Login failed: User not found (${identifier})`);
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
 
       console.log('🔐 Verifying credentials...');
       const isMatch = await bcrypt.compare(password, user.password_hash);
-      if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
+      if (!isMatch) {
+        console.warn(`🚫 Login failed: Password mismatch for ${identifier}`);
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
 
       const userPersona = user.active_persona || 'customer';
       const token = jwt.sign({ id: user.id, role: userPersona }, JWT_SECRET, { expiresIn: '7d' });

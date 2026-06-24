@@ -96,11 +96,25 @@ const PORT = process.env.PORT || 3000;
 const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
   origin: function (origin, callback) {
-    const allowedOrigins = ["http://wantok.dspng.tech", "https://wantok.dspng.tech", "https://wantok-workforce.onrender.com", "http://localhost:3000", "http://localhost:19006", "http://localhost:8081"];
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    const allowedOrigins = [
+        "http://wantok.dspng.tech",
+        "https://wantok.dspng.tech",
+        "https://wantok-workforce.onrender.com",
+        "http://localhost:3000",
+        "http://localhost:19006",
+        "http://localhost:8081"
+    ];
+
+    const isAllowed = !origin ||
+                     allowedOrigins.indexOf(origin) !== -1 ||
+                     origin.endsWith(".onrender.com") ||
+                     origin.endsWith(".dspng.tech");
+
+    if (isAllowed) {
       callback(null, true);
     } else {
-      console.warn("🚫 CORS Rejected Origin:", origin); callback(new Error("Not allowed by CORS: " + origin));
+      console.warn("🚫 CORS Rejected Origin:", origin);
+      callback(new Error("Not allowed by CORS: " + origin));
     }
   },
   credentials: true,
