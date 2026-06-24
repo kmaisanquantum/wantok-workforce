@@ -1342,13 +1342,14 @@ function AdminScreen({ onNavigate, onLogout, user }) {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok && data.success) {
-        // Map backend completedMatches to frontend totalMatches state property
+      if (res.ok && data.success && data.data) {
         setStats({
-          totalCustomers: data.data.totalCustomers || 0,
-          totalProviders: data.data.totalProviders || 0,
-          totalMatches: data.data.completedMatches || 0
+          totalCustomers: data.data.totalCustomers ?? 0,
+          totalProviders: data.data.totalProviders ?? 0,
+          totalMatches: data.data.totalMatches ?? 0
         });
+      } else {
+        console.error("❌ Admin Stats Mismatch:", data);
       }
     } catch (e) {
       console.error("❌ Admin Data Pipeline Error (Stats): ", e.message);
@@ -1424,8 +1425,11 @@ function AdminScreen({ onNavigate, onLogout, user }) {
         headers: { "Authorization": `Bearer ${user?.token}` }
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setLogs(data.data || data.logs || data);
+      if (res.ok && data.success && Array.isArray(data.data)) {
+        setLogs(data.data);
+      } else {
+        console.error("❌ Admin Logs Mismatch:", data);
+        setLogs([]);
       }
     } catch (e) {
       console.error("❌ Admin Data Pipeline Error (Logs): ", e.message);
@@ -1940,7 +1944,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
                           {log.level}
                         </Text>
                         <Text style={{ color: "#E2E8F0", fontSize: 12, fontWeight: "600", fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
-                          {log.event}
+                          {log.message}
                         </Text>
                       </View>
                       <Text style={{ color: "#64748B", fontSize: 11, marginTop: 2, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
