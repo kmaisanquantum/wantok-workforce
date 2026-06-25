@@ -178,6 +178,29 @@ class AdminController {
     }
   }
 
+  static async forceSyncUsers(req, res) {
+    try {
+      console.log("🔄 Admin: Force Syncing Users from raw SQL...");
+      const query = "SELECT * FROM users ORDER BY created_at DESC LIMIT 50";
+      const { rows } = await UserModel.getPool().query(query);
+
+      // Ensure roles array exists for frontend expectations
+      const users = rows.map(u => ({
+        ...u,
+        roles: u.roles || (u.role ? [u.role] : [])
+      }));
+
+      console.log(`✅ Admin: Force Sync retrieved ${users.length} raw records.`);
+      return res.status(200).json({
+        success: true,
+        users: users
+      });
+    } catch (error) {
+      console.error("❌ Admin Force Sync Error:", error);
+      return res.status(500).json({ error: "Failed to force sync users", details: error.message });
+    }
+  }
+
   static async createUser(req, res) {
     let client;
     try {

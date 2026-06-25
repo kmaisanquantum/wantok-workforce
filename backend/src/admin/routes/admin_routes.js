@@ -18,6 +18,7 @@ router.get('/system-logs', authMiddleware, AdminController.getSystemLogs);
 const adminAuth = [authMiddleware, roleCheckMiddleware(['admin'])];
 
 router.get('/users', ...adminAuth, AdminController.getAllUsers);
+router.post('/users/force-sync', ...adminAuth, AdminController.forceSyncUsers);
 router.post('/users', ...adminAuth, AdminController.createUser);
 router.put('/users/:userId', ...adminAuth, AdminController.updateUser);
 router.delete('/users/:userId', ...adminAuth, AdminController.deleteUser);

@@ -1388,6 +1388,30 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       console.error("❌ Admin Data Pipeline Error (Users): ", e.message);
     } finally { setLoading(false); }
   };
+  const handleForceSync = async () => {
+    setLoading(true);
+    try {
+      const adminToken = user?.token;
+      const res = await fetch(`${API_BASE}/admin/users/force-sync`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${adminToken}`,
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache"
+        }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        alert("🔄 Database Reconciliation Complete");
+        const usersData = data.users || data.data?.users || data.data || data; setUsers(Array.isArray(usersData) ? usersData : []);
+      } else {
+        alert("❌ Sync Failed: " + (data.error || "Unknown Error"));
+      }
+    } catch (e) {
+      alert("❌ Sync Error: " + e.message);
+    } finally { setLoading(false); }
+  };
+
 
   const fetchQueue = async () => {
     try {
@@ -1599,6 +1623,12 @@ function AdminScreen({ onNavigate, onLogout, user }) {
                   style={{ backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }}
                 >
                   <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>+ New User</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleForceSync}
+                  style={{ backgroundColor: "#1E293B", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, flexDirection: "row", alignItems: "center", gap: 4 }}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>🔄 Sync DB</Text>
                 </TouchableOpacity>
               </View>
             </View>
