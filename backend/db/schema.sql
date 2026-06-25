@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'account_role') THEN
-        CREATE TYPE account_role AS ENUM ('customer', 'provider', 'admin');
+        CREATE TYPE account_role AS ENUM ('customer', 'provider', 'admin', 'mixed');
     END IF;
 END$$;
 
