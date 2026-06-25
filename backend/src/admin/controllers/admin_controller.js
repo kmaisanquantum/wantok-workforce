@@ -421,6 +421,65 @@ class AdminController {
   static async getSystemLogsV2(req, res) {
     return AdminController.getSystemLogs(req, res);
   }
+
+  static async getPendingVouching(req, res) {
+    try {
+      const query = `
+        SELECT v.*, u.name as provider_name, u.email as provider_email
+        FROM community_verifications v
+        JOIN users u ON v.provider_id = u.id
+        WHERE v.status = 'pending'
+        ORDER BY v.created_at DESC
+      `;
+      const { rows } = await UserModel.getPool().query(query);
+      return res.status(200).json({ success: true, data: rows });
+    } catch (error) {
+      return res.status(500).json({ error: 'Failed to fetch pending vouching' });
+    }
+  }
+
+  static async approveVouch(req, res) {
+    let client;
+    try {
+      const { vouchId } = req.params;
+      client = await UserModel.getPool().connect();
+      await client.query('BEGIN');
+
+      const vouchQuery = `
+        UPDATE community_verifications
+        SET status = 'verified', updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+        RETURNING provider_id
+      `;
+      const { rows } = await client.query(vouchQuery, [vouchId]);
+
+      if (rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Vouch request not found' });
+      }
+
+      const providerId = rows[0].provider_id;
+
+      await client.query(`
+        UPDATE provider_profiles
+        SET is_community_verified = true, updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = $1
+      `, [providerId]);
+
+      await client.query(`
+        INSERT INTO audit_logs (level, action)
+        VALUES ('INFO', 'Community vouch approved for provider ' || $1)
+      `, [providerId]);
+
+      await client.query('COMMIT');
+      return res.status(200).json({ success: true, message: 'Vouch approved successfully' });
+    } catch (error) {
+      if (client) await client.query('ROLLBACK');
+      return res.status(500).json({ error: 'Failed to approve vouch' });
+    } finally {
+      if (client) client.release();
+    }
+  }
 }
 
 module.exports = AdminController;

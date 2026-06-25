@@ -14,3 +14,4 @@ Error Message:
 Error Code: ECONNREFUSED
 🚀 Continuing server startup anyway. Database-dependent features will be unavailable until connection is restored.
 ✅ Backend is ready and database is synced.
+📡 [2026-06-25T16:20:59.815Z] GET /api/health - Origin: Same-Origin

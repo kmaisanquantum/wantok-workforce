@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const authRoutes = require('./src/auth/routes/auth_routes');
 const matchRoutes = require('./src/match/routes/match_routes');
 const adminRoutes = require('./src/admin/routes/admin_routes');
+const providerRoutes = require('./src/providers/routes/provider_routes');
 const UserModel = require('./src/auth/models/user_model');
 const { initializeDatabase } = require('./db/db_init');
 const redisClient = require('./db/redis_init');
@@ -132,6 +133,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/match', matchRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/v1/providers', providerRoutes);
 
 // Health Checks
 app.get('/api/health', (req, res) => {
