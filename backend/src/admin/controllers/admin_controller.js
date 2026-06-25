@@ -78,12 +78,36 @@ class AdminController {
     return AdminController.getDashboardMetrics(req, res);
   }
 
+  static async forceSyncUsers(req, res) {
+    try {
+      const query = `
+        SELECT
+          (SELECT COUNT(*)::INT FROM users u WHERE u.role = 'customer'::account_role OR (u.role = 'mixed'::account_role AND EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id AND ur.role_name = 'customer'::account_role))) as "totalCustomers",
+          (SELECT COUNT(*)::INT FROM users u WHERE u.role = 'provider'::account_role OR (u.role = 'mixed'::account_role AND EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id AND ur.role_name = 'provider'::account_role))) as "totalProviders",
+          (SELECT COUNT(*)::INT FROM bookings WHERE status = 'completed') as "totalMatches"
+      `;
+      const { rows } = await UserModel.getPool().query(query);
+      const metrics = rows[0];
+
+      if (redisClient) {
+        await redisClient.pipeline()
+          .set('metrics:total_customers', metrics.totalCustomers)
+          .set('metrics:total_providers', metrics.totalProviders)
+          .set('metrics:completed_matches', metrics.totalMatches)
+          .exec();
+      }
+
+      return res.status(200).json({ success: true, message: "Metrics synchronized", data: metrics });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to force sync" });
+    }
+  }
+
   static async getAllUsers(req, res) {
     try {
       let { role, search } = req.query;
       let dbRole = (role || 'all').toLowerCase().trim();
 
-      // Normalized mapping for query parameters
       if (dbRole === 'service providers' || dbRole === 'providers') dbRole = 'provider';
       if (dbRole === 'customers') dbRole = 'customer';
       if (dbRole === 'admins') dbRole = 'admin';
@@ -221,6 +245,49 @@ class AdminController {
       return res.status(200).json({ success: true, data: rows });
     } catch (error) {
       return res.status(500).json({ error: 'Failed to fetch queue' });
+    }
+  }
+
+  static async overrideQueue(req, res) {
+    try {
+      const { matchId, action } = req.body;
+      let newStatus = action === 'force_complete' ? 'completed' : 'cancelled';
+      await UserModel.getPool().query('UPDATE bookings SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [newStatus, matchId]);
+      return res.status(200).json({ success: true, message: "Queue updated" });
+    } catch (error) {
+      return res.status(500).json({ error: 'Failed to override queue' });
+    }
+  }
+
+  static async getSettings(req, res) {
+    try {
+      const { rows } = await UserModel.getPool().query('SELECT key, value, group_category FROM system_settings');
+      return res.status(200).json({ success: true, settings: rows });
+    } catch (error) {
+      return res.status(500).json({ error: 'Failed to fetch settings' });
+    }
+  }
+
+  static async updateSettings(req, res) {
+    try {
+      const { settings } = req.body;
+      for (const [k, v] of Object.entries(settings)) {
+        await UserModel.getPool().query('INSERT INTO system_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2', [k, String(v)]);
+      }
+      return res.status(200).json({ success: true, message: 'Settings updated' });
+    } catch (error) {
+      return res.status(500).json({ error: 'Failed to update settings' });
+    }
+  }
+
+  static async updateMatchConfig(req, res) {
+    try {
+      const { radius, fee } = req.body;
+      if (radius) await UserModel.getPool().query('INSERT INTO system_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2', ['match_radius', String(radius)]);
+      if (fee) await UserModel.getPool().query('INSERT INTO system_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2', ['platform_fee', String(fee)]);
+      return res.status(200).json({ success: true, message: 'Match config updated' });
+    } catch (error) {
+      return res.status(500).json({ error: 'Failed to update match config' });
     }
   }
 
