@@ -49,8 +49,8 @@ class AdminController {
         console.log('🔄 Syncing metrics from PostgreSQL truth...');
         const query = `
           SELECT
-            (SELECT COUNT(*)::INT FROM users WHERE role = 'customer') as "totalCustomers",
-            (SELECT COUNT(*)::INT FROM users WHERE role = 'provider') as "totalProviders",
+            (SELECT COUNT(*)::INT FROM users WHERE role = 'customer'::account_role) as "totalCustomers",
+            (SELECT COUNT(*)::INT FROM users WHERE role = 'provider'::account_role) as "totalProviders",
             (SELECT COUNT(*)::INT FROM bookings WHERE status = 'completed') as "totalMatches"
         `;
         const { rows } = await UserModel.getPool().query(query);
@@ -164,15 +164,15 @@ class AdminController {
       // If Provider is selected, show everyone with provider role.
       // If Customer is selected, show everyone with customer role EXCEPT those who are also providers.
       if (dbRole === 'provider') {
-        query += " AND (u.role::text = 'provider' OR EXISTS (SELECT 1 FROM user_roles WHERE user_id = u.id AND role_name::text = 'provider'))";
+        query += " AND u.role = 'provider'::account_role";
       } else if (dbRole === 'customer') {
-        query += " AND (u.role::text = 'customer' OR EXISTS (SELECT 1 FROM user_roles WHERE user_id = u.id AND role_name::text = 'customer'))";
-        query += " AND NOT (u.role::text = 'provider' OR EXISTS (SELECT 1 FROM user_roles WHERE user_id = u.id AND role_name::text = 'provider'))";
+        query += " AND u.role = 'customer'::account_role";
+
       } else if (dbRole === 'admin') {
-        query += " AND (u.role::text = 'admin' OR EXISTS (SELECT 1 FROM user_roles WHERE user_id = u.id AND role_name::text = 'admin'))";
+        query += " AND u.role = 'admin'::account_role";
       } else if (dbRole) {
         queryParams.push(dbRole);
-        query += " AND (u.role::text = $" + queryParams.length + " OR EXISTS (SELECT 1 FROM user_roles WHERE user_id = u.id AND role_name::text = $" + queryParams.length + "))";
+        query += " AND u.role::text = $" + queryParams.length;
       }
 
       if (search) {
