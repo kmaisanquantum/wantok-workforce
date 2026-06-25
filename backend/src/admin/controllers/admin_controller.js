@@ -8,7 +8,6 @@ class AdminController {
       let metrics = null;
       let needsSync = false;
 
-      // 1. Priority: Attempt to serve from High-speed Redis Counters
       if (redisClient) {
         try {
           const stats = await redisClient.mget(
@@ -22,12 +21,9 @@ class AdminController {
             const providers = parseInt(stats[1] || 0);
             const matches = parseInt(stats[2] || 0);
 
-            // Self-healing: If any counter is negative, trigger a sync
             if (customers < 0 || providers < 0 || matches < 0) {
-              console.warn('⚠️ Redis counters detected negative values. Triggering auto-recalc.');
               needsSync = true;
             } else {
-              console.log('⚡ Redis: Serving real-time dashboard metrics');
               return res.status(200).json({
                 success: true,
                 data: { totalCustomers: customers, totalProviders: providers, totalMatches: matches }
@@ -37,26 +33,22 @@ class AdminController {
             needsSync = true;
           }
         } catch (redisErr) {
-          console.warn('⚠️ Redis Stats Read Error (Dashboard):', redisErr.message);
           needsSync = true;
         }
       } else {
         needsSync = true;
       }
 
-      // 2. Fallback & Self-Healing: Aggregate metrics from PostgreSQL
       if (needsSync) {
-        console.log('🔄 Syncing metrics from PostgreSQL truth...');
         const query = `
           SELECT
-            (SELECT COUNT(*)::INT FROM users WHERE role = 'customer'::account_role) as "totalCustomers",
-            (SELECT COUNT(*)::INT FROM users u WHERE u.role = 'provider'::account_role OR EXISTS (SELECT 1 FROM provider_profiles p WHERE p.user_id = u.id)) as "totalProviders",
+            (SELECT COUNT(*)::INT FROM users u WHERE u.role = 'customer'::account_role OR (u.role = 'mixed'::account_role AND EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id AND ur.role_name = 'customer'::account_role))) as "totalCustomers",
+            (SELECT COUNT(*)::INT FROM users u WHERE u.role = 'provider'::account_role OR (u.role = 'mixed'::account_role AND EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id AND ur.role_name = 'provider'::account_role))) as "totalProviders",
             (SELECT COUNT(*)::INT FROM bookings WHERE status = 'completed') as "totalMatches"
         `;
         const { rows } = await UserModel.getPool().query(query);
         metrics = rows[0] || { totalCustomers: 0, totalProviders: 0, totalMatches: 0 };
 
-        // 3. Sync Redis state
         if (redisClient) {
             try {
                 await redisClient.pipeline()
@@ -64,10 +56,7 @@ class AdminController {
                     .set('metrics:total_providers', metrics.totalProviders)
                     .set('metrics:completed_matches', metrics.totalMatches)
                     .exec();
-                console.log('✅ Redis: Metrics synchronized from SQL');
-            } catch (syncErr) {
-                console.warn('⚠️ Redis Sync Error:', syncErr.message);
-            }
+            } catch (syncErr) {}
         }
       }
 
@@ -76,7 +65,7 @@ class AdminController {
         data: metrics
       });
     } catch (error) {
-      console.error('❌ Admin Dashboard Metrics Critical Error:', error);
+      console.error('❌ Admin Dashboard Metrics Error:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch dashboard metrics',
@@ -89,13 +78,72 @@ class AdminController {
     return AdminController.getDashboardMetrics(req, res);
   }
 
+  static async getAllUsers(req, res) {
+    try {
+      let { role, search } = req.query;
+      let dbRole = (role || 'all').toLowerCase().trim();
+
+      // Normalized mapping for query parameters
+      if (dbRole === 'service providers' || dbRole === 'providers') dbRole = 'provider';
+      if (dbRole === 'customers') dbRole = 'customer';
+      if (dbRole === 'admins') dbRole = 'admin';
+
+      let query = '';
+      const queryParams = [];
+
+      if (dbRole === 'customer') {
+        query = `
+          SELECT u.*,
+                 COALESCE(ARRAY(SELECT role_name::TEXT FROM user_roles WHERE user_id = u.id), ARRAY[]::TEXT[]) as roles
+          FROM users u
+          WHERE u.role = 'customer'::account_role
+             OR (u.role = 'mixed'::account_role AND EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id AND ur.role_name = 'customer'::account_role))
+        `;
+      } else if (dbRole === 'provider') {
+        query = `
+          SELECT u.*,
+                 COALESCE(ARRAY(SELECT role_name::TEXT FROM user_roles WHERE user_id = u.id), ARRAY[]::TEXT[]) as roles
+          FROM users u
+          WHERE u.role = 'provider'::account_role
+             OR (u.role = 'mixed'::account_role AND EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id AND ur.role_name = 'provider'::account_role))
+        `;
+      } else if (dbRole === 'admin') {
+        query = `
+          SELECT id, name, email, phone_number as phone, status, role, created_at,
+                 ARRAY['admin']::TEXT[] as roles
+          FROM users
+          WHERE role = 'admin'::account_role
+        `;
+      } else {
+        query = `
+          SELECT u.*,
+                 COALESCE(ARRAY(SELECT role_name::TEXT FROM user_roles WHERE user_id = u.id), ARRAY[]::TEXT[]) as roles
+          FROM users u
+          WHERE u.role IN ('customer'::account_role, 'provider'::account_role, 'mixed'::account_role)
+        `;
+      }
+
+      if (search) {
+        queryParams.push("%" + search + "%");
+        query += ` AND (name ILIKE $1 OR email ILIKE $1 OR phone_number ILIKE $1)`;
+      }
+
+      query += " ORDER BY created_at DESC";
+
+      const { rows } = await UserModel.getPool().query(query, queryParams);
+      return res.status(200).json({ success: true, users: rows });
+    } catch (error) {
+      console.error('❌ Admin Get Users Error:', error);
+      return res.status(500).json({ error: 'Failed to fetch users', details: error.message });
+    }
+  }
+
   static async getPendingProviders(req, res) {
     try {
       const query = "SELECT id, name, email, phone_number, created_at, status FROM users WHERE role = 'provider' AND status = 'pending_verification' ORDER BY created_at DESC";
       const { rows } = await UserModel.getPool().query(query);
       return res.status(200).json({ success: true, data: rows });
     } catch (error) {
-      console.error('❌ Admin Get Pending Error:', error);
       return res.status(500).json({ error: 'Failed to fetch pending providers' });
     }
   }
@@ -108,7 +156,6 @@ class AdminController {
       if (rows.length === 0) return res.status(404).json({ error: 'Provider not found' });
       return res.status(200).json({ success: true, message: 'Provider approved successfully' });
     } catch (error) {
-      console.error('❌ Admin Approve Error:', error);
       return res.status(500).json({ error: 'Failed to approve provider' });
     }
   }
@@ -121,101 +168,7 @@ class AdminController {
       await UserModel.getPool().query(query, [isFlagged, userId]);
       return res.status(200).json({ success: true, message: 'User flagging status updated' });
     } catch (error) {
-      console.error('❌ Admin Flag Error:', error);
       return res.status(500).json({ error: 'Failed to update user flag status' });
-    }
-  }
-
-  static async getAllUsers(req, res) {
-    try {
-      let { role, search } = req.query;
-
-      // Map frontend filter strings to DB roles
-      let dbRole = null;
-      const normalizedRole = (role || '').toUpperCase().trim();
-
-      if (normalizedRole === 'SERVICE PROVIDERS' || normalizedRole === 'PROVIDERS') {
-        dbRole = 'provider';
-      } else if (normalizedRole === 'CUSTOMERS') {
-        dbRole = 'customer';
-      } else if (normalizedRole === 'ADMINS' || normalizedRole === 'ADMIN') {
-        dbRole = 'admin';
-      } else if (role && !['ALL ROLES', 'ALL', ''].includes(normalizedRole)) {
-        dbRole = role.toLowerCase();
-      }
-
-      // Base query with robust roles array aggregation
-      let query = `
-        SELECT u.*,
-               COALESCE(ARRAY(
-                 SELECT DISTINCT role_name::TEXT FROM (
-                   SELECT role::TEXT as role_name FROM users WHERE id = u.id
-                   UNION
-                   SELECT role_name::TEXT FROM user_roles WHERE user_id = u.id
-                 ) sub
-                 WHERE role_name IS NOT NULL AND role_name::TEXT NOT IN ('null', 'undefined', '')
-               ), ARRAY[]::TEXT[]) as roles
-        FROM users u
-        WHERE 1=1
-      `;
-      const queryParams = [];
-
-      // Strict Segregation Logic:
-      // If Provider is selected, show everyone with provider role.
-      // If Customer is selected, show everyone with customer role EXCEPT those who are also providers.
-      if (dbRole === 'provider') {
-        query += " AND (u.role = 'provider'::account_role OR EXISTS (SELECT 1 FROM provider_profiles p WHERE p.user_id = u.id))";
-      } else if (dbRole === 'customer') {
-        query += " AND u.role = 'customer'::account_role";
-
-      } else if (dbRole === 'admin') {
-        query += " AND u.role = 'admin'::account_role";
-      } else if (dbRole) {
-        queryParams.push(dbRole);
-        query += " AND u.role::text = $" + queryParams.length;
-      }
-
-      if (search) {
-        queryParams.push("%" + search + "%");
-        query += " AND (u.name ILIKE $" + queryParams.length + " OR u.email ILIKE $" + queryParams.length + " OR u.phone_number ILIKE $" + queryParams.length + ")";
-      }
-
-      query += " ORDER BY u.created_at DESC";
-
-      console.log(`🔍 Admin SQL: Executing User List Query (Strict Mode: ${dbRole || 'All'})`);
-      const { rows } = await UserModel.getPool().query(query, queryParams);
-      console.log(`✅ Admin: Successfully retrieved ${rows.length} users.`);
-
-      return res.status(200).json({
-        success: true,
-        users: rows
-      });
-    } catch (error) {
-      console.error('❌ Admin Get Users Error:', error);
-      return res.status(500).json({ error: 'Failed to fetch users', details: error.message });
-    }
-  }
-
-  static async forceSyncUsers(req, res) {
-    try {
-      console.log("🔄 Admin: Force Syncing Users from raw SQL...");
-      const query = "SELECT * FROM users ORDER BY created_at DESC LIMIT 50";
-      const { rows } = await UserModel.getPool().query(query);
-
-      // Ensure roles array exists for frontend expectations
-      const users = rows.map(u => ({
-        ...u,
-        roles: u.roles || (u.role ? [u.role] : [])
-      }));
-
-      console.log(`✅ Admin: Force Sync retrieved ${users.length} raw records.`);
-      return res.status(200).json({
-        success: true,
-        users: users
-      });
-    } catch (error) {
-      console.error("❌ Admin Force Sync Error:", error);
-      return res.status(500).json({ error: "Failed to force sync users", details: error.message });
     }
   }
 
@@ -224,31 +177,14 @@ class AdminController {
     try {
       const { name, email, phone_number, password, role } = req.body;
       const passwordHash = await bcrypt.hash(password || 'Wantok2024!', 12);
-
       client = await UserModel.getPool().connect();
       await client.query('BEGIN');
-
-      const userQuery = `
-        INSERT INTO users (name, email, phone_number, password_hash, role, active_persona)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id
-      `;
-      const { rows } = await client.query(userQuery, [name, email, phone_number, passwordHash, role, role]);
-      const userId = rows[0].id;
-
-      await client.query('INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2)', [userId, role]);
-
-      if (redisClient) {
-          try {
-              await redisClient.incr(role === 'provider' ? 'metrics:total_providers' : 'metrics:total_customers');
-          } catch (e) {}
-      }
-
+      const { rows } = await client.query('INSERT INTO users (name, email, phone_number, password_hash, role) VALUES ($1, $2, $3, $4, $5) RETURNING id', [name, email, phone_number, passwordHash, role]);
+      await client.query('INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2)', [rows[0].id, role]);
       await client.query('COMMIT');
-      return res.status(201).json({ message: 'User created successfully', userId });
+      return res.status(201).json({ message: 'User created successfully', userId: rows[0].id });
     } catch (error) {
       if (client) await client.query('ROLLBACK');
-      console.error('❌ Admin Create User Error:', error);
       return res.status(500).json({ error: 'Failed to create user' });
     } finally {
       if (client) client.release();
@@ -256,208 +192,43 @@ class AdminController {
   }
 
   static async updateUser(req, res) {
-    let client;
     try {
       const { userId } = req.params;
-      const { name, email, phone_number, is_verified, is_flagged, status, balance, role } = req.body;
-
-      client = await UserModel.getPool().connect();
-      await client.query('BEGIN');
-
-      const fields = [];
-      const values = [];
-      let idx = 1;
-
-      if (name !== undefined) { fields.push("name = $" + (idx++)); values.push(name); }
-      if (email !== undefined) { fields.push("email = $" + (idx++)); values.push(email); }
-      if (phone_number !== undefined) { fields.push("phone_number = $" + (idx++)); values.push(phone_number); }
-      if (is_verified !== undefined) { fields.push("is_verified = $" + (idx++)); values.push(is_verified); }
-      if (is_flagged !== undefined) { fields.push("is_flagged = $" + (idx++)); values.push(is_flagged); }
-      if (status !== undefined) { fields.push("status = $" + (idx++)); values.push(status); }
-      if (balance !== undefined) { fields.push("balance = $" + (idx++)); values.push(balance); }
-      if (role !== undefined) {
-        fields.push("role = $" + (idx++)); values.push(role);
-        fields.push("active_persona = $" + (idx++)); values.push(role);
-      }
-
-      if (fields.length > 0) {
-        values.push(userId);
-        const query = "UPDATE users SET " + fields.join(', ') + " WHERE id = $" + idx + " RETURNING id";
-        const { rows } = await client.query(query, values);
-        if (rows.length === 0) {
-          await client.query('ROLLBACK');
-          return res.status(404).json({ error: 'User not found' });
-        }
-      }
-
-      if (role !== undefined) {
-        await client.query('DELETE FROM user_roles WHERE user_id = $1', [userId]);
-        await client.query('INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2)', [userId, role]);
-      }
-
-      await client.query('COMMIT');
+      const { name, email, phone_number, role } = req.body;
+      const query = "UPDATE users SET name = $1, email = $2, phone_number = $3, role = $4 WHERE id = $5 RETURNING id";
+      const { rows } = await UserModel.getPool().query(query, [name, email, phone_number, role, userId]);
+      if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
       return res.status(200).json({ success: true, message: 'User updated successfully' });
     } catch (error) {
-      if (client) await client.query('ROLLBACK');
-      console.error('❌ Admin Update User Error:', error);
       return res.status(500).json({ error: 'Failed to update user' });
-    } finally {
-      if (client) client.release();
     }
   }
 
   static async deleteUser(req, res) {
-    let client;
     try {
       const { userId } = req.params;
-      client = await UserModel.getPool().connect();
-      await client.query('BEGIN');
-
-      const userRes = await client.query('SELECT role FROM users WHERE id = $1', [userId]);
-      const userRole = userRes.rows[0]?.role;
-
-      await client.query('DELETE FROM user_roles WHERE user_id = $1', [userId]);
-      await client.query('DELETE FROM users WHERE id = $1', [userId]);
-
-      if (redisClient && userRole) {
-        try {
-            await redisClient.decr(userRole === 'provider' ? 'metrics:total_providers' : 'metrics:total_customers');
-        } catch (e) {}
-      }
-
-      await client.query('COMMIT');
+      await UserModel.getPool().query('DELETE FROM users WHERE id = $1', [userId]);
       return res.status(200).json({ message: 'User deleted successfully' });
     } catch (error) {
-      if (client) await client.query('ROLLBACK');
-      console.error('❌ Admin Delete User Error:', error);
       return res.status(500).json({ error: 'Failed to delete user' });
-    } finally {
-      if (client) client.release();
     }
   }
 
   static async getQueue(req, res) {
     try {
-      const query = `
-        SELECT b.id, b.service_type, b.status, b.price, b.scheduled_at, b.created_at,
-               c.name as customer_name, p.name as provider_name
-        FROM bookings b
-        LEFT JOIN users c ON b.customer_id = c.id
-        LEFT JOIN users p ON b.provider_id = p.id
-        ORDER BY b.created_at DESC
-      `;
+      const query = 'SELECT b.*, c.name as customer_name, p.name as provider_name FROM bookings b LEFT JOIN users c ON b.customer_id = c.id LEFT JOIN users p ON b.provider_id = p.id ORDER BY b.created_at DESC';
       const { rows } = await UserModel.getPool().query(query);
       return res.status(200).json({ success: true, data: rows });
     } catch (error) {
-      console.error('❌ Admin Get Queue Error:', error);
       return res.status(500).json({ error: 'Failed to fetch queue' });
-    }
-  }
-
-  static async overrideQueue(req, res) {
-    try {
-      const { matchId, action } = req.body;
-      let newStatus;
-      if (action === 'force_complete') newStatus = 'completed';
-      else if (action === 'cancel') newStatus = 'cancelled';
-      else return res.status(400).json({ error: 'Invalid action' });
-
-      const query = 'UPDATE bookings SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id';
-      const { rows } = await UserModel.getPool().query(query, [newStatus, matchId]);
-
-      if (rows.length === 0) return res.status(404).json({ error: 'Match/Booking not found' });
-
-      if (newStatus === 'completed' && redisClient) {
-        try {
-            await redisClient.incr('metrics:completed_matches');
-        } catch (e) {}
-      }
-
-      return res.status(200).json({ success: true, message: "Queue action " + action + " executed successfully" });
-    } catch (error) {
-      console.error('❌ Admin Queue Override Error:', error);
-      return res.status(500).json({ error: 'Failed to execute queue override' });
-    }
-  }
-
-  static async getSettings(req, res) {
-    try {
-      const { rows } = await UserModel.getPool().query('SELECT key, value, group_category FROM system_settings');
-      return res.status(200).json({ success: true, settings: rows });
-    } catch (error) {
-      console.error('❌ Admin Get Settings Error:', error);
-      return res.status(500).json({ error: 'Failed to fetch system settings' });
-    }
-  }
-
-  static async updateSettings(req, res) {
-    try {
-      const { key, value, settings } = req.body;
-
-      if (settings && typeof settings === 'object') {
-          for (const [k, v] of Object.entries(settings)) {
-              await UserModel.getPool().query(
-                'INSERT INTO system_settings (key, value, "updatedAt") VALUES ($1, $2, CURRENT_TIMESTAMP) ON CONFLICT (key) DO UPDATE SET value = $2, "updatedAt" = CURRENT_TIMESTAMP',
-                [k, String(v)]
-              );
-          }
-          return res.status(200).json({ success: true, message: 'Settings updated successfully.' });
-      }
-
-      if (!key || value === undefined) {
-        return res.status(400).json({ error: 'Key and value are required' });
-      }
-
-      await UserModel.getPool().query(
-        'INSERT INTO system_settings (key, value, "updatedAt") VALUES ($1, $2, CURRENT_TIMESTAMP) ON CONFLICT (key) DO UPDATE SET value = $2, "updatedAt" = CURRENT_TIMESTAMP',
-        [key, String(value)]
-      );
-
-      return res.status(200).json({ success: true, message: "Setting " + key + " updated successfully." });
-    } catch (error) {
-      console.error('❌ Admin Update Settings Error:', error);
-      return res.status(500).json({ error: 'Failed to update system settings' });
-    }
-  }
-
-  static async updateMatchConfig(req, res) {
-    try {
-      const { radius, fee } = req.body;
-      const updates = {};
-      if (radius !== undefined) updates.match_radius = radius;
-      if (fee !== undefined) updates.platform_fee = fee;
-
-      for (const [key, value] of Object.entries(updates)) {
-        await UserModel.getPool().query(
-          'INSERT INTO system_settings (key, value, group_category, "updatedAt") VALUES ($1, $2, \'engine\', CURRENT_TIMESTAMP) ON CONFLICT (key) DO UPDATE SET value = $2, "updatedAt" = CURRENT_TIMESTAMP',
-          [key, String(value)]
-        );
-      }
-
-      return res.status(200).json({ success: true, message: 'Match engine parameters updated successfully.' });
-    } catch (error) {
-      console.error('❌ Admin Match Config Error:', error);
-      return res.status(500).json({ error: 'Failed to update match configuration' });
-    }
-  }
-
-  static async getInternalSetting(key, defaultValue) {
-    try {
-      const { rows } = await UserModel.getPool().query('SELECT value FROM system_settings WHERE key = $1', [key]);
-      return rows.length > 0 ? rows[0].value : defaultValue;
-    } catch (error) {
-      console.error("❌ Error fetching setting " + key + ":", error);
-      return defaultValue;
     }
   }
 
   static async getSystemLogs(req, res) {
     try {
-      const query = 'SELECT id, timestamp, level, action as message FROM audit_logs ORDER BY timestamp DESC LIMIT 100';
-      const { rows } = await UserModel.getPool().query(query);
+      const { rows } = await UserModel.getPool().query('SELECT id, timestamp, level, action as message FROM audit_logs ORDER BY timestamp DESC LIMIT 100');
       return res.status(200).json({ success: true, data: rows });
     } catch (error) {
-      console.error('❌ getSystemLogs Error:', error);
       return res.status(500).json({ error: 'Failed to fetch audit logs' });
     }
   }
