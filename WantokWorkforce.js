@@ -247,75 +247,87 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
     useEffect(() => { fetchVerification(); }, []);
 
     return (
-      <View style={{ flex: 1, backgroundColor: COLORS.bg, justifyContent: isDesktop ? "center" : "flex-start" }}>
+      <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
         <ScrollView showsVerticalScrollIndicator={false}>
           <LinearGradient colors={[COLORS.primaryDark, COLORS.primary]} style={{ padding: 24, paddingBottom: 40 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <View>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>Welcome Back, Provider</Text>
-                  {vStatus.verified && (
-                    <View style={{ backgroundColor: COLORS.accent, borderRadius: 4, paddingHorizontal: 4 }}>
-                      <Text style={{ fontSize: 9, fontWeight: "900", color: "#fff" }}>VERIFIED</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={{ color: "#fff", fontSize: 24, fontWeight: "900", marginTop: 4 }}>Your Dashboard</Text>
-              </View>
-              <TouchableOpacity onPress={() => onNavigate("profile")} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.3)" }}>
-                <Text style={{ fontSize: 24 }}>🔧</Text>
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
-          <ResponsiveContainer style={{ marginTop: -20, gap: 16 }}>
-            <View style={{ flexDirection: isDesktop ? "row" : "column", gap: 16 }}>
-              <View style={{ flex: isDesktop ? 2 : 1, gap: 16 }}>
-            <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 20, elevation: 4 }}>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <ResponsiveContainer>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                 <View>
-                  <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.text }}>Work Status</Text>
-                  <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
-                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: user?.is_available ? "#10B981" : "#9CA3AF", marginRight: 6 }} />
-                    <Text style={{ fontSize: 13, fontWeight: "600", color: user?.is_available ? "#10B981" : "#6B7280" }}>{user?.is_available ? "Available for Jobs" : "Busy / Offline"}</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>Welcome Back, Provider</Text>
+                    {vStatus.verified && (
+                      <View style={{ backgroundColor: COLORS.accent, borderRadius: 4, paddingHorizontal: 4 }}>
+                        <Text style={{ fontSize: 9, fontWeight: "900", color: "#fff" }}>VERIFIED</Text>
+                      </View>
+                    )}
                   </View>
+                  <Text style={{ color: "#fff", fontSize: 24, fontWeight: "900", marginTop: 4 }}>Your Dashboard</Text>
                 </View>
-                <TouchableOpacity onPress={async () => {
-                  const newStatus = !user?.is_available;
-                  onUpdateUser({ ...user, is_available: newStatus });
-                  try {
-                    await fetch(`${API_BASE}/auth/availability`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` }, body: JSON.stringify({ is_available: newStatus }) });
-                  } catch (err) {
-                    onUpdateUser({ ...user, is_available: !newStatus });
-                    alert("Could not update status.");
-                  }
-                }} style={{ width: 50, height: 28, borderRadius: 14, backgroundColor: user?.is_available ? COLORS.primary : "#E5E7EB", padding: 2, justifyContent: "center" }}>
-                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: "#fff", transform: [{ translateX: user?.is_available ? 22 : 0 }], elevation: 2 }} />
+                <TouchableOpacity onPress={() => onNavigate("profile")} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.3)" }}>
+                  <Text style={{ fontSize: 24 }}>🔧</Text>
                 </TouchableOpacity>
               </View>
-              <View style={{ height: 1, backgroundColor: COLORS.border, marginBottom: 16 }} />
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <Text style={{ fontSize: 14, fontWeight: "700", color: COLORS.text }}>Trust Score</Text>
-                <Text style={{ fontSize: 16, fontWeight: "900", color: COLORS.primary }}>{vStatus.verified ? "98%" : "92%"}</Text>
-              </View>
-              <View style={{ height: 6, backgroundColor: "#E5E7EB", borderRadius: 3, overflow: "hidden" }}><View style={{ width: vStatus.verified ? "98%" : "92%", height: "100%", backgroundColor: COLORS.primary }} /></View>
-            </View>
+            </ResponsiveContainer>
+          </LinearGradient>
 
-            {/* PART B: Financial Ledger */}
-            <ProviderFinancialDashboard user={user} />
+          <ResponsiveContainer style={{ marginTop: -20, gap: 16 }}>
+            <View style={{ flexDirection: isDesktop ? "row" : "column", gap: 16 }}>
+              {/* Left Column: Work Status & Financial Ledger */}
+              <View style={{ flex: isDesktop ? 2 : 1, gap: 16 }}>
+                <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 20, elevation: 4 }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                    <View>
+                      <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.text }}>Work Status</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: user?.is_available ? "#10B981" : "#9CA3AF", marginRight: 6 }} />
+                        <Text style={{ fontSize: 13, fontWeight: "600", color: user?.is_available ? "#10B981" : "#6B7280" }}>{user?.is_available ? "Available for Jobs" : "Busy / Offline"}</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity onPress={async () => {
+                      const newStatus = !user?.is_available;
+                      onUpdateUser({ ...user, is_available: newStatus });
+                      try {
+                        await fetch(`${API_BASE}/auth/availability`, { method: "PATCH", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${user?.token}` }, body: JSON.stringify({ is_available: newStatus }) });
+                      } catch (err) {
+                        onUpdateUser({ ...user, is_available: !newStatus });
+                        alert("Could not update status.");
+                      }
+                    }} style={{ width: 50, height: 28, borderRadius: 14, backgroundColor: user?.is_available ? COLORS.primary : "#E5E7EB", padding: 2, justifyContent: "center" }}>
+                      <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: "#fff", transform: [{ translateX: user?.is_available ? 22 : 0 }], elevation: 2 }} />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={{ height: 1, backgroundColor: COLORS.border, marginBottom: 16 }} />
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <Text style={{ fontSize: 14, fontWeight: "700", color: COLORS.text }}>Trust Score</Text>
+                    <Text style={{ fontSize: 16, fontWeight: "900", color: COLORS.primary }}>{vStatus.verified ? "98%" : "92%"}</Text>
+                  </View>
+                  <View style={{ height: 6, backgroundColor: "#E5E7EB", borderRadius: 3, overflow: "hidden" }}><View style={{ width: vStatus.verified ? "98%" : "92%", height: "100%", backgroundColor: COLORS.primary }} /></View>
+                </View>
+
+                <ProviderFinancialDashboard user={user} />
               </View>
+
+              {/* Right Column: Vouching & Tools */}
               <View style={{ flex: isDesktop ? 1 : 1, gap: 16 }}>
+                {!vStatus.verified && vStatus.vouch_status !== "pending" && (
+                  <ProviderVouchingForm user={user} onVouchSubmitted={fetchVerification} />
+                )}
+                {vStatus.vouch_status === "pending" && (
+                  <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 20, alignItems: "center", borderStyle: "dashed", borderWidth: 1, borderColor: COLORS.primary }}>
+                    <Text style={{ fontSize: 16, fontWeight: "800", color: COLORS.primary }}>⏳ Verification Pending</Text>
+                    <Text style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 4, textAlign: "center" }}>Your community gatekeeper request is being reviewed by the Wantok team.</Text>
+                  </View>
+                )}
 
-            {/* PART A: Vouching Component (Show if not verified) */}
-            {!vStatus.verified && vStatus.vouch_status !== 'pending' && (
-              <ProviderVouchingForm user={user} onVouchSubmitted={fetchVerification} />
-            )}
-            {vStatus.vouch_status === 'pending' && (
-              <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 20, alignItems: "center", borderStyle: "dashed", borderWidth: 1, borderColor: COLORS.primary }}>
-                <Text style={{ fontSize: 16, fontWeight: "800", color: COLORS.primary }}>⏳ Verification Pending</Text>
-                <Text style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 4, textAlign: "center" }}>Your community gatekeeper request is being reviewed by the Wantok team.</Text>
-              </View>
-            )}
-          </View>
+                <View style={{ backgroundColor: "#1E293B", borderRadius: 20, padding: 20 }}>
+                  <Text style={{ color: "#fff", fontSize: 16, fontWeight: "800", marginBottom: 12 }}>Quick Actions</Text>
+                  <TouchableOpacity style={{ backgroundColor: "rgba(255,255,255,0.1)", padding: 12, borderRadius: 10, marginBottom: 10 }}>
+                    <Text style={{ color: "#fff", textAlign: "center", fontWeight: "700" }}>Update Trade Skills</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={{ backgroundColor: "rgba(255,255,255,0.1)", padding: 12, borderRadius: 10 }}>
+                    <Text style={{ color: "#fff", textAlign: "center", fontWeight: "700" }}>View Marketplace</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           </ResponsiveContainer>
@@ -522,6 +534,7 @@ function TrustScreen({ onNavigate }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
+      <ResponsiveContainer style={{ paddingVertical: 20 }}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <LinearGradient
           colors={[COLORS.primaryDark, COLORS.primary]}
@@ -658,6 +671,7 @@ function BookingsScreen({ onNavigate }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
+      <ResponsiveContainer style={{ paddingVertical: 20 }}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <LinearGradient
           colors={[COLORS.primaryDark, COLORS.primary]}
@@ -1333,89 +1347,89 @@ function AdminAuthScreen({ onAuth }) {
     }
   };
 
-  return (
-    <View style={{ flex: 1, backgroundColor: "#0F172A", justifyContent: "center", padding: 24 }}>
-      <View style={{ maxWidth: 450, width: "100%", alignSelf: "center" }}>
-      <View style={{ alignItems: "center", marginBottom: 40 }}>
-        <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "#334155", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-          <Text style={{ fontSize: 32 }}>🔐</Text>
-        </View>
-        <Text style={{ color: "#fff", fontSize: 24, fontWeight: "900", letterSpacing: 1 }}>
-          ADMIN PORTAL
-        </Text>
-        <Text style={{ color: "#94A3B8", fontSize: 14, marginTop: 8 }}>
-          Wantok Workforce Back-Office
-        </Text>
-      </View>
+    return (
+      <View style={{ flex: 1, backgroundColor: "#0F172A", justifyContent: "center", padding: 24 }}>
+        <View style={{ maxWidth: 450, width: "100%", alignSelf: "center" }}>
+          <View style={{ alignItems: "center", marginBottom: 40 }}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "#334155", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+              <Text style={{ fontSize: 32 }}>🔐</Text>
+            </View>
+            <Text style={{ color: "#fff", fontSize: 24, fontWeight: "900", letterSpacing: 1 }}>
+              ADMIN PORTAL
+            </Text>
+            <Text style={{ color: "#94A3B8", fontSize: 14, marginTop: 8 }}>
+              Wantok Workforce Back-Office
+            </Text>
+          </View>
 
-      <View style={{ backgroundColor: "#1E293B", borderRadius: 16, padding: 24, elevation: 8 }}>
-        <View style={{ marginBottom: 16 }}>
-          <Text style={{ color: "#94A3B8", fontSize: 12, fontWeight: "700", marginBottom: 8, textTransform: "uppercase" }}>
-            Admin Identifier
-          </Text>
-          <TextInput
-            style={{ backgroundColor: "#0F172A", color: "#fff", borderRadius: 8, padding: 12, borderWidth: 1, borderColor: "#334155" }}
-            placeholder="Username or Email"
-            placeholderTextColor="#475569"
-            value={identifier}
-            onChangeText={setIdentifier}
-            autoCapitalize="none"
-          />
-        </View>
+          <View style={{ backgroundColor: "#1E293B", borderRadius: 16, padding: 24, elevation: 8 }}>
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ color: "#94A3B8", fontSize: 12, fontWeight: "700", marginBottom: 8, textTransform: "uppercase" }}>
+                Admin Identifier
+              </Text>
+              <TextInput
+                style={{ backgroundColor: "#0F172A", color: "#fff", borderRadius: 8, padding: 12, borderWidth: 1, borderColor: "#334155" }}
+                placeholder="Username or Email"
+                placeholderTextColor="#475569"
+                value={identifier}
+                onChangeText={setIdentifier}
+                autoCapitalize="none"
+              />
+            </View>
 
-        <View style={{ marginBottom: 24 }}>
-          <Text style={{ color: "#94A3B8", fontSize: 12, fontWeight: "700", marginBottom: 8, textTransform: "uppercase" }}>
-            Security Key
-          </Text>
-          <View style={{ position: 'relative' }}>
-            <TextInput
-              style={{ backgroundColor: "#0F172A", color: "#fff", borderRadius: 8, padding: 12, paddingRight: 48, borderWidth: 1, borderColor: "#334155" }}
-              type={showPassword ? "text" : "password"}
-              placeholder="Enter password"
-              placeholderTextColor="#475569"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-            />
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ color: "#94A3B8", fontSize: 12, fontWeight: "700", marginBottom: 8, textTransform: "uppercase" }}>
+                Security Key
+              </Text>
+              <View style={{ position: "relative" }}>
+                <TextInput
+                  style={{ backgroundColor: "#0F172A", color: "#fff", borderRadius: 8, padding: 12, paddingRight: 48, borderWidth: 1, borderColor: "#334155" }}
+                  placeholder="Enter password"
+                  placeholderTextColor="#475569"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={{ position: "absolute", right: 12, top: 12 }}
+                >
+                  <Text style={{ fontSize: 18 }}>{showPassword ? "👁️" : "🔒"}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
-              onClick={() => setShowPassword(!showPassword)}
-              style={{ position: 'absolute', right: 12, top: 12 }}
+              onPress={handleAdminLogin}
+              disabled={loading}
+              style={{
+                backgroundColor: "#3B82F6",
+                padding: 16,
+                borderRadius: 8,
+                alignItems: "center",
+                opacity: loading ? 0.7 : 1
+              }}
             >
-              <Text style={{ fontSize: 18 }}>{showPassword ? "👁️" : "🔒"}</Text>
+              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>
+                {loading ? "AUTHENTICATING..." : "AUTHORIZE ACCESS"}
+              </Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            onPress={() => { if (Platform.OS === "web") window.location.href = "/"; }}
+            style={{ marginTop: 24, alignItems: "center" }}
+          >
+            <Text style={{ color: "#475569", fontSize: 13 }}>Return to Public Site</Text>
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          onPress={handleAdminLogin}
-          disabled={loading}
-          style={{
-            backgroundColor: "#3B82F6",
-            padding: 16,
-            borderRadius: 8,
-            alignItems: "center",
-            opacity: loading ? 0.7 : 1
-          }}
-        >
-          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>
-            {loading ? "AUTHENTICATING..." : "AUTHORIZE ACCESS"}
-          </Text>
-        </TouchableOpacity>
       </View>
-
-      <TouchableOpacity
-        onPress={() => { if (Platform.OS === 'web') window.location.href = '/'; }}
-        style={{ marginTop: 24, alignItems: "center" }}
-      >
-        <Text style={{ color: "#475569", fontSize: 13 }}>Return to Public Site</Text>
-      </TouchableOpacity>
-    </View>
-  );
+    );
 }
 function WorkerDetailScreen({ worker, onNavigate }) {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
+      <ResponsiveContainer style={{ paddingVertical: 20 }}>
       <ScrollView>
         <View style={{ padding: 20, alignItems: "center" }}>
           <LinearGradient
@@ -1466,6 +1480,7 @@ function CreateBookingScreen({ worker, onNavigate }) {
 function ProfileScreen({ onNavigate, currentUser, onLogout, user, onUpdateUser }) {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
+      <ResponsiveContainer style={{ paddingVertical: 20 }}>
       <ScrollView>
         <View style={{ padding: 24, alignItems: "center", backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: COLORS.border }}>
            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
