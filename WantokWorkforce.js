@@ -70,6 +70,7 @@ const TrustBadge = () => (
 // ─── SCREENS ───────────────────────────────────────────────────────────────
 
 
+function ProviderVouchingForm({ user, onVouchSubmitted }) {  const [gatekeeper, setGatekeeper] = useState({ name: '', role: '', contact: '' });  const [isSubmitting, setIsSubmitting] = useState(false);  const handleSubmit = async () => {    if (!gatekeeper.name || !gatekeeper.role || !gatekeeper.contact) {      alert("Please fill in all gatekeeper details.");      return;    }    setIsSubmitting(true);    try {      const res = await fetch(`${API_BASE}/v1/providers/vouch`, {        method: 'POST',        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },        body: JSON.stringify(gatekeeper)      });      const data = await res.json();      if (data.success) {        alert("Verification request sent to community gatekeeper!");        onVouchSubmitted();      } else {        alert(data.error || "Submission failed.");      }    } catch (err) {      alert("Network error.");    } finally {      setIsSubmitting(false);    }  };  return (    <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 20, elevation: 4, marginTop: 16 }}>      <Text style={{ fontSize: 18, fontWeight: "800", color: COLORS.text, marginBottom: 8 }}>🤝 Community Vouching</Text>      <Text style={{ fontSize: 13, color: COLORS.textMuted, marginBottom: 16 }}>Verify your skills via a community leader (Church, Village, or School).</Text>      <TextInput placeholder="Gatekeeper Name (e.g. Pastor John)" value={gatekeeper.name} onChangeText={(v) => setGatekeeper({...gatekeeper, name: v})} style={{ backgroundColor: COLORS.bg, borderRadius: 10, padding: 12, marginBottom: 10 }} />      <TextInput placeholder="Gatekeeper Role (e.g. Village Councillor)" value={gatekeeper.role} onChangeText={(v) => setGatekeeper({...gatekeeper, role: v})} style={{ backgroundColor: COLORS.bg, borderRadius: 10, padding: 12, marginBottom: 10 }} />      <TextInput placeholder="Contact Phone / Email" value={gatekeeper.contact} onChangeText={(v) => setGatekeeper({...gatekeeper, contact: v})} style={{ backgroundColor: COLORS.bg, borderRadius: 10, padding: 12, marginBottom: 16 }} />      <TouchableOpacity onPress={handleSubmit} disabled={isSubmitting} style={{ backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 14, alignItems: "center" }}>        <Text style={{ color: "#fff", fontWeight: "700" }}>{isSubmitting ? "SENDING..." : "SUBMIT FOR VALIDATION"}</Text>      </TouchableOpacity>    </View>  );}function ProviderFinancialDashboard({ user }) {  const [ledger, setLedger] = useState({ metrics: { totalEarned: 0, fundsInEscrow: 0, withdrawnToWallet: 0 }, history: [] });  const [loading, setLoading] = useState(true);  const fetchLedger = async () => {    try {      const res = await fetch(`${API_BASE}/v1/providers/ledger`, {        headers: { 'Authorization': `Bearer ${user?.token}` }      });      const data = await res.json();      if (data.success) setLedger(data.data);    } catch (err) {      console.error("Ledger fetch error", err);    } finally {      setLoading(false);    }  };  useEffect(() => { fetchLedger(); }, []);  if (loading) return <Text style={{ textAlign: 'center', padding: 20 }}>Loading Ledger...</Text>;  return (    <View style={{ gap: 16, marginTop: 16 }}>      <View style={{ backgroundColor: COLORS.primaryDark, borderRadius: 20, padding: 20 }}>        <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: "600" }}>'De Facto' Employment Ledger</Text>        <Text style={{ color: "#fff", fontSize: 28, fontWeight: "900", marginVertical: 10 }}>K{Number(ledger.metrics.totalEarned).toFixed(2)}</Text>        <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>          <View>            <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>In Escrow</Text>            <Text style={{ color: "#fff", fontWeight: "700" }}>K{Number(ledger.metrics.fundsInEscrow).toFixed(2)}</Text>          </View>          <View>            <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>Wallet</Text>            <Text style={{ color: "#fff", fontWeight: "700" }}>K{Number(ledger.metrics.withdrawnToWallet).toFixed(2)}</Text>          </View>        </View>      </View>      <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.text, marginLeft: 4 }}>Work History Cards</Text>      {ledger.history.length === 0 ? (        <View style={{ padding: 20, alignItems: 'center', backgroundColor: '#fff', borderRadius: 16 }}><Text style={{ color: COLORS.textMuted }}>No completed jobs yet.</Text></View>      ) : (        ledger.history.map((job) => (          <View key={job.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 16, elevation: 2, borderLeftWidth: 4, borderLeftColor: COLORS.primary }}>            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>              <Text style={{ fontWeight: "800", color: COLORS.text }}>{job.service_type}</Text>              <Text style={{ fontWeight: "900", color: COLORS.primary }}>K{Number(job.price).toFixed(2)}</Text>            </View>            <Text style={{ fontSize: 12, color: COLORS.textMuted }}>Client: {job.customer_name}</Text>            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>              <View style={{ flexDirection: "row", alignItems: "center" }}>                <Text style={{ fontSize: 14, marginRight: 5 }}>⭐</Text>                <Text style={{ fontWeight: "700", color: COLORS.accent }}>{job.feedback_rating || 5.0}</Text>              </View>              <Text style={{ fontSize: 11, color: COLORS.textLight }}>{new Date(job.completed_at || Date.now()).toLocaleDateString()}</Text>            </View>          </View>        ))      )}    </View>  );}
 function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -109,13 +110,32 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
   }, [searchText, selectedCategory]);
 
   if (currentUser === "provider") {
+    const [vStatus, setVStatus] = useState({ verified: false, vouch_status: 'none' });
+    const fetchVerification = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/v1/providers/verification-status`, {
+          headers: { 'Authorization': `Bearer ${user?.token}` }
+        });
+        const data = await res.json();
+        if (data.success) setVStatus(data);
+      } catch (err) {}
+    };
+    useEffect(() => { fetchVerification(); }, []);
+
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
         <ScrollView showsVerticalScrollIndicator={false}>
           <LinearGradient colors={[COLORS.primaryDark, COLORS.primary]} style={{ padding: 24, paddingBottom: 40 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
               <View>
-                <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>Welcome Back, Provider</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>Welcome Back, Provider</Text>
+                  {vStatus.verified && (
+                    <View style={{ backgroundColor: COLORS.accent, borderRadius: 4, paddingHorizontal: 4 }}>
+                      <Text style={{ fontSize: 9, fontWeight: "900", color: "#fff" }}>VERIFIED</Text>
+                    </View>
+                  )}
+                </View>
                 <Text style={{ color: "#fff", fontSize: 24, fontWeight: "900", marginTop: 4 }}>Your Dashboard</Text>
               </View>
               <TouchableOpacity onPress={() => onNavigate("profile")} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.3)" }}>
@@ -149,10 +169,24 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
               <View style={{ height: 1, backgroundColor: COLORS.border, marginBottom: 16 }} />
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <Text style={{ fontSize: 14, fontWeight: "700", color: COLORS.text }}>Trust Score</Text>
-                <Text style={{ fontSize: 16, fontWeight: "900", color: COLORS.primary }}>92%</Text>
+                <Text style={{ fontSize: 16, fontWeight: "900", color: COLORS.primary }}>{vStatus.verified ? "98%" : "92%"}</Text>
               </View>
-              <View style={{ height: 6, backgroundColor: "#E5E7EB", borderRadius: 3, overflow: "hidden" }}><View style={{ width: "92%", height: "100%", backgroundColor: COLORS.primary }} /></View>
+              <View style={{ height: 6, backgroundColor: "#E5E7EB", borderRadius: 3, overflow: "hidden" }}><View style={{ width: vStatus.verified ? "98%" : "92%", height: "100%", backgroundColor: COLORS.primary }} /></View>
             </View>
+
+            {/* PART B: Financial Ledger */}
+            <ProviderFinancialDashboard user={user} />
+
+            {/* PART A: Vouching Component (Show if not verified) */}
+            {!vStatus.verified && vStatus.vouch_status !== 'pending' && (
+              <ProviderVouchingForm user={user} onVouchSubmitted={fetchVerification} />
+            )}
+            {vStatus.vouch_status === 'pending' && (
+              <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 20, alignItems: "center", borderStyle: "dashed", borderWidth: 1, borderColor: COLORS.primary }}>
+                <Text style={{ fontSize: 16, fontWeight: "800", color: COLORS.primary }}>⏳ Verification Pending</Text>
+                <Text style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 4, textAlign: "center" }}>Your community gatekeeper request is being reviewed by the Wantok team.</Text>
+              </View>
+            )}
           </View>
         </ScrollView>
       </View>
@@ -1324,6 +1358,7 @@ function ProfileScreen({ onNavigate, currentUser, onLogout, user, onUpdateUser }
 function AdminScreen({ onNavigate, onLogout, user }) {
   const [stats, setStats] = useState({ totalCustomers: 0, totalProviders: 0, totalMatches: 0 });
   const [pendingProviders, setPendingProviders] = useState([]);
+  const [pendingVouching, setPendingVouching] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -1368,12 +1403,22 @@ function AdminScreen({ onNavigate, onLogout, user }) {
   const fetchPending = async () => {
     try {
       const adminToken = user?.token;
-      const res = await fetch(`${API_BASE}/admin/pending-providers`, {
+      // Fetch Pending Accounts
+      const resAcc = await fetch(`${API_BASE}/admin/pending-providers`, {
         headers: { "Authorization": `Bearer ${adminToken}` }
       });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setPendingProviders(data.data || data.providers || data);
+      const dataAcc = await resAcc.json().catch(() => ({}));
+      if (resAcc.ok) {
+        setPendingProviders(dataAcc.data || dataAcc.providers || dataAcc);
+      }
+
+      // Fetch Pending Community Vouchers
+      const resVouch = await fetch(`${API_BASE}/admin/pending-vouching`, {
+        headers: { "Authorization": `Bearer ${adminToken}` }
+      });
+      const dataVouch = await resVouch.json().catch(() => ({}));
+      if (resVouch.ok) {
+        setPendingVouching(dataVouch.data || []);
       }
     } catch (e) {
       console.error("❌ Admin Data Pipeline Error (Pending): ", e.message);
@@ -1837,9 +1882,9 @@ function AdminScreen({ onNavigate, onLogout, user }) {
             <ScrollView style={{ flex: 1, padding: 16 }}>
               {activeSubTab === "verification_queue" && (
                 <View>
-                  <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B", marginBottom: 16 }}>Pending Provider Verifications</Text>
+                  <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B", marginBottom: 16 }}>Account Verification Queue</Text>
                   {pendingProviders.length === 0 ? (
-                    <View style={{ backgroundColor: "#fff", padding: 20, borderRadius: 12, alignItems: "center" }}>
+                    <View style={{ backgroundColor: "#fff", padding: 20, borderRadius: 12, alignItems: "center", marginBottom: 24 }}>
                       <Text style={{ color: "#94A3B8", fontSize: 13 }}>No pending profiles for review</Text>
                     </View>
                   ) : (
@@ -1849,14 +1894,45 @@ function AdminScreen({ onNavigate, onLogout, user }) {
                           <Text style={{ fontSize: 16, fontWeight: "700", color: "#1E293B" }}>{prov.name}</Text>
                           <Text style={{ fontSize: 13, color: COLORS.primary, fontWeight: "600" }}>{prov.primary_skill || "General Trade"}</Text>
                           <Text style={{ fontSize: 12, color: "#64748B", marginTop: 4 }}>{prov.email} • {prov.phone_number}</Text>
-                          <Text style={{ fontSize: 12, color: "#1E293B", marginTop: 8, fontStyle: "italic" }}>"{prov.bio || 'No bio provided'}"</Text>
                         </View>
                         <View style={{ width: 120, gap: 8 }}>
-                          <TouchableOpacity onPress={() => handleUserAction(prov.id, 'approve')} style={{ backgroundColor: "#10B981", padding: 8, borderRadius: 6, alignItems: "center" }}>
+                          <TouchableOpacity onPress={() => handleUserAction(prov.id, "approve")} style={{ backgroundColor: "#10B981", padding: 8, borderRadius: 6, alignItems: "center" }}>
                             <Text style={{ color: "#fff", fontWeight: "700", fontSize: 11 }}>Approve</Text>
                           </TouchableOpacity>
-                          <TouchableOpacity onPress={() => handleUserAction(prov.id, 'flag')} style={{ borderWidth: 1, borderColor: "#EF4444", padding: 8, borderRadius: 6, alignItems: "center" }}>
+                          <TouchableOpacity onPress={() => handleUserAction(prov.id, "flag")} style={{ borderWidth: 1, borderColor: "#EF4444", padding: 8, borderRadius: 6, alignItems: "center" }}>
                             <Text style={{ color: "#EF4444", fontWeight: "700", fontSize: 11 }}>Flag/Reject</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))
+                  )}
+
+                  <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B", marginBottom: 16, marginTop: 12 }}>🤝 Community Vouching Queue</Text>
+                  {pendingVouching.length === 0 ? (
+                    <View style={{ backgroundColor: "#fff", padding: 20, borderRadius: 12, alignItems: "center" }}>
+                      <Text style={{ color: "#94A3B8", fontSize: 13 }}>No community vouchers pending</Text>
+                    </View>
+                  ) : (
+                    pendingVouching.map(vouch => (
+                      <View key={vouch.id} style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, marginBottom: 12, flexDirection: "row", gap: 16 }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 15, fontWeight: "800", color: "#1E293B" }}>Gatekeeper: {vouch.gatekeeper_name}</Text>
+                          <Text style={{ fontSize: 13, color: COLORS.primary, fontWeight: "700" }}>{vouch.gatekeeper_role}</Text>
+                          <Text style={{ fontSize: 12, color: "#64748B", marginTop: 4 }}>Contact: {vouch.gatekeeper_contact}</Text>
+                          <View style={{ height: 1, backgroundColor: "#E2E8F0", marginVertical: 8 }} />
+                          <Text style={{ fontSize: 12, color: "#1E293B" }}>Provider: <Text style={{ fontWeight: "700" }}>{vouch.provider_name}</Text> ({vouch.provider_email})</Text>
+                        </View>
+                        <View style={{ width: 100, gap: 8, justifyContent: "center" }}>
+                          <TouchableOpacity
+                            onPress={() => {
+                              fetch(`${API_BASE}/admin/vouch/${vouch.id}/approve`, {
+                                method: "POST",
+                                headers: { "Authorization": `Bearer ${user?.token}` }
+                              }).then(res => res.ok ? (alert("Vouch Approved"), fetchPending()) : alert("Approval failed"));
+                            }}
+                            style={{ backgroundColor: COLORS.primary, padding: 8, borderRadius: 6, alignItems: "center" }}
+                          >
+                            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 11 }}>Verify</Text>
                           </TouchableOpacity>
                         </View>
                       </View>

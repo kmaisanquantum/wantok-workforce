@@ -32,6 +32,7 @@ router.put('/users/:userId', ...adminAuth, AdminController.updateUser);
 router.delete('/users/:userId', ...adminAuth, AdminController.deleteUser);
 
 router.get('/pending-providers', ...adminAuth, AdminController.getPendingProviders);
+router.get('/pending-vouching', ...adminAuth, AdminController.getPendingVouching);router.post('/vouch/:vouchId/approve', ...adminAuth, AdminController.approveVouch);
 router.post('/providers/:providerId/approve', ...adminAuth, AdminController.approveProvider);
 router.post('/users/:userId/flag', ...adminAuth, AdminController.flagUser);
 
