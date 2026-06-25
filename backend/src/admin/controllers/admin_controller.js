@@ -78,6 +78,113 @@ class AdminController {
     return AdminController.getDashboardMetrics(req, res);
   }
 
+  // PART A: Sovereign Financial Ledger
+  static async getSystemLedgerStats(req, res) {
+    try {
+      const query = `
+        SELECT
+          COALESCE(SUM(price) FILTER (WHERE payout_status = 'escrowed'), 0)::DECIMAL as "totalEscrowCapital",
+          COALESCE(SUM(price) FILTER (WHERE payout_status = 'disbursed'), 0)::DECIMAL as "totalDisbursements",
+          COALESCE(SUM(platform_fee), 0)::DECIMAL as "totalRevenue"
+        FROM bookings
+      `;
+      const { rows } = await UserModel.getPool().query(query);
+      return res.status(200).json({ success: true, data: rows[0] });
+    } catch (error) {
+      console.error('❌ Admin Ledger Stats Error:', error);
+      return res.status(500).json({ error: 'Failed to fetch ledger stats' });
+    }
+  }
+
+  // PART B: Automated Milestone Arbitrator
+  static async getDisputedJobs(req, res) {
+    try {
+      const query = `
+        SELECT b.*, c.name as customer_name, p.name as provider_name
+        FROM bookings b
+        LEFT JOIN users c ON b.customer_id = c.id
+        LEFT JOIN users p ON b.provider_id = p.id
+        WHERE b.status = 'disputed'
+        ORDER BY b.updated_at DESC
+      `;
+      const { rows } = await UserModel.getPool().query(query);
+      return res.status(200).json({ success: true, data: rows });
+    } catch (error) {
+      console.error('❌ Admin Disputed Jobs Error:', error);
+      return res.status(500).json({ error: 'Failed to fetch disputed jobs' });
+    }
+  }
+
+  static async releasePayout(req, res) {
+    let client;
+    try {
+      const { bookingId } = req.params;
+      client = await UserModel.getPool().connect();
+      await client.query('BEGIN');
+
+      const query = `
+        UPDATE bookings
+        SET status = 'completed', payout_status = 'disbursed', updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+        RETURNING id
+      `;
+      const { rows } = await client.query(query, [bookingId]);
+
+      if (rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Booking not found' });
+      }
+
+      await client.query(`
+        INSERT INTO audit_logs (level, action)
+        VALUES ('SEC', 'Administrative payout release for booking ' || $1)
+      `, [bookingId]);
+
+      await client.query('COMMIT');
+      return res.status(200).json({ success: true, message: 'Payout released successfully' });
+    } catch (error) {
+      if (client) await client.query('ROLLBACK');
+      return res.status(500).json({ error: 'Failed to release payout' });
+    } finally {
+      if (client) client.release();
+    }
+  }
+
+  static async refundEscrow(req, res) {
+    let client;
+    try {
+      const { bookingId } = req.params;
+      client = await UserModel.getPool().connect();
+      await client.query('BEGIN');
+
+      const query = `
+        UPDATE bookings
+        SET status = 'cancelled', payout_status = 'refunded', updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+        RETURNING id
+      `;
+      const { rows } = await client.query(query, [bookingId]);
+
+      if (rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Booking not found' });
+      }
+
+      await client.query(`
+        INSERT INTO audit_logs (level, action)
+        VALUES ('SEC', 'Administrative escrow refund for booking ' || $1)
+      `, [bookingId]);
+
+      await client.query('COMMIT');
+      return res.status(200).json({ success: true, message: 'Escrow refunded successfully' });
+    } catch (error) {
+      if (client) await client.query('ROLLBACK');
+      return res.status(500).json({ error: 'Failed to refund escrow' });
+    } finally {
+      if (client) client.release();
+    }
+  }
+
   static async forceSyncUsers(req, res) {
     try {
       const query = `
