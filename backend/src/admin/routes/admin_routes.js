@@ -9,13 +9,13 @@ const { authMiddleware, roleCheckMiddleware } = require('../../auth/middlewares/
  */
 
 // Diagnostic / Dashboard Metrics (Protected by Auth but optimized for speed)
+const adminAuth = [authMiddleware, roleCheckMiddleware(["admin"])];
 // These endpoints use the self-healing Redis-to-PostgreSQL fallback
-router.get('/dashboard-metrics', authMiddleware, AdminController.getDashboardMetrics);
-router.get('/stats', authMiddleware, AdminController.getStats);
-router.get('/system-logs', authMiddleware, AdminController.getSystemLogs);
+router.get('/dashboard-metrics', ...adminAuth, AdminController.getDashboardMetrics);
+router.get('/stats', ...adminAuth, AdminController.getStats);
+router.get('/system-logs', ...adminAuth, AdminController.getSystemLogs);
 
 // Management Routes (Strictly Admin Persona only)
-const adminAuth = [authMiddleware, roleCheckMiddleware(['admin'])];
 
 router.get('/users', ...adminAuth, AdminController.getAllUsers);
 router.post('/users/force-sync', ...adminAuth, AdminController.forceSyncUsers);

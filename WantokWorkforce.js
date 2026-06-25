@@ -813,7 +813,7 @@ function AuthScreen({ onAuth }) {
       data = await response.json().catch(() => ({ error: 'Invalid response from server' }));
 
       if (response.ok) {
-        onAuth({ ...data.user, token: data.token }, false);
+        onAuth({ ...data.user, token: data.token, active_persona: (data.user.roles && data.user.roles.includes('admin')) ? 'admin' : data.user.role }, false);
       } else {
         alert("Network Status: " + response.status + "\nDetails: " + (data.details || data.error || "Signin failed"));
       }
@@ -865,7 +865,7 @@ function AuthScreen({ onAuth }) {
 
         if (response.ok) {
           console.log('✅ Registration success payload:', data);
-          onAuth({ ...data.user, token: data.token }, true);
+          onAuth({ ...data.user, token: data.token, active_persona: data.user.role }, true);
         } else {
           alert("Network Status: " + response.status + "\nDetails: " + (data.details || data.error || "Signup failed"));
         }
@@ -1144,7 +1144,7 @@ function AdminAuthScreen({ onAuth }) {
       if (response.ok) {
         // Strict Role Check: Must be admin
         if (data.user.roles && data.user.roles.includes('admin')) {
-          onAuth({ ...data.user, token: data.token }, false);
+          onAuth({ ...data.user, token: data.token, active_persona: 'admin' }, false);
         } else {
           alert("Access Denied: Administrative privileges required.");
           if (Platform.OS === 'web') window.location.href = '/';
@@ -1335,6 +1335,14 @@ function AdminScreen({ onNavigate, onLogout, user }) {
   const [logs, setLogs] = useState([]);
   const [queue, setQueue] = useState([]);
   const [systemSettings, setSystemSettings] = useState({ match_radius: 50, platform_fee: 10, maintenance_mode: false });
+
+  useEffect(() => {
+    if (user && user.roles && user.roles.includes("admin") && user.active_persona !== "admin") {
+      console.log("🛠️ Admin Screen: Normalizing active_persona to admin");
+      // This ensures subsequent fetch calls in this session use the correct context
+      user.active_persona = "admin";
+    }
+  }, [user]);
 
   const fetchStats = async () => {
     try {

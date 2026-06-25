@@ -36,17 +36,26 @@ const authMiddleware = async (req, res, next) => {
 
 const roleCheckMiddleware = (allowedPersonas) => {
   return (req, res, next) => {
-    if (!req.user || !req.user.active_persona) {
-      return res.status(403).json({ error: 'Forbidden: No active persona set' });
+    if (!req.user) {
+      return res.status(403).json({ error: 'Forbidden: User not authenticated' });
     }
 
-    if (!allowedPersonas.includes(req.user.active_persona)) {
-      return res.status(403).json({
-        error: `Forbidden: Access denied for active persona '${req.user.active_persona}'`
-      });
+    // 1. Direct Check: Access granted if active persona matches
+    if (allowedPersonas.includes(req.user.active_persona)) {
+      return next();
     }
 
-    next();
+    // 2. RBAC Hardening Override: If the user has 'admin' in their roles array,
+    // grant access to admin-specific routes regardless of their current active_persona.
+    // This prevents lockout if an admin switches to a provider view for testing.
+    if (allowedPersonas.includes('admin') && req.user.roles && req.user.roles.includes('admin')) {
+      console.log(`🔓 Admin Override: Granting access to ${req.user.email} (Active Persona: ${req.user.active_persona})`);
+      return next();
+    }
+
+    return res.status(403).json({
+      error: `Forbidden: Access denied for active persona '${req.user.active_persona || 'none'}'`
+    });
   };
 };
 
