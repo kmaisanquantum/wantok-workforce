@@ -15,7 +15,11 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import categories from "./categories.json";
 
-const { width } = Dimensions.get("window");
+const { width, height: screenHeight } = Dimensions.get("window");
+const isDesktop = width > 1024;
+const isTablet = width > 768;
+const MAX_WIDTH = 1280;
+const CONTENT_PADDING = isDesktop ? 40 : 16;
 const API_BASE = (typeof process !== "undefined" && process.env.EXPO_PUBLIC_API_URL) || ((typeof window !== "undefined" && window.location.hostname === "localhost") ? "http://localhost:3000/api" : "/api");
 console.log('🔗 Active Backend Pipeline API Path Set to:', API_BASE);
 
@@ -69,8 +73,128 @@ const TrustBadge = () => (
 
 // ─── SCREENS ───────────────────────────────────────────────────────────────
 
+function ProviderVouchingForm({ user, onVouchSubmitted }) {
+  const [gatekeeper, setGatekeeper] = useState({ name: '', role: '', contact: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-function ProviderVouchingForm({ user, onVouchSubmitted }) {  const [gatekeeper, setGatekeeper] = useState({ name: '', role: '', contact: '' });  const [isSubmitting, setIsSubmitting] = useState(false);  const handleSubmit = async () => {    if (!gatekeeper.name || !gatekeeper.role || !gatekeeper.contact) {      alert("Please fill in all gatekeeper details.");      return;    }    setIsSubmitting(true);    try {      const res = await fetch(`${API_BASE}/v1/providers/vouch`, {        method: 'POST',        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },        body: JSON.stringify(gatekeeper)      });      const data = await res.json();      if (data.success) {        alert("Verification request sent to community gatekeeper!");        onVouchSubmitted();      } else {        alert(data.error || "Submission failed.");      }    } catch (err) {      alert("Network error.");    } finally {      setIsSubmitting(false);    }  };  return (    <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 20, elevation: 4, marginTop: 16 }}>      <Text style={{ fontSize: 18, fontWeight: "800", color: COLORS.text, marginBottom: 8 }}>🤝 Community Vouching</Text>      <Text style={{ fontSize: 13, color: COLORS.textMuted, marginBottom: 16 }}>Verify your skills via a community leader (Church, Village, or School).</Text>      <TextInput placeholder="Gatekeeper Name (e.g. Pastor John)" value={gatekeeper.name} onChangeText={(v) => setGatekeeper({...gatekeeper, name: v})} style={{ backgroundColor: COLORS.bg, borderRadius: 10, padding: 12, marginBottom: 10 }} />      <TextInput placeholder="Gatekeeper Role (e.g. Village Councillor)" value={gatekeeper.role} onChangeText={(v) => setGatekeeper({...gatekeeper, role: v})} style={{ backgroundColor: COLORS.bg, borderRadius: 10, padding: 12, marginBottom: 10 }} />      <TextInput placeholder="Contact Phone / Email" value={gatekeeper.contact} onChangeText={(v) => setGatekeeper({...gatekeeper, contact: v})} style={{ backgroundColor: COLORS.bg, borderRadius: 10, padding: 12, marginBottom: 16 }} />      <TouchableOpacity onPress={handleSubmit} disabled={isSubmitting} style={{ backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 14, alignItems: "center" }}>        <Text style={{ color: "#fff", fontWeight: "700" }}>{isSubmitting ? "SENDING..." : "SUBMIT FOR VALIDATION"}</Text>      </TouchableOpacity>    </View>  );}function ProviderFinancialDashboard({ user }) {  const [ledger, setLedger] = useState({ metrics: { totalEarned: 0, fundsInEscrow: 0, withdrawnToWallet: 0 }, history: [] });  const [loading, setLoading] = useState(true);  const fetchLedger = async () => {    try {      const res = await fetch(`${API_BASE}/v1/providers/ledger`, {        headers: { 'Authorization': `Bearer ${user?.token}` }      });      const data = await res.json();      if (data.success) setLedger(data.data);    } catch (err) {      console.error("Ledger fetch error", err);    } finally {      setLoading(false);    }  };  useEffect(() => { fetchLedger(); }, []);  if (loading) return <Text style={{ textAlign: 'center', padding: 20 }}>Loading Ledger...</Text>;  return (    <View style={{ gap: 16, marginTop: 16 }}>      <View style={{ backgroundColor: COLORS.primaryDark, borderRadius: 20, padding: 20 }}>        <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: "600" }}>'De Facto' Employment Ledger</Text>        <Text style={{ color: "#fff", fontSize: 28, fontWeight: "900", marginVertical: 10 }}>K{Number(ledger.metrics.totalEarned).toFixed(2)}</Text>        <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>          <View>            <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>In Escrow</Text>            <Text style={{ color: "#fff", fontWeight: "700" }}>K{Number(ledger.metrics.fundsInEscrow).toFixed(2)}</Text>          </View>          <View>            <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>Wallet</Text>            <Text style={{ color: "#fff", fontWeight: "700" }}>K{Number(ledger.metrics.withdrawnToWallet).toFixed(2)}</Text>          </View>        </View>      </View>      <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.text, marginLeft: 4 }}>Work History Cards</Text>      {ledger.history.length === 0 ? (        <View style={{ padding: 20, alignItems: 'center', backgroundColor: '#fff', borderRadius: 16 }}><Text style={{ color: COLORS.textMuted }}>No completed jobs yet.</Text></View>      ) : (        ledger.history.map((job) => (          <View key={job.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 16, elevation: 2, borderLeftWidth: 4, borderLeftColor: COLORS.primary }}>            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>              <Text style={{ fontWeight: "800", color: COLORS.text }}>{job.service_type}</Text>              <Text style={{ fontWeight: "900", color: COLORS.primary }}>K{Number(job.price).toFixed(2)}</Text>            </View>            <Text style={{ fontSize: 12, color: COLORS.textMuted }}>Client: {job.customer_name}</Text>            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>              <View style={{ flexDirection: "row", alignItems: "center" }}>                <Text style={{ fontSize: 14, marginRight: 5 }}>⭐</Text>                <Text style={{ fontWeight: "700", color: COLORS.accent }}>{job.feedback_rating || 5.0}</Text>              </View>              <Text style={{ fontSize: 11, color: COLORS.textLight }}>{new Date(job.completed_at || Date.now()).toLocaleDateString()}</Text>            </View>          </View>        ))      )}    </View>  );}
+  const handleSubmit = async () => {
+    if (!gatekeeper.name || !gatekeeper.role || !gatekeeper.contact) {
+      alert("Please fill in all gatekeeper details.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE}/v1/providers/vouch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
+        body: JSON.stringify(gatekeeper)
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Verification request sent to community gatekeeper!");
+        onVouchSubmitted();
+      } else {
+        alert(data.error || "Submission failed.");
+      }
+    } catch (err) {
+      alert("Network error.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 20, elevation: 4, marginTop: 16 }}>
+      <Text style={{ fontSize: 18, fontWeight: "800", color: COLORS.text, marginBottom: 8 }}>🤝 Community Vouching</Text>
+      <Text style={{ fontSize: 13, color: COLORS.textMuted, marginBottom: 16 }}>Verify your skills via a community leader (Church, Village, or School).</Text>
+      <TextInput placeholder="Gatekeeper Name (e.g. Pastor John)" value={gatekeeper.name} onChangeText={(v) => setGatekeeper({...gatekeeper, name: v})} style={{ backgroundColor: COLORS.bg, borderRadius: 10, padding: 12, marginBottom: 10 }} />
+      <TextInput placeholder="Gatekeeper Role (e.g. Village Councillor)" value={gatekeeper.role} onChangeText={(v) => setGatekeeper({...gatekeeper, role: v})} style={{ backgroundColor: COLORS.bg, borderRadius: 10, padding: 12, marginBottom: 10 }} />
+      <TextInput placeholder="Contact Phone / Email" value={gatekeeper.contact} onChangeText={(v) => setGatekeeper({...gatekeeper, contact: v})} style={{ backgroundColor: COLORS.bg, borderRadius: 10, padding: 12, marginBottom: 16 }} />
+      <TouchableOpacity onPress={handleSubmit} disabled={isSubmitting} style={{ backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 14, alignItems: "center" }}>
+        <Text style={{ color: "#fff", fontWeight: "700" }}>{isSubmitting ? "SENDING..." : "SUBMIT FOR VALIDATION"}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function ProviderFinancialDashboard({ user }) {
+  const [ledger, setLedger] = useState({ metrics: { totalEarned: 0, fundsInEscrow: 0, withdrawnToWallet: 0 }, history: [] });
+  const [loading, setLoading] = useState(true);
+
+  const fetchLedger = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/v1/providers/ledger`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      const data = await res.json();
+      if (data.success) setLedger(data.data);
+    } catch (err) {
+      console.error("Ledger fetch error", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchLedger(); }, []);
+
+  if (loading) return <Text style={{ textAlign: 'center', padding: 20 }}>Loading Ledger...</Text>;
+
+  return (
+    <View style={{ gap: 16 }}>
+      <View style={{ backgroundColor: COLORS.primaryDark, borderRadius: 20, padding: 24, flexDirection: isDesktop ? "row" : "column", gap: 24 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: "600" }}>TOTAL EARNED (PGK)</Text>
+          <Text style={{ color: "#fff", fontSize: 32, fontWeight: "900", marginTop: 8 }}>K{Number(ledger.metrics.totalEarned).toFixed(2)}</Text>
+        </View>
+        <View style={{ height: isDesktop ? 60 : 1, width: isDesktop ? 1 : "100%", backgroundColor: "rgba(255,255,255,0.1)" }} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: "600" }}>IN ESCROW</Text>
+          <Text style={{ color: COLORS.accent, fontSize: 24, fontWeight: "800", marginTop: 4 }}>K{Number(ledger.metrics.fundsInEscrow).toFixed(2)}</Text>
+        </View>
+        <View style={{ height: isDesktop ? 60 : 1, width: isDesktop ? 1 : "100%", backgroundColor: "rgba(255,255,255,0.1)" }} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: "600" }}>MOBILE WALLET</Text>
+          <Text style={{ color: "#10B981", fontSize: 24, fontWeight: "800", marginTop: 4 }}>K{Number(ledger.metrics.withdrawnToWallet).toFixed(2)}</Text>
+        </View>
+      </View>
+
+      <Text style={{ fontSize: 18, fontWeight: "800", color: COLORS.text, marginTop: 8 }}>📜 Permanent Employment Record</Text>
+      {ledger.history.length === 0 ? (
+        <View style={{ padding: 40, alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, borderStyle: 'dashed', borderWidth: 1, borderColor: COLORS.border }}>
+          <Text style={{ color: COLORS.textMuted }}>No completed job cards found.</Text>
+        </View>
+      ) : (
+        <View style={{ gap: 12 }}>
+          {ledger.history.map((job) => (
+            <View key={job.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, elevation: 2, borderLeftWidth: 6, borderLeftColor: COLORS.primary }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <View>
+                  <Text style={{ fontSize: 16, fontWeight: "800", color: COLORS.text }}>{job.service_type}</Text>
+                  <Text style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 2 }}>Client: {job.customer_name}</Text>
+                </View>
+                <View style={{ alignItems: 'right' }}>
+                  <Text style={{ fontSize: 20, fontWeight: "900", color: COLORS.primary }}>K{Number(job.price).toFixed(2)}</Text>
+                  <Text style={{ fontSize: 10, color: COLORS.textLight, textAlign: 'right' }}>{new Date(job.completed_at || Date.now()).toLocaleDateString()}</Text>
+                </View>
+              </View>
+              <View style={{ height: 1, backgroundColor: COLORS.border, marginBottom: 12 }} />
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Text style={{ fontSize: 14 }}>⭐</Text>
+                  <Text style={{ fontWeight: "700", color: COLORS.accent }}>{job.feedback_rating || 5.0} Rating</Text>
+                </View>
+                <View style={{ backgroundColor: "#F0FDF4", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
+                  <Text style={{ fontSize: 10, fontWeight: "800", color: "#166534" }}>VERIFIED RECORD</Text>
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
 function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -123,7 +247,7 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
     useEffect(() => { fetchVerification(); }, []);
 
     return (
-      <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
+      <View style={{ flex: 1, backgroundColor: COLORS.bg, justifyContent: isDesktop ? "center" : "flex-start" }}>
         <ScrollView showsVerticalScrollIndicator={false}>
           <LinearGradient colors={[COLORS.primaryDark, COLORS.primary]} style={{ padding: 24, paddingBottom: 40 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
@@ -143,7 +267,9 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
               </TouchableOpacity>
             </View>
           </LinearGradient>
-          <View style={{ padding: 16, marginTop: -20, gap: 16 }}>
+          <ResponsiveContainer style={{ marginTop: -20, gap: 16 }}>
+            <View style={{ flexDirection: isDesktop ? "row" : "column", gap: 16 }}>
+              <View style={{ flex: isDesktop ? 2 : 1, gap: 16 }}>
             <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 20, elevation: 4 }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <View>
@@ -176,6 +302,8 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
 
             {/* PART B: Financial Ledger */}
             <ProviderFinancialDashboard user={user} />
+              </View>
+              <View style={{ flex: isDesktop ? 1 : 1, gap: 16 }}>
 
             {/* PART A: Vouching Component (Show if not verified) */}
             {!vStatus.verified && vStatus.vouch_status !== 'pending' && (
@@ -188,6 +316,9 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
               </View>
             )}
           </View>
+              </View>
+            </View>
+          </ResponsiveContainer>
         </ScrollView>
       </View>
     );
@@ -196,41 +327,43 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <LinearGradient colors={[COLORS.primaryDark, COLORS.primary]} style={{ paddingTop: 10, paddingHorizontal: 16, paddingBottom: 25, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <View>
-              <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>Good morning 👋</Text>
-              <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800", marginTop: 2 }}>Find a Wantok</Text>
+        <LinearGradient colors={[COLORS.primaryDark, COLORS.primary]} style={{ paddingTop: 20, paddingBottom: 35 }}>
+          <ResponsiveContainer>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <View>
+                <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>Good morning 👋</Text>
+                <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800", marginTop: 2 }}>Find a Wantok</Text>
+              </View>
+              <TouchableOpacity style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.3)" }} onPress={() => onNavigate("profile")}>
+                <Text style={{ fontSize: 18 }}>👤</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.3)" }} onPress={() => onNavigate("profile")}>
-              <Text style={{ fontSize: 18 }}>👤</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={{ backgroundColor: "#fff", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10, elevation: 4 }}>
-            <Text style={{ fontSize: 18 }}>🔍</Text>
-            <TextInput value={searchText} onChangeText={setSearchText} placeholder="Search trade or category..." placeholderTextColor={COLORS.textLight} style={{ flex: 1, fontSize: 14, color: COLORS.text, padding: 0 }} />
-            <View style={{ backgroundColor: COLORS.primary, borderRadius: 8, paddingVertical: 4, paddingHorizontal: 10 }}><Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>📍 PNG</Text></View>
-          </View>
+            <View style={{ backgroundColor: "#fff", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10, elevation: 4 }}>
+              <Text style={{ fontSize: 18 }}>🔍</Text>
+              <TextInput value={searchText} onChangeText={setSearchText} placeholder="Search trade or category..." placeholderTextColor={COLORS.textLight} style={{ flex: 1, fontSize: 14, color: COLORS.text, padding: 0 }} />
+              <View style={{ backgroundColor: COLORS.primary, borderRadius: 8, paddingVertical: 4, paddingHorizontal: 10 }}><Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>📍 PNG</Text></View>
+            </View>
+          </ResponsiveContainer>
         </LinearGradient>
 
-        <View style={{ paddingHorizontal: 16, marginTop: 15 }}>
+        <ResponsiveContainer style={{ paddingVertical: 20 }}>
           <TouchableOpacity onPress={fetchNearbyProviders} disabled={isSearching} style={{ backgroundColor: COLORS.primary, borderRadius: 14, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, elevation: 4 }}>
             <Text style={{ fontSize: 18 }}>🛰️</Text>
             <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>{isSearching ? "SEARCHING NEARBY..." : "FIND NEARBY PROVIDERS"}</Text>
           </TouchableOpacity>
-        </View>
 
-        <View style={{ paddingVertical: 20, paddingHorizontal: 16 }}>
-          <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.text, marginBottom: 12 }}>Categories</Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", marginHorizontal: -5 }}>
-            {categories.map((cat, i) => (
-              <TouchableOpacity key={i} onPress={() => { setSelectedCategory(cat.label); setSearchText(""); }} style={{ width: (width - 32) / 4 - 10, margin: 5, backgroundColor: selectedCategory === cat.label ? cat.color + "22" : "#fff", borderRadius: 14, paddingVertical: 12, alignItems: "center", gap: 6, elevation: 2, borderWidth: selectedCategory === cat.label ? 1 : 0, borderColor: cat.color }}>
-                <Text style={{ fontSize: 22 }}>{cat.icon}</Text>
-                <Text numberOfLines={1} style={{ fontSize: 10, fontWeight: "600", color: selectedCategory === cat.label ? cat.color : COLORS.textMuted }}>{cat.label}</Text>
-              </TouchableOpacity>
-            ))}
+          <View style={{ paddingVertical: 20 }}>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.text, marginBottom: 12 }}>Categories</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", marginHorizontal: -5 }}>
+              {categories.map((cat, i) => (
+                <TouchableOpacity key={i} onPress={() => { setSelectedCategory(cat.label); setSearchText(""); }} style={{ width: isDesktop ? (MAX_WIDTH - 80) / 6 - 10 : (width - 32) / 4 - 10, margin: 5, backgroundColor: selectedCategory === cat.label ? cat.color + "22" : "#fff", borderRadius: 14, paddingVertical: 12, alignItems: "center", gap: 6, elevation: 2, borderWidth: selectedCategory === cat.label ? 1 : 0, borderColor: cat.color }}>
+                  <Text style={{ fontSize: 22 }}>{cat.icon}</Text>
+                  <Text numberOfLines={1} style={{ fontSize: 10, fontWeight: "600", color: selectedCategory === cat.label ? cat.color : COLORS.textMuted }}>{cat.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
-        </View>
+        </ResponsiveContainer>
       </ScrollView>
     </View>
   );
@@ -785,6 +918,12 @@ function ProviderOnboardingScreen({ onComplete, user }) {
   );
 }
 
+const ResponsiveContainer = ({ children, style = {} }) => (
+  <View style={[{ width: "100%", maxWidth: MAX_WIDTH, alignSelf: "center", paddingHorizontal: CONTENT_PADDING }, style]}>
+    {children}
+  </View>
+);
+
 function AuthScreen({ onAuth }) {
   const [loading, setLoading] = useState(false);
   const [dbStatus, setDbStatus] = useState("checking");
@@ -939,7 +1078,7 @@ function AuthScreen({ onAuth }) {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 24 }}>
-        <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 24, elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 }}>
+        <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 24, elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, maxWidth: 450, width: "100%", alignSelf: "center" }}>
           <Text style={{ fontSize: 22, fontWeight: "800", color: COLORS.text, marginBottom: 8 }}>
             {mode === "signin" ? "Welcome Back" : "Create Account"}
           </Text>
@@ -1196,6 +1335,7 @@ function AdminAuthScreen({ onAuth }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#0F172A", justifyContent: "center", padding: 24 }}>
+      <View style={{ maxWidth: 450, width: "100%", alignSelf: "center" }}>
       <View style={{ alignItems: "center", marginBottom: 40 }}>
         <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "#334155", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
           <Text style={{ fontSize: 32 }}>🔐</Text>
@@ -1677,6 +1817,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
       <ScrollView style={{ flex: 1 }}>
         {activeTab === "dashboard" && (
+          <ResponsiveContainer style={{ paddingVertical: 16 }}>
           <View style={{ padding: 16, gap: 16 }}>
             {/* Responsive Metrics Grid */}
             <View style={{ flexDirection: isDesktop ? "row" : "column", gap: 12 }}>
@@ -1794,9 +1935,11 @@ function AdminScreen({ onNavigate, onLogout, user }) {
               </View>
             </View>
           </View>
+          </ResponsiveContainer>
         )}
 
         {activeTab === "users" && (
+          <ResponsiveContainer style={{ paddingVertical: 16 }}>
           <View style={{ padding: 16 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
               <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B" }}>User Registrations</Text>
@@ -1923,9 +2066,11 @@ function AdminScreen({ onNavigate, onLogout, user }) {
               </View>
             ))}
           </View>
+          </ResponsiveContainer>
         )}
 
         {activeTab === "verification" && (
+          <ResponsiveContainer style={{ paddingVertical: 16 }}>
           <View style={{ padding: 16 }}>
             <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B", marginBottom: 16 }}>System Monitoring Queue</Text>
 
@@ -1992,9 +2137,11 @@ function AdminScreen({ onNavigate, onLogout, user }) {
               ))
             )}
           </View>
+          </ResponsiveContainer>
         )}
 
                 {activeTab === "settings" && (
+          <ResponsiveContainer style={{ paddingVertical: 16 }}>
           <ScrollView style={{ flex: 1 }}>
             {/* Sub-Nav for Controls */}
             <View style={{ flexDirection: "row", backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#E2E8F0", paddingHorizontal: 16 }}>
@@ -2161,9 +2308,11 @@ function AdminScreen({ onNavigate, onLogout, user }) {
               <View style={{ height: 100 }} />
             </ScrollView>
           </ScrollView>
+          </ResponsiveContainer>
         )}
 
         {activeTab === "logs" && (
+          <ResponsiveContainer style={{ paddingVertical: 16 }}>
           <View style={{ padding: 16 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B" }}>System Activity Logs</Text>
@@ -2221,6 +2370,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
               </View>
             </View>
           </View>
+          </ResponsiveContainer>
         )}
         <View style={{ height: 60 }} />
       </ScrollView>
