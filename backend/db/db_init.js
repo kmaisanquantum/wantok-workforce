@@ -46,6 +46,7 @@ async function initializeDatabase(pool) {
       await runPatch("patch_backfill_roles.sql", "user roles backfill");
       await runPatch("patch_add_mixed_role.sql", "add mixed role to enum");
       await runPatch("patch_admin_ledger.sql", "admin ledger and dispute support");
+      await runPatch("patch_provider_profiles.sql", "provider profiles for strict filtering");
 
       console.log("✅ [Ready] Database initialization complete.");
     } finally {
