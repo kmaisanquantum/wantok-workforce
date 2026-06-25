@@ -1356,9 +1356,13 @@ function ProfileScreen({ onNavigate, currentUser, onLogout, user, onUpdateUser }
 }
 
 function AdminScreen({ onNavigate, onLogout, user }) {
+  const { width: screenWidth } = Dimensions.get("window");
+  const isDesktop = screenWidth > 1024;
   const [stats, setStats] = useState({ totalCustomers: 0, totalProviders: 0, totalMatches: 0 });
   const [pendingProviders, setPendingProviders] = useState([]);
   const [pendingVouching, setPendingVouching] = useState([]);
+  const [ledgerStats, setLedgerStats] = useState({ totalEscrowCapital: 0, totalDisbursements: 0, totalRevenue: 0 });
+  const [disputedJobs, setDisputedJobs] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -1398,6 +1402,28 @@ function AdminScreen({ onNavigate, onLogout, user }) {
     } catch (e) {
       console.error("❌ Admin Data Pipeline Error (Stats): ", e.message);
     }
+  };
+
+  const fetchLedgerStats = async () => {
+    try {
+      const adminToken = user?.token;
+      const res = await fetch(`${API_BASE}/admin/ledger-stats`, {
+        headers: { "Authorization": `Bearer ${adminToken}` }
+      });
+      const data = await res.json();
+      if (data.success) setLedgerStats(data.data);
+    } catch (e) {}
+  };
+
+  const fetchDisputed = async () => {
+    try {
+      const adminToken = user?.token;
+      const res = await fetch(`${API_BASE}/admin/disputed-jobs`, {
+        headers: { "Authorization": `Bearer ${adminToken}` }
+      });
+      const data = await res.json();
+      if (data.success) setDisputedJobs(data.data);
+    } catch (e) {}
   };
 
   const fetchPending = async () => {
@@ -1522,7 +1548,10 @@ function AdminScreen({ onNavigate, onLogout, user }) {
   useEffect(() => {
     let interval;
     if (activeTab === "dashboard") {
+      fetchUsers();
       fetchStats();
+      fetchLedgerStats();
+      fetchDisputed();
       interval = setInterval(fetchStats, 10000);
     }
     if (activeTab === "verification") { fetchPending(); fetchQueue(); }
@@ -1575,6 +1604,16 @@ function AdminScreen({ onNavigate, onLogout, user }) {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${adminToken}` },
           body: JSON.stringify({ key, value })
+        });
+      } else if (action === "release_payout") {
+        res = await fetch(`${API_BASE}/admin/release-payout/${userId}`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${adminToken}` }
+        });
+      } else if (action === "refund_escrow") {
+        res = await fetch(`${API_BASE}/admin/refund-escrow/${userId}`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${adminToken}` }
         });
       } else if (action === 'queue_override') {
         res = await fetch(`${API_BASE}/admin/queue/override`, {
@@ -1638,20 +1677,121 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
       <ScrollView style={{ flex: 1 }}>
         {activeTab === "dashboard" && (
-          <View style={{ padding: 16 }}>
-            <View style={{ flexDirection: "row", gap: 12, marginBottom: 20 }}>
-              <View style={{ flex: 1, backgroundColor: "#fff", padding: 20, borderRadius: 12, borderLeftWidth: 4, borderLeftColor: "#3B82F6", elevation: 2 }}>
-                <Text style={{ fontSize: 12, color: "#64748B", fontWeight: "600" }}>TOTAL CUSTOMERS</Text>
-                <Text style={{ fontSize: 24, fontWeight: "800", color: "#1E293B", marginTop: 4 }}>{stats.totalCustomers}</Text>
-              </View>
-              <View style={{ flex: 1, backgroundColor: "#fff", padding: 20, borderRadius: 12, borderLeftWidth: 4, borderLeftColor: "#F59E0B", elevation: 2 }}>
-                <Text style={{ fontSize: 12, color: "#64748B", fontWeight: "600" }}>TOTAL PROVIDERS</Text>
-                <Text style={{ fontSize: 24, fontWeight: "800", color: "#1E293B", marginTop: 4 }}>{stats.totalProviders}</Text>
-              </View>
+          <View style={{ padding: 16, gap: 16 }}>
+            {/* Responsive Metrics Grid */}
+            <View style={{ flexDirection: isDesktop ? "row" : "column", gap: 12 }}>
+              {[
+                { label: "TOTAL CUSTOMERS", val: stats.totalCustomers, color: "#3B82F6" },
+                { label: "TOTAL PROVIDERS", val: stats.totalProviders, color: "#F59E0B" },
+                { label: "COMPLETED MATCHES", val: stats.totalMatches, color: "#10B981" },
+                { label: "ESCROW CAPITAL", val: `K${parseFloat(ledgerStats.totalEscrowCapital || 0).toFixed(2)}`, color: "#8B5CF6" },
+                { label: "PLATFORM REVENUE", val: `K${parseFloat(ledgerStats.totalRevenue || 0).toFixed(2)}`, color: "#EC4899" }
+              ].map((m, idx) => (
+                <View key={idx} style={{ flex: 1, backgroundColor: "#fff", padding: 16, borderRadius: 12, borderLeftWidth: 4, borderLeftColor: m.color, elevation: 2 }}>
+                  <Text style={{ fontSize: 10, color: "#64748B", fontWeight: "800" }}>{m.label}</Text>
+                  <Text style={{ fontSize: 20, fontWeight: "900", color: "#1E293B", marginTop: 4 }}>{m.val}</Text>
+                </View>
+              ))}
             </View>
-            <View style={{ backgroundColor: "#fff", padding: 20, borderRadius: 12, borderLeftWidth: 4, borderLeftColor: "#10B981", elevation: 2 }}>
-              <Text style={{ fontSize: 12, color: "#64748B", fontWeight: "600" }}>COMPLETED MATCHES</Text>
-              <Text style={{ fontSize: 24, fontWeight: "800", color: "#1E293B", marginTop: 4 }}>{stats.totalMatches}</Text>
+
+            {/* Main Content Split Layout */}
+            <View style={{ flexDirection: isDesktop ? "row" : "column", gap: 16 }}>
+              {/* LEFT COLUMN: Tables (2/3) */}
+              <View style={{ flex: isDesktop ? 2 : 1, gap: 16 }}>
+                {/* Dispute List Table */}
+                <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, elevation: 2 }}>
+                  <Text style={{ fontSize: 16, fontWeight: "800", color: "#1E293B", marginBottom: 16 }}>🚨 Critical Disputes (Milestone Arbitration)</Text>
+                  {disputedJobs.length === 0 ? (
+                    <Text style={{ color: "#64748B", fontSize: 13, fontStyle: "italic" }}>No active disputes requiring intervention.</Text>
+                  ) : (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <View>
+                        <View style={{ flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#E2E8F0", paddingBottom: 8, marginBottom: 8 }}>
+                          <Text style={{ width: 150, fontWeight: "700", fontSize: 12 }}>SERVICE</Text>
+                          <Text style={{ width: 120, fontWeight: "700", fontSize: 12 }}>CUSTOMER</Text>
+                          <Text style={{ width: 100, fontWeight: "700", fontSize: 12, textAlign: "right" }}>AMOUNT</Text>
+                          <Text style={{ width: 150, fontWeight: "700", fontSize: 12, textAlign: "center" }}>ACTIONS</Text>
+                        </View>
+                        {disputedJobs.map(job => (
+                          <View key={job.id} style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+                            <Text style={{ width: 150, fontSize: 13 }}>{job.service_type}</Text>
+                            <Text style={{ width: 120, fontSize: 13, color: "#64748B" }}>{job.customer_name}</Text>
+                            <Text style={{ width: 100, fontSize: 13, fontWeight: "700", textAlign: "right" }}>K{job.price}</Text>
+                            <View style={{ width: 150, flexDirection: "row", justifyContent: "center", gap: 8 }}>
+                              <TouchableOpacity
+                                onPress={() => handleUserAction(job.id, "release_payout")}
+                                style={{ backgroundColor: "#10B981", padding: 6, borderRadius: 4 }}
+                              >
+                                <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>RELEASE</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                onPress={() => handleUserAction(job.id, "refund_escrow")}
+                                style={{ backgroundColor: "#EF4444", padding: 6, borderRadius: 4 }}
+                              >
+                                <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>REFUND</Text>
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    </ScrollView>
+                  )}
+                </View>
+
+                {/* User Registrations Table (Dashboard Preview) */}
+                <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, elevation: 2 }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                    <Text style={{ fontSize: 16, fontWeight: "800", color: "#1E293B" }}>👥 Recent User Activity</Text>
+                    <TouchableOpacity onPress={() => setActiveTab("users")}>
+                      <Text style={{ color: COLORS.primary, fontWeight: "700", fontSize: 12 }}>VIEW ALL →</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {users.slice(0, 5).map(u => (
+                    <View key={u.id} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: "#F1F5F9" }}>
+                      <View>
+                        <Text style={{ fontWeight: "700", fontSize: 13 }}>{u.name}</Text>
+                        <Text style={{ fontSize: 11, color: "#64748B" }}>{u.email}</Text>
+                      </View>
+                      <View style={{ alignItems: "right" }}>
+                        <View style={{ backgroundColor: u.role === "provider" ? "#DCFCE7" : "#DBEAFE", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }}>
+                          <Text style={{ fontSize: 10, fontWeight: "800", color: u.role === "provider" ? "#166534" : "#1E40AF" }}>{u.role.toUpperCase()}</Text>
+                        </View>
+                        <Text style={{ fontSize: 10, color: "#94A3B8", marginTop: 2 }}>{new Date(u.created_at).toLocaleDateString()}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              {/* RIGHT COLUMN: Sidebar Widgets (1/3) */}
+              <View style={{ flex: isDesktop ? 1 : 1, gap: 16 }}>
+                {/* Quick Action Widget */}
+                <View style={{ backgroundColor: "#1E293B", borderRadius: 16, padding: 20, elevation: 2 }}>
+                  <Text style={{ fontSize: 15, fontWeight: "800", color: "#fff", marginBottom: 12 }}>🛠️ Administrative Tools</Text>
+                  <TouchableOpacity onPress={handleForceSync} style={{ backgroundColor: "rgba(255,255,255,0.1)", padding: 12, borderRadius: 10, marginBottom: 10 }}>
+                    <Text style={{ color: "#fff", fontWeight: "700", textAlign: "center" }}>Database Force Reconciliation</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setActiveTab("settings")} style={{ backgroundColor: COLORS.primary, padding: 12, borderRadius: 10 }}>
+                    <Text style={{ color: "#fff", fontWeight: "700", textAlign: "center" }}>Global System Controls</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Revenue Summary Widget */}
+                <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, elevation: 2 }}>
+                   <Text style={{ fontSize: 15, fontWeight: "800", color: "#1E293B", marginBottom: 16 }}>💰 Financial Health</Text>
+                   <View style={{ gap: 12 }}>
+                      <View>
+                        <Text style={{ fontSize: 11, color: "#64748B" }}>TOTAL DISBURSEMENTS</Text>
+                        <Text style={{ fontSize: 18, fontWeight: "900", color: "#10B981" }}>K{parseFloat(ledgerStats.totalDisbursements || 0).toFixed(2)}</Text>
+                      </View>
+                      <View style={{ height: 1, backgroundColor: "#F1F5F9" }} />
+                      <View>
+                        <Text style={{ fontSize: 11, color: "#64748B" }}>ACTIVE ESCROW FLOW</Text>
+                        <Text style={{ fontSize: 18, fontWeight: "900", color: "#8B5CF6" }}>K{parseFloat(ledgerStats.totalEscrowCapital || 0).toFixed(2)}</Text>
+                      </View>
+                   </View>
+                </View>
+              </View>
             </View>
           </View>
         )}
