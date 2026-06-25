@@ -1643,7 +1643,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
             {/* Quick Filter */}
             <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
-              {["All Roles", "Service Providers", "Customers"].map(f => (
+              {["All Roles", "Service Providers", "Customers", "Admins"].map(f => (
                 <TouchableOpacity
                   key={f}
                   onPress={() => setRoleFilter(f)}

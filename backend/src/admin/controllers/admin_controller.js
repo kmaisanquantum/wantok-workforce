@@ -126,21 +126,29 @@ class AdminController {
     }
   }
 
-  static async getAllUsers(req, res) {
+    static async getAllUsers(req, res) {
     try {
       let { role, search } = req.query;
 
       // Map frontend filter strings to DB roles
       let dbRole = null;
-      if (role === 'Service Providers' || role === 'SERVICE PROVIDERS') dbRole = 'provider';
-      else if (role === 'Customers' || role === 'CUSTOMERS') dbRole = 'customer';
-      else if (role && role !== 'All Roles' && role !== 'ALL ROLES') dbRole = role.toLowerCase();
+      const normalizedRole = (role || '').toUpperCase().trim();
+
+      if (normalizedRole === 'SERVICE PROVIDERS' || normalizedRole === 'PROVIDERS') {
+        dbRole = 'provider';
+      } else if (normalizedRole === 'CUSTOMERS') {
+        dbRole = 'customer';
+      } else if (normalizedRole === 'ADMINS' || normalizedRole === 'ADMIN') {
+        dbRole = 'admin';
+      } else if (role && !['ALL ROLES', 'ALL', ''].includes(normalizedRole)) {
+        dbRole = role.toLowerCase();
+      }
 
       // Permissive query: Select from users with LEFT JOIN on user_roles to ensure we don't drop rows
       let query = `
         SELECT u.*,
                COALESCE(ARRAY(
-                 SELECT DISTINCT role_name FROM (
+                 SELECT DISTINCT role_name::TEXT FROM (
                    SELECT role::TEXT as role_name FROM users WHERE id = u.id
                    UNION
                    SELECT role_name::TEXT FROM user_roles WHERE user_id = u.id
@@ -154,7 +162,7 @@ class AdminController {
 
       if (dbRole) {
         queryParams.push(dbRole);
-        query += " AND (u.role = $" + queryParams.length + " OR EXISTS (SELECT 1 FROM user_roles WHERE user_id = u.id AND role_name = $" + queryParams.length + "))";
+        query += " AND (u.role::text = $" + queryParams.length + " OR EXISTS (SELECT 1 FROM user_roles WHERE user_id = u.id AND role_name::text = $" + queryParams.length + "))";
       }
 
       if (search) {
