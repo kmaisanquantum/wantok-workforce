@@ -126,7 +126,7 @@ class AdminController {
     }
   }
 
-    static async getAllUsers(req, res) {
+  static async getAllUsers(req, res) {
     try {
       let { role, search } = req.query;
 
@@ -144,7 +144,7 @@ class AdminController {
         dbRole = role.toLowerCase();
       }
 
-      // Permissive query: Select from users with LEFT JOIN on user_roles to ensure we don't drop rows
+      // Base query with robust roles array aggregation
       let query = `
         SELECT u.*,
                COALESCE(ARRAY(
@@ -160,7 +160,17 @@ class AdminController {
       `;
       const queryParams = [];
 
-      if (dbRole) {
+      // Strict Segregation Logic:
+      // If Provider is selected, show everyone with provider role.
+      // If Customer is selected, show everyone with customer role EXCEPT those who are also providers.
+      if (dbRole === 'provider') {
+        query += " AND (u.role::text = 'provider' OR EXISTS (SELECT 1 FROM user_roles WHERE user_id = u.id AND role_name::text = 'provider'))";
+      } else if (dbRole === 'customer') {
+        query += " AND (u.role::text = 'customer' OR EXISTS (SELECT 1 FROM user_roles WHERE user_id = u.id AND role_name::text = 'customer'))";
+        query += " AND NOT (u.role::text = 'provider' OR EXISTS (SELECT 1 FROM user_roles WHERE user_id = u.id AND role_name::text = 'provider'))";
+      } else if (dbRole === 'admin') {
+        query += " AND (u.role::text = 'admin' OR EXISTS (SELECT 1 FROM user_roles WHERE user_id = u.id AND role_name::text = 'admin'))";
+      } else if (dbRole) {
         queryParams.push(dbRole);
         query += " AND (u.role::text = $" + queryParams.length + " OR EXISTS (SELECT 1 FROM user_roles WHERE user_id = u.id AND role_name::text = $" + queryParams.length + "))";
       }
@@ -172,7 +182,7 @@ class AdminController {
 
       query += " ORDER BY u.created_at DESC";
 
-      console.log(`🔍 Admin SQL: Executing User List Query (Role Filter: ${role || 'None'})`);
+      console.log(`🔍 Admin SQL: Executing User List Query (Strict Mode: ${dbRole || 'All'})`);
       const { rows } = await UserModel.getPool().query(query, queryParams);
       console.log(`✅ Admin: Successfully retrieved ${rows.length} users.`);
 
