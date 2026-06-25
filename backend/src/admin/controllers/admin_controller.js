@@ -43,7 +43,7 @@ class AdminController {
         const query = `
           SELECT
             (SELECT COUNT(*)::INT FROM users u WHERE u.role = 'customer'::account_role OR (u.role = 'mixed'::account_role AND EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id AND ur.role_name = 'customer'::account_role))) as "totalCustomers",
-            (SELECT COUNT(*)::INT FROM users u WHERE u.role = 'provider'::account_role OR (u.role = 'mixed'::account_role AND EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id AND ur.role_name = 'provider'::account_role))) as "totalProviders",
+            (SELECT COUNT(*)::INT FROM users u WHERE u.role = 'provider'::account_role OR EXISTS (SELECT 1 FROM provider_profiles p WHERE p.user_id = u.id)) as "totalProviders",
             (SELECT COUNT(*)::INT FROM bookings WHERE status = 'completed') as "totalMatches"
         `;
         const { rows } = await UserModel.getPool().query(query);
@@ -78,7 +78,15 @@ class AdminController {
     return AdminController.getDashboardMetrics(req, res);
   }
 
-  // PART A: Sovereign Financial Ledger
+  static async getInternalSetting(key, defaultValue = null) {
+    try {
+      const { rows } = await UserModel.getPool().query('SELECT value FROM system_settings WHERE key = $1', [key]);
+      return rows.length > 0 ? rows[0].value : defaultValue;
+    } catch (err) {
+      return defaultValue;
+    }
+  }
+
   static async getSystemLedgerStats(req, res) {
     try {
       const query = `
@@ -96,7 +104,6 @@ class AdminController {
     }
   }
 
-  // PART B: Automated Milestone Arbitrator
   static async getDisputedJobs(req, res) {
     try {
       const query = `
@@ -190,7 +197,7 @@ class AdminController {
       const query = `
         SELECT
           (SELECT COUNT(*)::INT FROM users u WHERE u.role = 'customer'::account_role OR (u.role = 'mixed'::account_role AND EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id AND ur.role_name = 'customer'::account_role))) as "totalCustomers",
-          (SELECT COUNT(*)::INT FROM users u WHERE u.role = 'provider'::account_role OR (u.role = 'mixed'::account_role AND EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id AND ur.role_name = 'provider'::account_role))) as "totalProviders",
+          (SELECT COUNT(*)::INT FROM users u WHERE u.role = 'provider'::account_role OR EXISTS (SELECT 1 FROM provider_profiles p WHERE p.user_id = u.id)) as "totalProviders",
           (SELECT COUNT(*)::INT FROM bookings WHERE status = 'completed') as "totalMatches"
       `;
       const { rows } = await UserModel.getPool().query(query);
@@ -236,7 +243,11 @@ class AdminController {
                  COALESCE(ARRAY(SELECT role_name::TEXT FROM user_roles WHERE user_id = u.id), ARRAY[]::TEXT[]) as roles
           FROM users u
           WHERE u.role = 'provider'::account_role
-             OR (u.role = 'mixed'::account_role AND EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id AND ur.role_name = 'provider'::account_role))
+             OR EXISTS (
+                 SELECT 1
+                 FROM provider_profiles p
+                 WHERE p.user_id = u.id
+             )
         `;
       } else if (dbRole === 'admin') {
         query = `
@@ -405,6 +416,10 @@ class AdminController {
     } catch (error) {
       return res.status(500).json({ error: 'Failed to fetch audit logs' });
     }
+  }
+
+  static async getSystemLogsV2(req, res) {
+    return AdminController.getSystemLogs(req, res);
   }
 }
 
