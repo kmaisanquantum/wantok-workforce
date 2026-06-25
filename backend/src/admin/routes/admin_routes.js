@@ -10,13 +10,21 @@ const { authMiddleware, roleCheckMiddleware } = require('../../auth/middlewares/
 
 // Diagnostic / Dashboard Metrics (Protected by Auth but optimized for speed)
 const adminAuth = [authMiddleware, roleCheckMiddleware(["admin"])];
-// These endpoints use the self-healing Redis-to-PostgreSQL fallback
+
+// PART A: Sovereign Financial Ledger
+router.get('/ledger-stats', ...adminAuth, AdminController.getSystemLedgerStats);
+
+// PART B: Automated Milestone Arbitrator
+router.get('/disputed-jobs', ...adminAuth, AdminController.getDisputedJobs);
+router.post('/release-payout/:bookingId', ...adminAuth, AdminController.releasePayout);
+router.post('/refund-escrow/:bookingId', ...adminAuth, AdminController.refundEscrow);
+
+// Standard Dashboard Metrics
 router.get('/dashboard-metrics', ...adminAuth, AdminController.getDashboardMetrics);
 router.get('/stats', ...adminAuth, AdminController.getStats);
 router.get('/system-logs', ...adminAuth, AdminController.getSystemLogs);
 
-// Management Routes (Strictly Admin Persona only)
-
+// Management Routes
 router.get('/users', ...adminAuth, AdminController.getAllUsers);
 router.post('/users/force-sync', ...adminAuth, AdminController.forceSyncUsers);
 router.post('/users', ...adminAuth, AdminController.createUser);
