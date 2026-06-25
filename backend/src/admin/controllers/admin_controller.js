@@ -132,20 +132,21 @@ class AdminController {
 
       // Map frontend filter strings to DB roles
       let dbRole = null;
-      if (role === 'Service Providers') dbRole = 'provider';
-      else if (role === 'Customers') dbRole = 'customer';
-      else if (role && role !== 'All Roles') dbRole = role.toLowerCase();
+      if (role === 'Service Providers' || role === 'SERVICE PROVIDERS') dbRole = 'provider';
+      else if (role === 'Customers' || role === 'CUSTOMERS') dbRole = 'customer';
+      else if (role && role !== 'All Roles' && role !== 'ALL ROLES') dbRole = role.toLowerCase();
 
+      // Permissive query: Select from users with LEFT JOIN on user_roles to ensure we don't drop rows
       let query = `
         SELECT u.*,
-               ARRAY(
+               COALESCE(ARRAY(
                  SELECT DISTINCT role_name FROM (
                    SELECT role::TEXT as role_name FROM users WHERE id = u.id
                    UNION
                    SELECT role_name::TEXT FROM user_roles WHERE user_id = u.id
                  ) sub
                  WHERE role_name IS NOT NULL AND role_name::TEXT NOT IN ('null', 'undefined', '')
-               ) as roles
+               ), ARRAY[]::TEXT[]) as roles
         FROM users u
         WHERE 1=1
       `;
@@ -163,12 +164,17 @@ class AdminController {
 
       query += " ORDER BY u.created_at DESC";
 
+      console.log(`🔍 Admin SQL: Executing User List Query (Role Filter: ${role || 'None'})`);
       const { rows } = await UserModel.getPool().query(query, queryParams);
-      console.log(`🔍 Admin: Fetched ${rows.length} users (Role Filter: ${role || 'None'})`);
-      return res.status(200).json({ success: true, users: rows });
+      console.log(`✅ Admin: Successfully retrieved ${rows.length} users.`);
+
+      return res.status(200).json({
+        success: true,
+        users: rows
+      });
     } catch (error) {
       console.error('❌ Admin Get Users Error:', error);
-      return res.status(500).json({ error: 'Failed to fetch users' });
+      return res.status(500).json({ error: 'Failed to fetch users', details: error.message });
     }
   }
 
@@ -295,7 +301,7 @@ class AdminController {
         SELECT b.id, b.service_type, b.status, b.price, b.scheduled_at, b.created_at,
                c.name as customer_name, p.name as provider_name
         FROM bookings b
-        JOIN users c ON b.customer_id = c.id
+        LEFT JOIN users c ON b.customer_id = c.id
         LEFT JOIN users p ON b.provider_id = p.id
         ORDER BY b.created_at DESC
       `;
