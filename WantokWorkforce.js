@@ -250,7 +250,7 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
       <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
         <ScrollView showsVerticalScrollIndicator={false}>
           <LinearGradient colors={[COLORS.primaryDark, COLORS.primary]} style={{ padding: 24, paddingBottom: 40 }}>
-            <ResponsiveContainer>
+
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                 <View>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -267,10 +267,10 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
                   <Text style={{ fontSize: 24 }}>🔧</Text>
                 </TouchableOpacity>
               </View>
-            </ResponsiveContainer>
+
           </LinearGradient>
 
-          <ResponsiveContainer style={{ marginTop: -20, gap: 16 }}>
+
             <View style={{ flexDirection: isDesktop ? "row" : "column", gap: 16 }}>
               {/* Left Column: Work Status & Financial Ledger */}
               <View style={{ flex: isDesktop ? 2 : 1, gap: 16 }}>
@@ -330,7 +330,7 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
                 </View>
               </View>
             </View>
-          </ResponsiveContainer>
+
         </ScrollView>
       </View>
     );
@@ -340,7 +340,7 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <LinearGradient colors={[COLORS.primaryDark, COLORS.primary]} style={{ paddingTop: 20, paddingBottom: 35 }}>
-          <ResponsiveContainer>
+
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <View>
                 <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>Good morning 👋</Text>
@@ -355,10 +355,10 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
               <TextInput value={searchText} onChangeText={setSearchText} placeholder="Search trade or category..." placeholderTextColor={COLORS.textLight} style={{ flex: 1, fontSize: 14, color: COLORS.text, padding: 0 }} />
               <View style={{ backgroundColor: COLORS.primary, borderRadius: 8, paddingVertical: 4, paddingHorizontal: 10 }}><Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>📍 PNG</Text></View>
             </View>
-          </ResponsiveContainer>
+
         </LinearGradient>
 
-        <ResponsiveContainer style={{ paddingVertical: 20 }}>
+
           <TouchableOpacity onPress={fetchNearbyProviders} disabled={isSearching} style={{ backgroundColor: COLORS.primary, borderRadius: 14, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, elevation: 4 }}>
             <Text style={{ fontSize: 18 }}>🛰️</Text>
             <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>{isSearching ? "SEARCHING NEARBY..." : "FIND NEARBY PROVIDERS"}</Text>
@@ -375,7 +375,7 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
               ))}
             </View>
           </View>
-        </ResponsiveContainer>
+
       </ScrollView>
     </View>
   );
@@ -534,7 +534,7 @@ function TrustScreen({ onNavigate }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
-      <ResponsiveContainer style={{ paddingVertical: 20 }}>
+
       <ScrollView showsVerticalScrollIndicator={false}>
         <LinearGradient
           colors={[COLORS.primaryDark, COLORS.primary]}
@@ -663,6 +663,7 @@ function TrustScreen({ onNavigate }) {
         </View>
       </ScrollView>
     </View>
+    </View>
   );
 }
 
@@ -671,7 +672,7 @@ function BookingsScreen({ onNavigate }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
-      <ResponsiveContainer style={{ paddingVertical: 20 }}>
+
       <ScrollView showsVerticalScrollIndicator={false}>
         <LinearGradient
           colors={[COLORS.primaryDark, COLORS.primary]}
@@ -932,11 +933,7 @@ function ProviderOnboardingScreen({ onComplete, user }) {
   );
 }
 
-const ResponsiveContainer = ({ children, style = {} }) => (
-  <View style={[{ width: "100%", maxWidth: MAX_WIDTH, alignSelf: "center", paddingHorizontal: CONTENT_PADDING }, style]}>
-    {children}
-  </View>
-);
+
 
 function AuthScreen({ onAuth }) {
   const [loading, setLoading] = useState(false);
@@ -1429,7 +1426,7 @@ function AdminAuthScreen({ onAuth }) {
 function WorkerDetailScreen({ worker, onNavigate }) {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
-      <ResponsiveContainer style={{ paddingVertical: 20 }}>
+
       <ScrollView>
         <View style={{ padding: 20, alignItems: "center" }}>
           <LinearGradient
@@ -1480,7 +1477,7 @@ function CreateBookingScreen({ worker, onNavigate }) {
 function ProfileScreen({ onNavigate, currentUser, onLogout, user, onUpdateUser }) {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
-      <ResponsiveContainer style={{ paddingVertical: 20 }}>
+
       <ScrollView>
         <View style={{ padding: 24, alignItems: "center", backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: COLORS.border }}>
            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
@@ -1832,7 +1829,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
       <ScrollView style={{ flex: 1 }}>
         {activeTab === "dashboard" && (
-          <ResponsiveContainer style={{ paddingVertical: 16 }}>
+
           <View style={{ padding: 16, gap: 16 }}>
             {/* Responsive Metrics Grid */}
             <View style={{ flexDirection: isDesktop ? "row" : "column", gap: 12 }}>
@@ -1950,11 +1947,11 @@ function AdminScreen({ onNavigate, onLogout, user }) {
               </View>
             </View>
           </View>
-          </ResponsiveContainer>
+
         )}
 
         {activeTab === "users" && (
-          <ResponsiveContainer style={{ paddingVertical: 16 }}>
+
           <View style={{ padding: 16 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
               <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B" }}>User Registrations</Text>
@@ -2081,11 +2078,11 @@ function AdminScreen({ onNavigate, onLogout, user }) {
               </View>
             ))}
           </View>
-          </ResponsiveContainer>
+
         )}
 
         {activeTab === "verification" && (
-          <ResponsiveContainer style={{ paddingVertical: 16 }}>
+
           <View style={{ padding: 16 }}>
             <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B", marginBottom: 16 }}>System Monitoring Queue</Text>
 
@@ -2152,11 +2149,11 @@ function AdminScreen({ onNavigate, onLogout, user }) {
               ))
             )}
           </View>
-          </ResponsiveContainer>
+
         )}
 
                 {activeTab === "settings" && (
-          <ResponsiveContainer style={{ paddingVertical: 16 }}>
+
           <ScrollView style={{ flex: 1 }}>
             {/* Sub-Nav for Controls */}
             <View style={{ flexDirection: "row", backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#E2E8F0", paddingHorizontal: 16 }}>
@@ -2323,11 +2320,11 @@ function AdminScreen({ onNavigate, onLogout, user }) {
               <View style={{ height: 100 }} />
             </ScrollView>
           </ScrollView>
-          </ResponsiveContainer>
+
         )}
 
         {activeTab === "logs" && (
-          <ResponsiveContainer style={{ paddingVertical: 16 }}>
+
           <View style={{ padding: 16 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E293B" }}>System Activity Logs</Text>
@@ -2385,7 +2382,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
               </View>
             </View>
           </View>
-          </ResponsiveContainer>
+
         )}
         <View style={{ height: 60 }} />
       </ScrollView>
@@ -2662,6 +2659,7 @@ export default function App() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.statusBar }}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.statusBar} />
+      <View style={{ flex: 1, width: "100%" }}>
 
       {/* App Header Brand */}
       <View
@@ -2711,6 +2709,7 @@ export default function App() {
           onboardingComplete={onboardingComplete}
         />
       )}
+      </View>
     </SafeAreaView>
   );
 }
