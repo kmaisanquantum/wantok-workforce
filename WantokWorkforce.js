@@ -2712,6 +2712,7 @@ export default function App() {
     </SafeAreaView>
   );
 }
+
 function WorkerCard({ worker, onPress }) {
   return (
     <TouchableOpacity
@@ -2762,30 +2763,60 @@ function WorkerCard({ worker, onPress }) {
       </View>
 
       <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+          }}
+        >
           <View>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={{ fontSize: 15, fontWeight: "700", color: COLORS.text }}>{worker?.name || "Anonymous Worker"}</Text>
+              <Text
+                style={{ fontSize: 15, fontWeight: "700", color: COLORS.text }}
+              >
+                {worker?.name || "Anonymous Worker"}
+              </Text>
               {worker?.is_verified && <TrustBadge />}
             </View>
-            <Text style={{ marginTop: 2, fontSize: 13, color: COLORS.primary, fontWeight: "600" }}>
+            <Text
+              style={{
+                marginTop: 2,
+                fontSize: 13,
+                color: COLORS.primary,
+                fontWeight: "600",
+              }}
+            >
               {worker?.primary_skill || "General Trade"}
             </Text>
-            <Text style={{ marginTop: 4, fontSize: 12, color: COLORS.textMuted }}>
+            <Text
+              style={{ marginTop: 4, fontSize: 12, color: COLORS.textMuted }}
+            >
               📞 {worker?.phone_number || "No contact info"}
             </Text>
           </View>
         </View>
 
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginVertical: 6 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            marginVertical: 6,
+          }}
+        >
           <StarRating rating={4.8} />
-          <Text style={{ fontSize: 12, fontWeight: "600", color: COLORS.text }}>4.8</Text>
+          <Text style={{ fontSize: 12, fontWeight: "600", color: COLORS.text }}>
+            4.8
+          </Text>
         </View>
 
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
             <Text style={{ fontSize: 12, color: COLORS.textMuted }}>
-              {worker?.distance_km ? worker.distance_km + " km away" : worker?.location_name || "Nearby"}
+              {worker?.distance_km
+                ? worker.distance_km + " km away"
+                : worker?.location_name || "Nearby"}
             </Text>
           </View>
         </View>
@@ -2793,4 +2824,3 @@ function WorkerCard({ worker, onPress }) {
     </TouchableOpacity>
   );
 }
-
