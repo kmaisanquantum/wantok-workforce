@@ -2056,7 +2056,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
                     <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
                       <TouchableOpacity
-                        onPress={() => handleUserAction(u.id, 'update', { role: u.roles?.includes('provider') ? 'customer' : 'provider' })}
+                        onPress={() => handleUserAction(u.id, 'update', { role: u.role === 'provider' ? 'customer' : 'provider' })}
                         style={{ backgroundColor: "#F1F5F9", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: "#E2E8F0" }}
                       >
                         <Text style={{ fontSize: 10, fontWeight: "700", color: "#475569" }}>Toggle Role</Text>
@@ -2434,7 +2434,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
                 {['customer', 'provider', 'admin'].map(r => (
                   <TouchableOpacity
                     key={r}
-                    onPress={() => setEditingUser({...editingUser, role: r})}
+                    onPress={() => setEditingUser({...editingUser, role: r, roles: [r]})}
                     style={{
                       flex: 1,
                       padding: 10,
