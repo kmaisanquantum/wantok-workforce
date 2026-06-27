@@ -1728,7 +1728,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
         });
       } else if (action === 'update') {
         res = await fetch(`${API_BASE}/admin/users/${userId}`, {
-          method: "PATCH",
+          method: "PUT",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${adminToken}` },
           body: JSON.stringify(data)
         });
@@ -2420,6 +2420,15 @@ function AdminScreen({ onNavigate, onLogout, user }) {
                 style={{ backgroundColor: "#F1F5F9", padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 14 }}
               />
 
+              <Text style={{ fontSize: 11, fontWeight: "700", color: "#64748B", marginBottom: 6 }}>NEW PASSWORD (OPTIONAL)</Text>
+              <TextInput
+                value={editingUser?.password}
+                onChangeText={(t) => setEditingUser({...editingUser, password: t})}
+                placeholder="Leave blank to keep current"
+                secureTextEntry
+                style={{ backgroundColor: "#F1F5F9", padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 14 }}
+              />
+
               <Text style={{ fontSize: 11, fontWeight: "700", color: "#64748B", marginBottom: 6 }}>SYSTEM ROLE</Text>
               <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
                 {['customer', 'provider', 'admin'].map(r => (
@@ -2659,55 +2668,53 @@ export default function App() {
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.statusBar }}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.statusBar} />
       <View style={{ flex: 1, width: "100%" }}>
-
-      {/* App Header Brand */}
-      <View
-        style={{
-          backgroundColor: COLORS.statusBar,
-          height: 50,
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 16,
-          gap: 8,
-        }}
-      >
-        <Image
-          source={require("./assets/brand_logo.jpg")}
-          style={{ width: 32, height: 32, borderRadius: 16, resizeMode: "contain" }}
-        />
-        <Text
+        {/* App Header Brand */}
+        <View
           style={{
-            color: "#fff",
-            fontWeight: "900",
-            fontSize: 15,
-            letterSpacing: 0.5,
+            backgroundColor: COLORS.statusBar,
+            height: 50,
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            gap: 8,
           }}
         >
-          WANTOK WORKFORCE
-        </Text>
+          <Image
+            source={require("./assets/brand_logo.jpg")}
+            style={{ width: 32, height: 32, borderRadius: 16, resizeMode: "contain" }}
+          />
+          <Text
+            style={{
+              color: "#fff",
+              fontWeight: "900",
+              fontSize: 15,
+              letterSpacing: 0.5,
+            }}
+          >
+            WANTOK WORKFORCE
+          </Text>
+        </View>
 
-      </View>
-
-      {/* Isolated Role-Specific Layout Shells */}
-      {!isAuthenticated || !currentUser ? (
-        <View style={{ flex: 1, backgroundColor: COLORS.bg }}>{renderScreen()}</View>
-      ) : currentUser === 'admin' ? (
-        <AdminNavigationShell renderScreen={renderScreen} />
-      ) : currentUser === 'provider' ? (
-        <ProviderNavigationShell
-          renderScreen={renderScreen}
-          navigate={navigate}
-          activeNav={activeNav}
-          onboardingComplete={onboardingComplete}
-        />
-      ) : (
-        <CustomerNavigationShell
-          renderScreen={renderScreen}
-          navigate={navigate}
-          activeNav={activeNav}
-          onboardingComplete={onboardingComplete}
-        />
-      )}
+        {/* Isolated Role-Specific Layout Shells */}
+        {!isAuthenticated || !currentUser ? (
+          <View style={{ flex: 1, backgroundColor: COLORS.bg }}>{renderScreen()}</View>
+        ) : currentUser === 'admin' ? (
+          <AdminNavigationShell renderScreen={renderScreen} />
+        ) : currentUser === 'provider' ? (
+          <ProviderNavigationShell
+            renderScreen={renderScreen}
+            navigate={navigate}
+            activeNav={activeNav}
+            onboardingComplete={onboardingComplete}
+          />
+        ) : (
+          <CustomerNavigationShell
+            renderScreen={renderScreen}
+            navigate={navigate}
+            activeNav={activeNav}
+            onboardingComplete={onboardingComplete}
+          />
+        )}
       </View>
     </SafeAreaView>
   );
