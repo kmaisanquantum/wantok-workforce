@@ -4,8 +4,9 @@ const bcrypt = require('bcrypt');
 class AdminController {
   static async getDashboardMetrics(req, res) {
     try {
+      // Use user_roles for accurate, exclusive counts
       const customerQuery = "SELECT COUNT(*) as \"totalCustomers\" FROM user_roles WHERE role_name = 'customer'";
-      const providerQuery = "SELECT COUNT(*) as \"totalProviders\" FROM provider_profiles";
+      const providerQuery = "SELECT COUNT(*) as \"totalProviders\" FROM user_roles WHERE role_name = 'provider'";
       const bookingQuery = "SELECT COUNT(*) as \"totalMatches\" FROM bookings";
 
       const [customers, providers, matches] = await Promise.all([
@@ -33,7 +34,15 @@ class AdminController {
       let query = "";
       let queryParams = [];
 
-      if (role === 'admin') {
+      const roleMap = {
+        "Service Providers": "provider",
+        "Customers": "customer",
+        "Admins": "admin"
+      };
+
+      const dbRole = roleMap[role] || null;
+
+      if (dbRole === 'admin' || role === 'admin') {
         query = `
           SELECT id, name, email, phone_number, status, role, is_verified, is_flagged, created_at,
                  ARRAY['admin']::TEXT[] as roles
@@ -45,13 +54,23 @@ class AdminController {
           SELECT u.id, u.name, u.email, u.phone_number, u.status, u.role, u.is_verified, u.is_flagged, u.created_at,
                  COALESCE(ARRAY(SELECT role_name::TEXT FROM user_roles WHERE user_id = u.id), ARRAY[]::TEXT[]) as roles
           FROM users u
-          WHERE u.role IN ('customer'::account_role, 'provider'::account_role, 'mixed'::account_role)
+          WHERE u.role != 'admin'::account_role
         `;
+
+        if (dbRole) {
+          queryParams.push(dbRole);
+          query += ` AND EXISTS (
+            SELECT 1 FROM user_roles ur
+            WHERE ur.user_id = u.id
+            AND ur.role_name = $1
+          )`;
+        }
       }
 
       if (search) {
+        const searchIdx = queryParams.length + 1;
         queryParams.push("%" + search + "%");
-        query += ` AND (u.name ILIKE $1 OR u.email ILIKE $1 OR u.phone_number ILIKE $1)`;
+        query += ` AND (u.name ILIKE $${searchIdx} OR u.email ILIKE $${searchIdx} OR u.phone_number ILIKE $${searchIdx})`;
       }
 
       query += " ORDER BY u.created_at DESC";
@@ -64,37 +83,26 @@ class AdminController {
     }
   }
 
-  static async getPendingProviders(req, res) {
+  static async forceSyncUsers(req, res) {
+    let client;
     try {
-      const query = "SELECT id, name, email, phone_number, created_at, status FROM users WHERE role = 'provider' AND status = 'pending_verification' ORDER BY created_at DESC";
-      const { rows } = await UserModel.getPool().query(query);
-      return res.status(200).json({ success: true, data: rows });
-    } catch (error) {
-      return res.status(500).json({ error: 'Failed to fetch pending providers' });
-    }
-  }
+      client = await UserModel.getPool().connect();
+      await client.query('BEGIN');
 
-  static async approveProvider(req, res) {
-    try {
-      const { providerId } = req.params;
-      const query = "UPDATE users SET status = 'active', is_verified = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id";
-      const { rows } = await UserModel.getPool().query(query, [providerId]);
-      if (rows.length === 0) return res.status(404).json({ error: 'Provider not found' });
-      return res.status(200).json({ success: true, message: 'Provider approved successfully' });
-    } catch (error) {
-      return res.status(500).json({ error: 'Failed to approve provider' });
-    }
-  }
+      // 1. Resolve 'mixed' roles to a single persona
+      await client.query("UPDATE users SET role = COALESCE(active_persona, 'customer')::account_role WHERE role = 'mixed'");
 
-  static async flagUser(req, res) {
-    try {
-      const { userId } = req.params;
-      const { isFlagged } = req.body;
-      const query = "UPDATE users SET is_flagged = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id";
-      await UserModel.getPool().query(query, [isFlagged, userId]);
-      return res.status(200).json({ success: true, message: 'User flagging status updated' });
+      // 2. Re-synchronize user_roles table with exclusive 1:1 mapping
+      await client.query("DELETE FROM user_roles");
+      await client.query("INSERT INTO user_roles (user_id, role_name) SELECT id, role::TEXT FROM users WHERE role IS NOT NULL");
+
+      await client.query('COMMIT');
+      return res.status(200).json({ success: true, message: "Role exclusivity enforced." });
     } catch (error) {
-      return res.status(500).json({ error: 'Failed to update user flag status' });
+      if (client) await client.query('ROLLBACK');
+      return res.status(500).json({ error: 'Sync failed' });
+    } finally {
+      if (client) client.release();
     }
   }
 
@@ -105,8 +113,14 @@ class AdminController {
       const passwordHash = await bcrypt.hash(password || 'Wantok2024!', 12);
       client = await UserModel.getPool().connect();
       await client.query('BEGIN');
-      const { rows } = await client.query('INSERT INTO users (name, email, phone_number, password_hash, role, is_verified, is_flagged) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id', [name, email, phone_number, passwordHash, role, is_verified || false, is_flagged || false]);
-      await client.query('INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2)', [rows[0].id, role]);
+
+      const cleanRole = ['customer', 'provider', 'admin'].includes(role) ? role : 'customer';
+
+      const { rows } = await client.query('INSERT INTO users (name, email, phone_number, password_hash, role, active_persona, is_verified, is_flagged) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id', [name, email, phone_number, passwordHash, cleanRole, cleanRole, is_verified || false, is_flagged || false]);
+
+      await client.query('DELETE FROM user_roles WHERE user_id = $1', [rows[0].id]);
+      await client.query('INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2)', [rows[0].id, cleanRole]);
+
       await client.query('COMMIT');
       return res.status(201).json({ success: true, message: 'User created successfully', userId: rows[0].id });
     } catch (error) {
@@ -126,8 +140,16 @@ class AdminController {
       client = await UserModel.getPool().connect();
       await client.query('BEGIN');
 
-      let updateFields = ["name = $1", "email = $2", "phone_number = $3", "role = $4", "is_verified = $5", "is_flagged = $6"];
-      let params = [name, email, phone_number, role, is_verified ?? false, is_flagged ?? false];
+      const cleanRole = ['customer', 'provider', 'admin'].includes(role) ? role : null;
+
+      let updateFields = ["name = $1", "email = $2", "phone_number = $3", "is_verified = $4", "is_flagged = $5"];
+      let params = [name, email, phone_number, is_verified ?? false, is_flagged ?? false];
+
+      if (cleanRole) {
+        updateFields.push(`role = $${params.length + 1}`);
+        updateFields.push(`active_persona = $${params.length + 1}`);
+        params.push(cleanRole);
+      }
 
       if (password && password.trim() !== "") {
         const hashedPassword = await bcrypt.hash(password, 12);
@@ -145,9 +167,9 @@ class AdminController {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      if (role) {
+      if (cleanRole) {
         await client.query('DELETE FROM user_roles WHERE user_id = $1', [userId]);
-        await client.query('INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2)', [userId, role]);
+        await client.query('INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2)', [userId, cleanRole]);
       }
 
       await client.query('COMMIT');
@@ -237,6 +259,40 @@ class AdminController {
     return AdminController.getSystemLogs(req, res);
   }
 
+  static async getPendingProviders(req, res) {
+    try {
+      const query = "SELECT id, name, email, phone_number, created_at, status FROM users WHERE role = 'provider' AND status = 'pending_verification' ORDER BY created_at DESC";
+      const { rows } = await UserModel.getPool().query(query);
+      return res.status(200).json({ success: true, data: rows });
+    } catch (error) {
+      return res.status(500).json({ error: 'Failed to fetch pending providers' });
+    }
+  }
+
+  static async approveProvider(req, res) {
+    try {
+      const { providerId } = req.params;
+      const query = "UPDATE users SET status = 'active', is_verified = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id";
+      const { rows } = await UserModel.getPool().query(query, [providerId]);
+      if (rows.length === 0) return res.status(404).json({ error: 'Provider not found' });
+      return res.status(200).json({ success: true, message: 'Provider approved successfully' });
+    } catch (error) {
+      return res.status(500).json({ error: 'Failed to approve provider' });
+    }
+  }
+
+  static async flagUser(req, res) {
+    try {
+      const { userId } = req.params;
+      const { isFlagged } = req.body;
+      const query = "UPDATE users SET is_flagged = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id";
+      await UserModel.getPool().query(query, [isFlagged, userId]);
+      return res.status(200).json({ success: true, message: 'User flagging status updated' });
+    } catch (error) {
+      return res.status(500).json({ error: 'Failed to update user flag status' });
+    }
+  }
+
   static async getPendingVouching(req, res) {
     try {
       const query = `
@@ -296,8 +352,6 @@ class AdminController {
     }
   }
 
-  // Fallback / Stub for missing methods to prevent Express crash
-  static async forceSyncUsers(req, res) { return res.status(200).json({ success: true }); }
   static async getSystemLedgerStats(req, res) { return res.status(200).json({ success: true, data: {} }); }
   static async getDisputedJobs(req, res) { return res.status(200).json({ success: true, data: [] }); }
   static async releasePayout(req, res) { return res.status(200).json({ success: true }); }
