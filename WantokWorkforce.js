@@ -1728,7 +1728,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
         });
       } else if (action === 'update') {
         res = await fetch(`${API_BASE}/admin/users/${userId}`, {
-          method: "PATCH",
+          method: "PUT",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${adminToken}` },
           body: JSON.stringify(data)
         });
@@ -2417,6 +2417,15 @@ function AdminScreen({ onNavigate, onLogout, user }) {
                 value={editingUser?.phone_number}
                 onChangeText={(t) => setEditingUser({...editingUser, phone_number: t})}
                 placeholder="e.g. 70000000"
+                style={{ backgroundColor: "#F1F5F9", padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 14 }}
+              />
+
+              <Text style={{ fontSize: 11, fontWeight: "700", color: "#64748B", marginBottom: 6 }}>NEW PASSWORD (OPTIONAL)</Text>
+              <TextInput
+                value={editingUser?.password}
+                onChangeText={(t) => setEditingUser({...editingUser, password: t})}
+                placeholder="Leave blank to keep current"
+                secureTextEntry
                 style={{ backgroundColor: "#F1F5F9", padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 14 }}
               />
 

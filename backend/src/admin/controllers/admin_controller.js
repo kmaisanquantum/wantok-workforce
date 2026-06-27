@@ -336,12 +336,25 @@ class AdminController {
   static async updateUser(req, res) {
     try {
       const { userId } = req.params;
-      const { name, email, phone_number, role } = req.body;
-      const query = "UPDATE users SET name = $1, email = $2, phone_number = $3, role = $4 WHERE id = $5 RETURNING id";
-      const { rows } = await UserModel.getPool().query(query, [name, email, phone_number, role, userId]);
+      const { name, email, phone_number, role, password } = req.body;
+
+      let query;
+      let params;
+
+      if (password) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        query = "UPDATE users SET name = $1, email = $2, phone_number = $3, role = $4, password = $5 WHERE id = $6 RETURNING id";
+        params = [name, email, phone_number, role, hashedPassword, userId];
+      } else {
+        query = "UPDATE users SET name = $1, email = $2, phone_number = $3, role = $4 WHERE id = $5 RETURNING id";
+        params = [name, email, phone_number, role, userId];
+      }
+
+      const { rows } = await UserModel.getPool().query(query, params);
       if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
       return res.status(200).json({ success: true, message: 'User updated successfully' });
     } catch (error) {
+      console.error('Update User Error:', error);
       return res.status(500).json({ error: 'Failed to update user' });
     }
   }
