@@ -2668,55 +2668,53 @@ export default function App() {
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.statusBar }}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.statusBar} />
       <View style={{ flex: 1, width: "100%" }}>
-
-      {/* App Header Brand */}
-      <View
-        style={{
-          backgroundColor: COLORS.statusBar,
-          height: 50,
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 16,
-          gap: 8,
-        }}
-      >
-        <Image
-          source={require("./assets/brand_logo.jpg")}
-          style={{ width: 32, height: 32, borderRadius: 16, resizeMode: "contain" }}
-        />
-        <Text
+        {/* App Header Brand */}
+        <View
           style={{
-            color: "#fff",
-            fontWeight: "900",
-            fontSize: 15,
-            letterSpacing: 0.5,
+            backgroundColor: COLORS.statusBar,
+            height: 50,
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            gap: 8,
           }}
         >
-          WANTOK WORKFORCE
-        </Text>
+          <Image
+            source={require("./assets/brand_logo.jpg")}
+            style={{ width: 32, height: 32, borderRadius: 16, resizeMode: "contain" }}
+          />
+          <Text
+            style={{
+              color: "#fff",
+              fontWeight: "900",
+              fontSize: 15,
+              letterSpacing: 0.5,
+            }}
+          >
+            WANTOK WORKFORCE
+          </Text>
+        </View>
 
-      </View>
-
-      {/* Isolated Role-Specific Layout Shells */}
-      {!isAuthenticated || !currentUser ? (
-        <View style={{ flex: 1, backgroundColor: COLORS.bg }}>{renderScreen()}</View>
-      ) : currentUser === 'admin' ? (
-        <AdminNavigationShell renderScreen={renderScreen} />
-      ) : currentUser === 'provider' ? (
-        <ProviderNavigationShell
-          renderScreen={renderScreen}
-          navigate={navigate}
-          activeNav={activeNav}
-          onboardingComplete={onboardingComplete}
-        />
-      ) : (
-        <CustomerNavigationShell
-          renderScreen={renderScreen}
-          navigate={navigate}
-          activeNav={activeNav}
-          onboardingComplete={onboardingComplete}
-        />
-      )}
+        {/* Isolated Role-Specific Layout Shells */}
+        {!isAuthenticated || !currentUser ? (
+          <View style={{ flex: 1, backgroundColor: COLORS.bg }}>{renderScreen()}</View>
+        ) : currentUser === 'admin' ? (
+          <AdminNavigationShell renderScreen={renderScreen} />
+        ) : currentUser === 'provider' ? (
+          <ProviderNavigationShell
+            renderScreen={renderScreen}
+            navigate={navigate}
+            activeNav={activeNav}
+            onboardingComplete={onboardingComplete}
+          />
+        ) : (
+          <CustomerNavigationShell
+            renderScreen={renderScreen}
+            navigate={navigate}
+            activeNav={activeNav}
+            onboardingComplete={onboardingComplete}
+          />
+        )}
       </View>
     </SafeAreaView>
   );
