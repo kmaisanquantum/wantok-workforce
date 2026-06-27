@@ -1966,7 +1966,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
                   />
                 </View>
                 <TouchableOpacity
-                  onPress={() => { setEditingUser({ roles: ['customer'] }); setModalVisible(true); }}
+                  onPress={() => { setEditingUser({ role: 'customer' }); setModalVisible(true); }}
                   style={{ backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }}
                 >
                   <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>+ New User</Text>
@@ -2070,7 +2070,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
                     </View>
                   </View>
                   <View style={{ flexDirection: "row", gap: 4 }}>
-                    <TouchableOpacity onPress={() => { setEditingUser(u); setModalVisible(true); }} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 14 }}>✏️</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => { setEditingUser({ ...u, role: u.role || (u.roles && u.roles[0]) || 'customer' }); setModalVisible(true); }} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 14 }}>✏️</Text></TouchableOpacity>
                     <TouchableOpacity onPress={() => handleUserAction(u.id, 'delete')} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#FEF2F2", alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 14 }}>🗑️</Text></TouchableOpacity>
                   </View>
                 </View>
@@ -2439,11 +2439,11 @@ function AdminScreen({ onNavigate, onLogout, user }) {
                       flex: 1,
                       padding: 10,
                       borderRadius: 8,
-                      backgroundColor: (editingUser?.role === r || editingUser?.roles?.includes(r)) ? COLORS.primary : "#F1F5F9",
+                      backgroundColor: editingUser?.role === r ? COLORS.primary : "#F1F5F9",
                       alignItems: "center"
                     }}
                   >
-                    <Text style={{ fontSize: 10, fontWeight: "800", color: (editingUser?.role === r || editingUser?.roles?.includes(r)) ? "#fff" : "#64748B" }}>
+                    <Text style={{ fontSize: 10, fontWeight: "800", color: editingUser?.role === r ? "#fff" : "#64748B" }}>
                       {r.toUpperCase()}
                     </Text>
                   </TouchableOpacity>
