@@ -1604,6 +1604,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
   const fetchUsers = async () => {
     setLoading(true);
+    setUsers([]); // Clear current list to prevent stale data leaks
     try {
       const adminToken = user?.token;
       const res = await fetch(`${API_BASE}/admin/users?role=${encodeURIComponent(roleFilter)}`, {
@@ -1613,6 +1614,8 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       if (res.ok) {
         const usersData = data.users || data.data?.users || data.data || data;
         setUsers(Array.isArray(usersData) ? usersData : []);
+      } else {
+        console.error("❌ Admin API Error:", data);
       }
     } catch (e) {
       console.error("❌ Admin Data Pipeline Error (Users): ", e.message);

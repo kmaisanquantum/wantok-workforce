@@ -42,12 +42,13 @@ class AdminController {
 
       const dbRole = roleMap[role] || null;
 
-      if (dbRole === 'admin' || role === 'admin') {
+      // STRICT ADMIN FILTERING: If Admin tab is selected, only show pure admins
+      if (dbRole === 'admin' || role === 'admin' || role === 'Admins') {
         query = `
-          SELECT id, name, email, phone_number, status, role, is_verified, is_flagged, created_at,
+          SELECT u.id, u.name, u.email, u.phone_number, u.status, u.role, u.is_verified, u.is_flagged, u.created_at,
                  ARRAY['admin']::TEXT[] as roles
-          FROM users
-          WHERE role = 'admin'::account_role
+          FROM users u
+          WHERE u.role = 'admin'::account_role
         `;
       } else {
         query = `
