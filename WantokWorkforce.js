@@ -352,7 +352,7 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
             </View>
             <View style={{ backgroundColor: "#fff", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10, elevation: 4 }}>
               <Text style={{ fontSize: 18 }}>🔍</Text>
-              <TextInput value={searchText} onChangeText={setSearchText} placeholder="Search trade or category..." placeholderTextColor={COLORS.textLight} style={{ flex: 1, fontSize: 14, color: COLORS.text, padding: 0 }} />
+              <TextInput value={searchText} onChangeText={setSearchText} placeholder="Search trade or category..." placeholderTextColor={COLORS.textLight} style={{ flex: 1, fontSize: 14, color: COLORS.text, paddingLeft: 8, paddingVertical: 0 }} />
               <View style={{ backgroundColor: COLORS.primary, borderRadius: 8, paddingVertical: 4, paddingHorizontal: 10 }}><Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>📍 PNG</Text></View>
             </View>
 
@@ -369,8 +369,8 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
             <View style={{ flexDirection: "row", flexWrap: "wrap", marginHorizontal: -5 }}>
               {categories.map((cat, i) => (
                 <TouchableOpacity key={i} onPress={() => { setSelectedCategory(cat.label); setSearchText(""); }} style={{ width: isDesktop ? (MAX_WIDTH - 80) / 6 - 10 : (width - 32) / 4 - 10, margin: 5, backgroundColor: selectedCategory === cat.label ? cat.color + "22" : "#fff", borderRadius: 14, paddingVertical: 12, alignItems: "center", gap: 6, elevation: 2, borderWidth: selectedCategory === cat.label ? 1 : 0, borderColor: cat.color }}>
-                  <Text style={{ fontSize: 22 }}>{cat.icon}</Text>
-                  <Text numberOfLines={1} style={{ fontSize: 10, fontWeight: "600", color: selectedCategory === cat.label ? cat.color : COLORS.textMuted }}>{cat.label}</Text>
+                  <View style={{ width: 40, height: 40, justifyContent: "center", alignItems: "center" }}><Text style={{ fontSize: 22 }}>{cat.icon}</Text></View>
+                  <Text numberOfLines={1} style={{ fontSize: 10, fontWeight: "700", color: selectedCategory === cat.label ? cat.color : COLORS.textMuted }}>{cat.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
