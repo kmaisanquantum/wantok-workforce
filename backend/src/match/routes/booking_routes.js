@@ -1,13 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const BookingController = require('../controllers/booking_controller');
+const {
+  createJob,
+  getBookings,
+  acceptJob,
+  lockEscrow,
+  markComplete,
+  approveWork
+} = require('../controllers/booking_controller');
 const authMiddleware = require('../../auth/middlewares/auth');
 
-router.post('/create', authMiddleware, BookingController.createJob);
-router.post('/:bookingId/accept', authMiddleware, BookingController.acceptJob);
-router.post('/:bookingId/escrow', authMiddleware, BookingController.lockEscrow);
-router.post('/:bookingId/complete', authMiddleware, BookingController.markComplete);
-router.post('/:bookingId/approve', authMiddleware, BookingController.approveWork);
+router.post('/create', authMiddleware, createJob);
+router.post('/:bookingId/accept', authMiddleware, acceptJob);
+router.post('/:bookingId/escrow', authMiddleware, lockEscrow);
+router.post('/:bookingId/complete', authMiddleware, markComplete);
+router.post('/:bookingId/approve', authMiddleware, approveWork);
+router.get('/list', authMiddleware, getBookings);
 
-router.get('/list', authMiddleware, BookingController.getBookings);
 module.exports = router;
