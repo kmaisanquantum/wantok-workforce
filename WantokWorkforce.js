@@ -668,6 +668,8 @@ function TrustScreen({ onNavigate }) {
 }
 
 function BookingsScreen({ onNavigate, user, currentUser }) {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const fetchBookings = async () => {
     setLoading(true);
