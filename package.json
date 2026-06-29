@@ -7,7 +7,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "build": "NODE_OPTIONS=--max-old-space-size=4096 expo export --platform web",
+    "build": "NODE_OPTIONS=\"--max-old-space-size=4096\" npx expo export",
     "serve": "node backend/server.js",
     "start:prod": "node backend/server.js"
   },
@@ -32,7 +32,8 @@
     "ioredis": "^5.11.1",
     "@socket.io/redis-adapter": "^8.3.0",
     "rate-limit-redis": "^5.0.0",
-    "pg-connection-string": "^2.13.0"
+    "pg-connection-string": "^2.13.0",
+    "sharp": "^0.33.3"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
