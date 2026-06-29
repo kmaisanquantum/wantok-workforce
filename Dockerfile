@@ -1,5 +1,5 @@
 # Build stage
-FROM node:22 AS build
+FROM node:22-bookworm AS build
 
 WORKDIR /app
 
@@ -11,19 +11,20 @@ RUN npm ci
 COPY . .
 
 # Run build with increased memory for Expo export
-# Using npx expo export to ensure the local version is used
 RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
+# Prune dev dependencies for production
+RUN npm prune --production
+
 # Production stage
-FROM node:22-slim
+FROM node:22-bookworm-slim
 
 WORKDIR /app
 
 # Copy built assets (Expo export output)
 COPY --from=build /app/dist ./dist
 
-# Copy backend code and dependencies
-# The backend folder is copied as is, and root node_modules contains all production deps
+# Copy backend code and production dependencies
 COPY --from=build /app/backend ./backend
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/node_modules ./node_modules
