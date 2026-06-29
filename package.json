@@ -13,30 +13,30 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~3.1.1",
+    "@socket.io/redis-adapter": "^8.3.0",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
     "expo": "~50.0.0",
     "expo-linear-gradient": "~12.7.2",
     "expo-status-bar": "~1.11.1",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.5.2",
+    "ioredis": "^5.11.1",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.5",
+    "pg-connection-string": "^2.13.0",
+    "rate-limit-redis": "^5.0.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-native": "0.73.6",
     "react-native-web": "~0.19.6",
-    "express": "^4.19.2",
-    "cors": "^2.8.5",
-    "socket.io": "^4.8.3",
-    "pg": "^8.11.5",
-    "jsonwebtoken": "^9.0.2",
-    "bcrypt": "^5.1.1",
-    "express-rate-limit": "^8.5.2",
-    "ioredis": "^5.11.1",
-    "@socket.io/redis-adapter": "^8.3.0",
-    "rate-limit-redis": "^5.0.0",
-    "pg-connection-string": "^2.13.0",
-    "sharp": "^0.33.3"
+    "sharp": "^0.33.5",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
-    "playwright": "^1.61.0",
-    "@playwright/test": "^1.61.0"
+    "@playwright/test": "^1.61.0",
+    "playwright": "^1.61.0"
   },
   "engines": {
     "node": ">=22.0.0"
