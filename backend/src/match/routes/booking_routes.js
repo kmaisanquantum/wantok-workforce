@@ -8,7 +8,7 @@ const {
   markComplete,
   approveWork
 } = require('../controllers/booking_controller');
-const authMiddleware = require('../../auth/middlewares/auth');
+const { authMiddleware } = require('../../auth/middlewares/auth');
 
 router.post('/create', authMiddleware, createJob);
 router.post('/:bookingId/accept', authMiddleware, acceptJob);
