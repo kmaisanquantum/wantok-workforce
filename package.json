@@ -7,17 +7,15 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "build": "NODE_OPTIONS=\"--max-old-space-size=4096\" npx expo export",
+    "build": "NODE_OPTIONS=\"--max-old-space-size=2048\" npx expo export",
     "serve": "node backend/server.js",
     "start:prod": "node backend/server.js"
   },
   "dependencies": {
     "@expo/metro-runtime": "~3.1.1",
-    "@playwright/test": "^1.61.0",
     "expo": "~50.0.0",
     "expo-linear-gradient": "~12.7.2",
     "expo-status-bar": "~1.11.1",
-    "playwright": "^1.61.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-native": "0.73.6",
@@ -36,7 +34,9 @@
     "sharp": "^0.33.3"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0"
+    "@babel/core": "^7.20.0",
+    "playwright": "^1.61.0",
+    "@playwright/test": "^1.61.0"
   },
   "engines": {
     "node": ">=22.0.0"
