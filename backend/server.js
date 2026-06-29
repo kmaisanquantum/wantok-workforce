@@ -1,3 +1,14 @@
+// Global Error Handlers (Harden against instant crashes)
+process.on('uncaughtException', (err) => {
+  console.error('CRITICAL: Uncaught Exception:', err.message);
+  console.error(err.stack);
+  // Keep process alive if possible in dev, but in prod we might want to exit(1)
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('CRITICAL: Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -29,7 +40,8 @@ const io = new Server(httpServer, {
 
 
 // Configure Redis adapter for Socket.io if Redis is available
-if (redisClient) {
+try {
+  if (redisClient) {
   const pubClient = redisClient;
   const subClient = pubClient.duplicate();
   io.adapter(createAdapter(pubClient, subClient));
@@ -49,6 +61,9 @@ if (redisClient) {
       }
     }
   });
+}
+} catch (redisErr) {
+  console.error('⚠️ [Socket.io] Redis Adapter initialization failed:', redisErr.message);
 }
 
 // Socket.io Authentication Middleware
@@ -164,6 +179,10 @@ app.get('*', (req, res) => {
 });
 
 // Initialize server
+httpServer.on('error', (err) => {
+  console.error('❌ Server startup error:', err.message);
+});
+
 httpServer.listen(PORT, '0.0.0.0', async () => {
   console.log(`Wantok Unified Server running on port ${PORT}`);
 
