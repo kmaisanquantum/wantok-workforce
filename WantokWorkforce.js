@@ -1638,7 +1638,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
         alert("🔄 Database Reconciliation Complete");
         const usersData = data.users || data.data?.users || data.data || data; setUsers(Array.isArray(usersData) ? usersData : []);
       } else {
-        alert("❌ Sync Failed: " + (data.error || "Unknown Error"));
+        alert("❌ Sync Failed (Status: " + res.status + "): " + (data.error || "Unknown Error"));
       }
     } catch (e) {
       alert("❌ Sync Error: " + e.message);

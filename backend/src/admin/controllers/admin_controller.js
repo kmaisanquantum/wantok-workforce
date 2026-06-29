@@ -90,18 +90,28 @@ class AdminController {
       client = await UserModel.getPool().connect();
       await client.query('BEGIN');
 
-      // 1. Resolve 'mixed' roles to a single persona
-      await client.query("UPDATE users SET role = COALESCE(active_persona, 'customer')::account_role WHERE role = 'mixed'");
+            // 1. Resolve 'mixed' or invalid roles to a single persona
+      await client.query(`
+        UPDATE users
+        SET role = COALESCE(active_persona, 'customer')::account_role
+        WHERE role::TEXT IN ('mixed', 'null', 'undefined', '') OR role IS NULL
+      `);
 
       // 2. Re-synchronize user_roles table with exclusive 1:1 mapping
       await client.query("DELETE FROM user_roles");
-      await client.query("INSERT INTO user_roles (user_id, role_name) SELECT id, role::TEXT FROM users WHERE role IS NOT NULL");
+      await client.query(`
+        INSERT INTO user_roles (user_id, role_name)
+        SELECT id, role::account_role
+        FROM users
+        WHERE role IS NOT NULL
+          AND role::TEXT NOT IN ('null', 'undefined', '', 'mixed')
+      `);
 
       await client.query('COMMIT');
       return res.status(200).json({ success: true, message: "Role exclusivity enforced." });
     } catch (error) {
       if (client) await client.query('ROLLBACK');
-      return res.status(500).json({ error: 'Sync failed' });
+      console.error('❌ Sync Error:', error); return res.status(500).json({ error: 'Sync failed: ' + error.message });
     } finally {
       if (client) client.release();
     }
