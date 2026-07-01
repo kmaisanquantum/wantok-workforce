@@ -249,7 +249,8 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
 
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ alignItems: "center" }}>
+          <View style={{ maxWidth: MAX_WIDTH, width: "100%", paddingHorizontal: CONTENT_PADDING }}>
           <LinearGradient colors={[COLORS.primaryDark, COLORS.primary]} style={{ padding: 24, paddingBottom: 40 }}>
 
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
@@ -332,6 +333,7 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
               </View>
             </View>
 
+          </View>
         </ScrollView>
       </View>
     );
@@ -339,7 +341,8 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ alignItems: "center" }}>
+        <View style={{ maxWidth: MAX_WIDTH, width: "100%", paddingHorizontal: CONTENT_PADDING }}>
         <LinearGradient colors={[COLORS.primaryDark, COLORS.primary]} style={{ paddingTop: 20, paddingBottom: 35 }}>
 
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -536,7 +539,8 @@ function TrustScreen({ onNavigate }) {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ alignItems: "center" }}>
+        <View style={{ maxWidth: MAX_WIDTH, width: "100%", paddingHorizontal: CONTENT_PADDING }}>
         <LinearGradient
           colors={[COLORS.primaryDark, COLORS.primary]}
           style={{
@@ -661,6 +665,7 @@ function TrustScreen({ onNavigate }) {
               {w.verified && <Text style={{ fontSize: 18 }}>✅</Text>}
             </View>
           ))}
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -714,7 +719,8 @@ function BookingsScreen({ onNavigate, user, currentUser }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
-      <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchBookings} />}>
+      <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchBookings} />} contentContainerStyle={{ alignItems: "center" }}>
+        <View style={{ maxWidth: MAX_WIDTH, width: "100%", paddingHorizontal: CONTENT_PADDING }}>
         <LinearGradient colors={[COLORS.primaryDark, COLORS.primary]} style={{ paddingVertical: 20, paddingHorizontal: 16, paddingBottom: 24 }}>
           <Text style={{ color: "#fff", fontSize: 18, fontWeight: "800" }}>My Bookings</Text>
           <Text style={{ color: "rgba(255,255,255,0.75)", marginTop: 4, fontSize: 13 }}>Work History & Financial Milestones</Text>
@@ -766,6 +772,7 @@ function BookingsScreen({ onNavigate, user, currentUser }) {
               </View>
             );
           })}
+        </View>
         </View>
       </ScrollView>
     </View>
@@ -839,6 +846,7 @@ function RoleSelectionScreen({ onSelectRole }) {
             I want to list my trade, grow my business, and find local jobs.
           </Text>
         </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -1528,7 +1536,8 @@ function ProfileScreen({ onNavigate, currentUser, onLogout, user, onUpdateUser }
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
 
-      <ScrollView>
+      <ScrollView contentContainerStyle={{ alignItems: "center" }}>
+        <View style={{ maxWidth: MAX_WIDTH, width: "100%", paddingHorizontal: CONTENT_PADDING }}>
         <View style={{ padding: 24, alignItems: "center", backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: COLORS.border }}>
            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
              <Text style={{ color: "#fff", fontSize: 32, fontWeight: "800" }}>{user?.name?.charAt(0) || "U"}</Text>
@@ -1551,6 +1560,7 @@ function ProfileScreen({ onNavigate, currentUser, onLogout, user, onUpdateUser }
               <Text style={{ fontSize: 16, fontWeight: "600", color: COLORS.text }}>Admin Dashboard</Text>
             </TouchableOpacity>
           )}
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -1842,8 +1852,9 @@ function AdminScreen({ onNavigate, onLogout, user }) {
   return (
     <View style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
       {/* Header */}
-      <View style={{ backgroundColor: "#1E293B", padding: 20, paddingTop: 50, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <View>
+      <View style={{ backgroundColor: "#1E293B" }}>
+        <View style={{ maxWidth: MAX_WIDTH, width: "100%", alignSelf: "center", padding: 20, paddingTop: 50, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <View>
           <Text style={{ fontSize: 20, fontWeight: "900", color: "#fff" }}>Wantok Admin</Text>
           <Text style={{ fontSize: 12, color: "#94A3B8" }}>SaaS Control Portal</Text>
         </View>
@@ -1853,7 +1864,8 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       </View>
 
       {/* Top Nav */}
-      <View style={{ flexDirection: "row", backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#E2E8F0" }}>
+      <View style={{ backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#E2E8F0" }}>
+        <View style={{ maxWidth: MAX_WIDTH, width: "100%", alignSelf: "center", flexDirection: "row" }}>
         {[
           { id: "dashboard", label: "Dashboard", icon: "📊" },
           { id: "users", label: "Users", icon: "👥" },
@@ -1878,9 +1890,11 @@ function AdminScreen({ onNavigate, onLogout, user }) {
             </Text>
           </TouchableOpacity>
         ))}
+        </View>
       </View>
 
-      <ScrollView style={{ flex: 1 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ alignItems: "center" }}>
+        <View style={{ maxWidth: MAX_WIDTH, width: "100%", paddingHorizontal: CONTENT_PADDING }}>
         {activeTab === "dashboard" && (
 
           <View style={{ padding: 16, gap: 16 }}>
@@ -1958,7 +1972,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
                         <Text style={{ fontWeight: "700", fontSize: 13 }}>{u.name}</Text>
                         <Text style={{ fontSize: 11, color: "#64748B" }}>{u.email}</Text>
                       </View>
-                      <View style={{ alignItems: "right" }}>
+                      <View style={{ alignItems: "flex-end" }}>
                         <View style={{ backgroundColor: u.role === "provider" ? "#DCFCE7" : "#DBEAFE", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }}>
                           <Text style={{ fontSize: 10, fontWeight: "800", color: u.role === "provider" ? "#166534" : "#1E40AF" }}>{u.role.toUpperCase()}</Text>
                         </View>
@@ -2438,6 +2452,7 @@ function AdminScreen({ onNavigate, onLogout, user }) {
 
         )}
         <View style={{ height: 60 }} />
+        </View>
       </ScrollView>
 
       {/* CRUD Modal */}
