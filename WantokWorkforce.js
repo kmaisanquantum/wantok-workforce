@@ -379,7 +379,7 @@ function HomeScreen({ onNavigate, currentUser, user, onUpdateUser }) {
               ))}
             </View>
           </View>
-
+        </View>
       </ScrollView>
     </View>
   );
@@ -846,7 +846,6 @@ function RoleSelectionScreen({ onSelectRole }) {
             I want to list my trade, grow my business, and find local jobs.
           </Text>
         </TouchableOpacity>
-        </View>
       </View>
     </View>
   );
@@ -1855,12 +1854,13 @@ function AdminScreen({ onNavigate, onLogout, user }) {
       <View style={{ backgroundColor: "#1E293B" }}>
         <View style={{ maxWidth: MAX_WIDTH, width: "100%", alignSelf: "center", padding: 20, paddingTop: 50, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
           <View>
-          <Text style={{ fontSize: 20, fontWeight: "900", color: "#fff" }}>Wantok Admin</Text>
-          <Text style={{ fontSize: 12, color: "#94A3B8" }}>SaaS Control Portal</Text>
-        </View>
+            <Text style={{ fontSize: 20, fontWeight: "900", color: "#fff" }}>Wantok Admin</Text>
+            <Text style={{ fontSize: 12, color: "#94A3B8" }}>SaaS Control Portal</Text>
+          </View>
         <TouchableOpacity onPress={onLogout} style={{ backgroundColor: "#334155", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 }}>
           <Text style={{ color: "#F1F5F9", fontWeight: "700", fontSize: 12 }}>Sign Out</Text>
         </TouchableOpacity>
+        </View>
       </View>
 
       {/* Top Nav */}
